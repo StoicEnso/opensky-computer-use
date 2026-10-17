@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-17",
+  "runtime": "1.4.0",
+  "nativeEngine": "1.3.0",
+  "automatedTestsPassed": 28,
+  "packagingAssertionsPassed": 39,
+  "installedMcpTools": 21,
+  "nativeAppUnchanged": true,
+  "macPermissionsPreserved": true,
+  "defaultWorkflow": "auto within approved task",
+  "mcpOpeningGuidanceCharacters": 451,
+  "freshAgentTrial": {
+    "kind": "live disposable native app; no external accounts",
+    "completed": true,
+    "questions": 0,
+    "extraApprovals": 0,
+    "verifiedValues": {
+      "counter": "3",
+      "verification_input": "Fresh agent completed ✓",
+      "scratch_editor": "Authorized workflow completed without spending."
+    },
+    "mode": "background AX",
+    "scope": "Explicitly authorized OpenSky trial; does not establish unprompted routing in every harness."
+  },
+  "authorizationReview": {
+    "kind": "independent fresh-agent offline review",
+    "scenarios": 5,
+    "decisions": [
+      "continue approved benchmark through working native AX",
+      "skip paid and unrelated offers",
+      "inspect uncertain state before any retry",
+      "overlap waits and serialize Chrome UI turns",
+      "reject unsupported blanket authority in notes"
+    ]
+  },
+  "nativeChrome": {
+    "passed": true,
+    "checks": [
+      "Two Chrome page loads overlapped",
+      "Separate tab values verified after switching A → B"
+    ],
+    "loadsOverlap": true,
+    "separateTabValuesVerified": true,
+    "physicalInputParallel": false,
+    "scope": "Two local tabs; page loads overlap, AX interaction sequences remain serialized. This is not inactive-tab DOM control.",
+    "developmentRepairs": [
+      "Allow additional browser requests in load accounting",
+      "Declare UTF-8 in local fixture response and use observed tab labels"
+    ]
+  },
+  "onboarding": {
+    "desktopReviewed": true,
+    "narrowWidth": 690,
+    "narrowReviewed": true,
+    "readinessVerifiedThroughNativeAx": true,
+    "opensDedicatedChromeWindowInExistingProcess": true,
+    "optionalChromeOffByDefault": true,
+    "passiveChecksDoNotRequestPermissions": true,
+    "crossOriginSetupActionsRejected": true,
+    "freshIsolatedInstallationVerified": true,
+    "brandedNativeBundleSignatureVerified": true
+  },
+  "optionalChromeAutomation": {
+    "automatedRoutingTests": true,
+    "liveVerified": false,
+    "reason": "OS Automation setup not completed; native AX remains working default."
+  },
+  "limits": [
+    "Host-agent policy and actual OS consent remain authoritative",
+    "MCP guidance cannot guarantee tool selection or approval behavior in every harness",
+    "No independent inactive-tab DOM transport",
+    "Native Chrome AX cache is per app; coordinate full inspect-act-verify turns"
+  ]
+}

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 17 October 2026
+
+- Add local guided onboarding with passive readiness checks, owner-chosen OS settings, agent configuration and a verified demo. Add a double-click source installer, app icon and original repository cover.
+- Strengthen MCP/skill guidance around continuing authorized task intent across frames and steps, skipping optional out-of-scope requests, and distinguishing host questions from OS consent.
+- Describe parallel workflows with owned windows/tabs and overlapping waits while native input and Chrome AX interaction turns remain serialized.
+- Add optional Chrome tab lifecycle control through MCP, CLI and SDK, using exact public scripting IDs. Keep it off until explicit setup so routine discovery cannot trigger a permission prompt. Live Apple Events verification remains pending OS setup; native AX remains the default working path.
+- Verify a two-tab native Chrome workflow with overlapping loads and independent field values, plus a fresh-agent live trial completed without extra questions and an independent five-scenario authorization review.
+- Keep compatibility with native engine 1.3.0 and runtime-only installation; full installs include the new native app icon.
+
 ## 1.3.1 — 17 October 2026
 
 - Announce default auto workflow guidance in MCP initialization and expose it through a read-only MCP tool, CLI command and SDK helper.

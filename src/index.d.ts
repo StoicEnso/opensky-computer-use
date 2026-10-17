@@ -26,6 +26,39 @@ export interface OperatingGuidance {
 export declare function getOperatingGuidance(): OperatingGuidance;
 export declare const NATIVE_API_VERSION: string;
 
+export interface ChromeTab {
+  tab_id: string;
+  chrome_window_id: string;
+  tab_index: number;
+  active: boolean;
+  title: string;
+  url: string;
+  loading: boolean;
+  window_title: string;
+}
+export interface ChromeTabsParams {
+  action?: 'list' | 'open' | 'navigate' | 'select' | 'close' | 'enable';
+  tab_id?: string;
+  /** Chrome scripting ID, not the native window_id from list_apps. */
+  chrome_window_id?: string;
+  url?: string;
+  /** Defaults to a dedicated window when no chrome_window_id is supplied. */
+  new_window?: boolean;
+  activate?: boolean;
+}
+export interface ChromeTabsResult {
+  ok: boolean;
+  tabs?: ChromeTab[];
+  tab?: ChromeTab;
+  closed_tab_id?: string;
+  enabled?: boolean;
+  tab_count?: number;
+  navigation_requested?: boolean;
+  error_code?: string;
+  error?: string;
+  outcome?: string;
+}
+
 export interface OpenSkyWindowInfo {
   id: number;
   app: string;
@@ -280,6 +313,8 @@ export declare function callDaemon<T = OpenSkyActionResult>(
  * OpenSky computer-use SDK using public macOS APIs.
  */
 export interface OpenSkyComputerUse {
+  /** Optional one-time opt-in Chrome Apple Events tab integration. Native AX works without it. */
+  chrome_tabs(params?: ChromeTabsParams): Promise<ChromeTabsResult>;
   /** Read local agent guidance without starting or resuming the native engine. */
   get_operating_guidance(): Promise<OperatingGuidance>;
   stop(): Promise<OpenSkyActionResult>;

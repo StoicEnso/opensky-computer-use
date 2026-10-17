@@ -1,5 +1,7 @@
 # OpenSky
 
+![OpenSky — Your agent. Your Mac.](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-cover-Codex.png)
+
 **Fast, local-first browser and desktop control for your Mac.** Give your agent native app controls, on-device OCR and a visible animated pointer through MCP, the command line or JavaScript. Open source, with no built-in telemetry or OpenSky cloud relay.
 
 [![macOS checks](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml)
@@ -13,6 +15,10 @@
 ![OpenSky's native animated pointer](artifacts/2026-10-17-opensky-pointer-demo-Codex.gif)
 
 The control engine is free and runs locally. Bring your own agent or model; its subscription or API costs are separate. OpenSky is an independent implementation built on public macOS APIs.
+
+Let your agent follow through on the task you already authorized. OpenSky carries that workflow preference into MCP: continue within your scope and limits, use fresh observations, verify results, and avoid repeating permission questions for ordinary screens and steps. Applicable host rules and real macOS consent still apply.
+
+Already installed? Run **`opensky onboard`** for a local setup screen that checks access, helps connect your agent and offers a verified demo. Optional Chrome Automation stays off until you choose it.
 
 ## Watch it control your Mac
 
@@ -48,21 +54,23 @@ Clone or download this repository, inspect it, then run:
 git clone https://github.com/StoicEnso/opensky-computer-use.git
 cd opensky-computer-use
 ./install.sh --dry-run
-./install.sh
+./install.sh --onboard
 ```
 
-A full installation invokes a release build of current Swift source. It creates and verifies an ad-hoc signed `~/Applications/OpenSky.app` with the stable bundle identifier `dev.opensky.computeruse`, copies the JavaScript runtime to `~/.local/share/opensky`, and writes launchers to `~/.local/bin`.
+You can also download a release source archive, extract it and open **Install OpenSky.command**. Node.js 22+ and the Xcode Command Line Tools are required. The installer builds and verifies the native app, then opens local guided setup in your existing Chrome session. No optional Chrome Automation request is made just to check readiness.
+
+A full installation invokes a release build of current Swift source. It creates and verifies an ad-hoc signed `~/Applications/OpenSky.app` with the stable bundle identifier `dev.opensky.computeruse` and a branded app icon, copies the JavaScript runtime to `~/.local/share/opensky`, and writes launchers to `~/.local/bin`.
 
 Updates stop the existing helper before replacing its files. App, runtime, launcher and optional skill replacements are rolled back together if a replacement fails. Your token, captures and client configuration stay in place.
 
 It does not modify agent configurations. Skill installation is optional:
 
 ```sh
-./install.sh --skill codex
+./install.sh --skill codex --onboard
 # Or: --skill claude, --skill all
 ```
 
-Add `~/.local/bin` to your `PATH` if necessary. Run `opensky setup`, then:
+Add `~/.local/bin` to your `PATH` if necessary. Run `opensky onboard` to revisit guided setup. For the text-only path, run `opensky setup`, then:
 
 ```sh
 opensky daemon
@@ -161,6 +169,31 @@ Window inspection never substitutes another window when an explicit ID is unavai
 
 Background is app dependent. An AXPress may open UI, background keys follow the app's own keyboard focus, and foreground keyboard/mouse actions share your desktop. Clipboard paste also takes focus. Avoid simultaneous editing of the same app. For web workflows alongside your own work, use a compatible browser DOM/API tool where available and OpenSky for native dialogs and other Mac apps; OpenSky does not yet include a browser DOM connection.
 
+## Several workflows at once
+
+Keep independent tasks in separate windows/tabs, overlap page loads and generation waits, and take short serialized UI turns. MCP's connection instructions and bundled skill describe ownership, task records, cursor labels, exact targets and shared input. Native requests remain serialized; multiple overlays do not create multiple physical keyboards or pointers.
+
+For native Chrome AX, prefer a window per workflow and serialize each select-tab → inspect → act → verify sequence across Chrome. Its current AX snapshot cache is per app. This prevents one workflow from using another's indices. A live two-tab test verified overlapping loads and separate field values after switching; it does not establish independent inactive-tab DOM interaction.
+
+Optional Chrome tab lifecycle tools use Chrome's public scripting interface. Enable them once from onboarding or explicitly with `opensky browser enable`; macOS may request Automation access. Routine `chrome_tabs` discovery before setup returns a setup status without opening an OS prompt. Native AX continues to work without this integration.
+
+```sh
+opensky browser list --json
+opensky browser open https://example.com             # Dedicated window by default
+opensky browser open https://example.com --window OBSERVED_CHROME_WINDOW_ID
+opensky browser navigate OBSERVED_TAB_ID https://example.com/next
+opensky browser select OBSERVED_TAB_ID
+opensky browser close OBSERVED_TAB_ID
+```
+
+Use the same arguments through MCP `chrome_tabs` or SDK `computer_use.chrome_tabs()`. Chrome scripting window IDs differ from native `window_id`; opening/selecting can change Chrome UI, and navigation returns before loading finishes. The optional transport has automated routing tests; its live Apple Events test on the development Mac remains pending OS setup. The live parallel test used the working native AX path.
+
+## Why an agent might still ask a question
+
+OpenSky creates no chat approval cards and adds no per-action authority gate. It tells agents to reuse the user's actual authorization, continue ordinary inspection and input stages, preserve limits such as no spending, and skip unrelated optional offers. The host agent controls its own question UI and approval settings. Real macOS consent belongs to macOS. Optional integrations should be chosen during onboarding, rather than interrupting an already-working remote task.
+
+Fresh-agent testing completed a real native workflow with no extra questions; a separate offline review checked five authorization/concurrency scenarios. That is bounded evidence, not a promise about every agent harness. See [the parallel and onboarding results](artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json).
+
 ## Delegated auto operation
 
 **Auto is the default workflow preference within the user's authorized task.** MCP clients receive this guidance when connecting, even without loading the optional skill. Read it later with the `get_operating_guidance` MCP tool, `opensky guidance --json`, `computer_use.get_operating_guidance()` or `getOperatingGuidance()` from the SDK. Reading guidance never starts or resumes the native engine.
@@ -171,7 +204,7 @@ Your agent can use the same MCP, CLI or SDK tools continuously under a task such
 
 The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. Applicable system, developer, harness and tool rules retain their authority whether or not they mention OpenSky. Restrictions exclusive to a different tool are not automatically imported. macOS permissions, protected dialogs, authentication, stale-target checks and emergency pause remain effective. Auto adds no authority for unrelated work and does not resume stopped control.
 
-The 1.3.1 JavaScript/guidance patch works with the existing 1.3.0 native engine; this patch does not require a new native build.
+The 1.4 JavaScript/onboarding release works with the existing 1.3.0 native engine; an existing installation does not need a native rebuild for these workflow features. New full builds include the branded app icon.
 
 For an existing managed 1.3.0 native installation, update JavaScript and optional skills with `./install.sh --runtime-only --skill codex` (use `--skill claude` for Claude). This validates the existing helper and preserves its files, running state and macOS permissions. Reconnect MCP clients to load new connection instructions. Use a full install when the required native version changes.
 
@@ -266,6 +299,8 @@ node src/cli.mjs help
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
 ## Tested scope
+
+The 1.4 follow-up passed **28 automated tests and 39 packaging assertions**, a real two-tab Chrome AX workflow, a fresh-agent live trial with **zero extra permission questions**, and an independent five-scenario authorization review. The local setup screen was inspected at desktop and narrow widths. The installed MCP connection exposes 21 tools; runtime-only update preserved the native process, binary and permissions. See [the 1.4 results and remaining limits](artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json).
 
 The 1.3 check run passed **21 automated tests, 20 live native checks and 39 packaging assertions**. A real TextEdit background edit also passed: Chrome stayed active, the selected document received the exact Unicode content, and the other TextEdit document remained unchanged. See [the 1.3 results](artifacts/2026-10-17-opensky-1-3-results-Codex.json).
 

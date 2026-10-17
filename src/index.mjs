@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { createSessionWithComputer } from "./session.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
 import { NATIVE_API_VERSION } from "./native-version.mjs";
+import { performChromeTabs } from "./chrome.mjs";
 export { OpenSkyError, matchElements } from "./session.mjs";
 export { getOperatingGuidance } from "./operator-guidance.mjs";
 export { NATIVE_API_VERSION } from "./native-version.mjs";
@@ -136,6 +137,7 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
  * Can be imported directly in Node.js, Codex REPL, Claude scripts, or Antigravity tools.
  */
 export const computer_use = {
+  async chrome_tabs(params = {}) { return performChromeTabs(computer_use,params,{home:OPENSKY_HOME}); },
   async get_operating_guidance() { return getOperatingGuidance(); },
   async stop() { return callDaemon("stop", {}, { autoStart: false }); },
   async resume() { return callDaemon("resume", {}, { autoStart: false }); },

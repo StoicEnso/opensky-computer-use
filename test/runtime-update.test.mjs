@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,copyFileSync,existsSync,rmSync} from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {parseOptions} from '../scripts/install.mjs';
 import {NATIVE_API_VERSION} from '../src/native-version.mjs';
@@ -9,8 +10,8 @@ import {NATIVE_API_VERSION} from '../src/native-version.mjs';
 test('runtime-only update preserves signed native files, running service and private data',{skip:process.platform!=='darwin'},()=>{
   assert.equal(parseOptions(['--runtime-only']).runtimeOnly,true);
   assert.throws(()=>parseOptions(['--runtime-only','--uninstall']),/cannot be combined/);
-  mkdirSync(path.resolve(import.meta.dirname,'../research'),{recursive:true});
-  const temporary=mkdtempSync(path.join(import.meta.dirname,'../research/2026-10-17-runtime-update-Codex-'));
+  // Keep the disposable signed bundle in OS temp, away from user document metadata services.
+  const temporary=mkdtempSync(path.join(os.tmpdir(),'2026-10-17-runtime-update-Codex-'));
   try{
     const prefix=path.join(temporary,'space folder'),runtime=path.join(prefix,'share/opensky'),appDir=path.join(temporary,'Applications'),app=path.join(appDir,'OpenSky.app');
     const installScript=path.resolve(import.meta.dirname,'../scripts/install.mjs');
@@ -36,6 +37,7 @@ test('runtime-only update preserves signed native files, running service and pri
     assert.equal(readFileSync(path.join(runtime,'control-token'),'utf8'),'a'.repeat(64));assert.equal(readFileSync(path.join(runtime,'screenshots/keep'),'utf8'),'capture');
     assert.equal(existsSync(path.join(runtime,'src/operator-guidance.mjs')),true);
     assert.equal(JSON.parse(readFileSync(path.join(runtime,'package.json'),'utf8')).version,JSON.parse(readFileSync(path.resolve(import.meta.dirname,'../package.json'),'utf8')).version);
-    execFileSync('/usr/bin/codesign',['--verify','--strict',app],{stdio:'ignore'});
+    const signature=spawnSync('/usr/bin/codesign',['--verify','--strict',app],{encoding:'utf8'});
+    assert.equal(signature.status,0,signature.stderr+(signature.status?execFileSync('/usr/bin/xattr',['-lr',app],{encoding:'utf8'}):''));
   }finally{rmSync(temporary,{recursive:true,force:true});}
 });

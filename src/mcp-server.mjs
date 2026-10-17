@@ -1,14 +1,27 @@
 #!/usr/bin/env node
 import { readFileSync, existsSync } from "node:fs";
-import { callDaemon, matchElements } from "./index.mjs";
+import { callDaemon, computer_use, matchElements } from "./index.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.3.1"
+  version: "1.4.0"
 };
 
 const TOOLS = [
+  {
+    name:'chrome_tabs',
+    description:'Optional preview: manage exact tabs in the owner\'s existing Google Chrome session: discover IDs, open a dedicated window or a tab in an exact Chrome window, navigate without selecting, select, or close. Requires explicit one-time onboarding Automation setup; native AX works without it and remains the working default. Chrome IDs are not native window_id values. Navigation returns before page loading completes. Select/new windows can change Chrome UI. Serialize AX inspect-act-verify turns across Chrome workflows; page loads may overlap. enable is an explicit setup action that may show macOS consent; do not run it as ordinary discovery.',
+    inputSchema:{type:'object',additionalProperties:false,properties:{
+      action:{type:'string',enum:['list','open','navigate','select','close','enable'],default:'list'},
+      tab_id:{type:'string',description:'Exact observed Chrome tab ID; stable across tab order changes.'},
+      chrome_window_id:{type:'string',description:'Exact Chrome scripting window ID, distinct from native window_id.'},
+      url:{type:'string',description:'Absolute destination URL for open/navigate.'},
+      new_window:{type:'boolean',description:'Open a dedicated window; default true when chrome_window_id is absent.'},
+      activate:{type:'boolean',default:false,description:'Explicitly bring Chrome forward. No foreground guarantee is made for Chrome UI changes.'}
+    }},
+    annotations:{readOnlyHint:false,destructiveHint:true,openWorldHint:true}
+  },
   {
     name: "get_operating_guidance",
     description: "Read OpenSky's preferred native-control workflow: fast, local-first browser and desktop use, default auto, user constraints and accurate data-handling boundaries. Local metadata only; never starts or resumes the native engine.",
@@ -52,7 +65,7 @@ const TOOLS = [
   {
     name: "get_app_state",
     description:
-      "Inspect a macOS application (launching it in the background if not running). Returns its hierarchical Accessibility (AX) UI tree with numeric element_index IDs, optional Apple Vision OCR text elements, and a window screenshot.",
+      "Inspect the app/window needed for the user's authorized task. Ordinary frame/control inspection needs no extra OpenSky permission question. Returns fresh AX element_index IDs, optional on-device OCR and a screenshot. Launches the app in the background if absent; use exact window_id to isolate workflows.",
     inputSchema: {
       type: "object",
       properties: {
@@ -84,7 +97,7 @@ const TOOLS = [
   {
     name: "click",
     description:
-      "Click a UI element by its numeric `element_index` (from `get_app_state`) or explicit `[x, y]` screen coordinates. Smoothly animates the OpenSky virtual cursor along a curved Bezier path with dynamic wallpaper fog glow, spotlight, and click ripple. Supports background AXPress and full hardware CGEvent takeover.",
+      "Perform an already-authorized task step using a fresh element_index/snapshot_id or observed screen point, with animated pointer feedback. Carry existing task authority forward; a new frame or use of OpenSky alone does not require another question. Verify the result. Background uses AXPress; hybrid/takeover may share desktop input.",
     inputSchema: {
       type: "object",
       properties: {
@@ -396,6 +409,7 @@ async function handleToolCall(name, args = {}) {
   if (!args || Array.isArray(args) || typeof args !== "object") return { ok: false, error: "Tool arguments must be an object" };
   for (const required of tool.inputSchema.required || []) if (!(required in args)) return { ok: false, error: `Missing argument: ${required}` };
   if (name === "get_operating_guidance") return getOperatingGuidance();
+  if (name === 'chrome_tabs') return computer_use.chrome_tabs(args);
   if (name === "find_elements") {
     matchElements({ elements: [] }, args.selector);
     const state = await callDaemon("get_app_state", { app: args.app, window_id: args.window_id, include_screenshot: false, include_ocr: ["ocr", "any"].includes(args.selector.source) });

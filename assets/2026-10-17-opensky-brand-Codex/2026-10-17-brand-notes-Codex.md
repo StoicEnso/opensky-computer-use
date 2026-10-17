@@ -1,0 +1,7 @@
+# OpenSky brand assets — 17 October 2026
+
+The cover is an original bitmap illustration made with the built-in Image Gen tool. It is a brand cover, not a product screenshot. The app mark is editable SVG/code-native geometry, rendered by scripts/build-brand-assets.mjs into PNG and a full macOS ICNS size set. All assets ship with this MIT repository.
+
+Cover prompt:
+
+Use case: ads-marketing. Create a finished original GitHub repository cover for OpenSky, an open-source macOS computer-control engine for AI agents. A wide 2:1 landscape composition, ideally 1536x768. Keep all content inside generous safe margins. Visual identity: precise blue and white pointer, following a graceful curved trajectory. Deep midnight-blue canvas with an illuminated electric-blue curved path and a crisp oversized white computer pointer, subtle believable dimensional depth, beautifully restrained, confident Mac developer-tool identity. The pointer/path is the single memorable visual; no rocket, robot, cloud mascot, circuitry, fake UI screens or noisy feature icons. Clean Swiss/system-sans typography. Exact text: 'OpenSky' in large white letters; secondary exact text: 'Your agent. Your Mac.' Small understated exact text: 'OPEN SOURCE · MCP · CLI · JAVASCRIPT'. No claims of GDPR compliance, unrestricted permissions, zero storage, universal compatibility or benchmark superiority. Sharp legible text, substantial whitespace, no purple, no watermark. This is a brand illustration, not a screenshot or proof of product behavior.

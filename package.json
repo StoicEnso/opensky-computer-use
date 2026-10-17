@@ -1,6 +1,6 @@
 {
   "name": "opensky-computer-use",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Fast, local-first browser and desktop control for macOS agents, with on-device OCR, animated pointers, MCP, CLI and JavaScript. No built-in telemetry or cloud relay.",
   "type": "module",
   "main": "./src/index.mjs",
@@ -24,6 +24,7 @@
     "test": "node --test test/*.test.mjs",
     "test:packaging": "node scripts/test-packaging.mjs",
     "test:live": "node test/live-fixture.mjs",
+    "test:chrome": "node test/chrome-native-live.mjs",
     "build:app": "node scripts/build-app.mjs"
   },
   "keywords": [
@@ -50,11 +51,13 @@
   },
   "files": [
     "src",
+    "assets",
     "Native/Package.swift",
     "Native/Sources",
     "scripts",
     "skills",
     "install.sh",
+    "Install OpenSky.command",
     "README.md",
     "LICENSE",
     "test",
@@ -74,7 +77,9 @@
     "artifacts/2026-10-17-opensky-real-app-verification-Codex.png",
     "artifacts/2026-10-17-opensky-1-3-results-Codex.json",
     "artifacts/2026-10-17-opensky-background-and-peekaboo-review-Codex.txt",
-    "artifacts/2026-10-17-opensky-auto-mode-and-captcha-Codex.json"
+    "artifacts/2026-10-17-opensky-auto-mode-and-captcha-Codex.json",
+    "artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json",
+    "artifacts/2026-10-17-fresh-agent-verification-Codex.png"
   ],
   "repository": {
     "type": "git",

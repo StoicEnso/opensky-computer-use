@@ -20,6 +20,13 @@ Usage: opensky <command> [arguments] [--json]
 
   setup                                  Print permission and connection instructions
   guidance                               Read default auto workflow guidance (no launch)
+  onboard                                Open local guided setup and permission checks in Chrome
+  browser list                           List exact Chrome tab/window IDs (after optional setup)
+  browser enable                         Explicit one-time Chrome Automation setup
+  browser open URL [--window ID]          Dedicated window by default; optional exact Chrome window
+  browser navigate TAB_ID URL             Navigate an exact tab without selecting it
+  browser select TAB_ID                   Select exact tab; --activate brings Chrome forward
+  browser close TAB_ID                    Close an exact tab; preserve unrelated tabs
   doctor                                 Check installation, daemon, and permissions (no launch)
   status                                 Query an existing daemon (no launch)
   daemon [start|stop]                     Start daemon, or shut it down
@@ -125,8 +132,21 @@ async function main() {
     case "help": case "--help": case "-h": help(); break;
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
+    case 'onboard': {const {runOnboarding}=await import('../scripts/onboarding.mjs');await runOnboarding({openBrowser:!args.includes('--no-open')});break;}
+    case 'browser': {
+      const action=args[1]||'list';
+      const params={action};
+      if(action==='open') {
+        params.url=required(args[2],'destination URL');
+        const at=args.indexOf('--window');if(at!==-1) params.chrome_window_id=required(args[at+1],'Chrome window ID');
+      }
+      if(['navigate','select','close'].includes(action)) params.tab_id=required(args[2],'Chrome tab ID');
+      if(action==='navigate') params.url=required(args[3],'destination URL');
+      if(args.includes('--activate')) params.activate=true;
+      actionOutput(await computer_use.chrome_tabs(params));break;
+    }
     case "setup":
-      output(`OpenSky setup\n\n1. Run opensky daemon.\n2. Run opensky rpc status '{"promptAX":true,"promptScreen":true}' to request Accessibility access.\n3. Enable OpenSky in System Settings > Privacy & Security > Accessibility.\n4. Enable OpenSky in Screen & System Audio Recording (called Screen Recording on some macOS versions). Restart OpenSky after granting access. Use opensky rpc status with promptScreen:true for the initial screen-capture request.\n5. Run opensky doctor to check permissions and the local connection.\n6. Run opensky config all and add the chosen entry to your agent's MCP configuration. Restart that client.\n\nNo client configuration was changed. macOS may require permission to be granted again after rebuilding an ad-hoc signed app.\nEmergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
+      output(`OpenSky setup\n\nRun opensky onboard for guided local setup in Chrome. It checks actual readiness, opens only the settings you choose, shows agent configuration, and offers a verified disposable demo. Normal readiness checks request no permissions.\n\nText path: opensky daemon; allow OpenSky Accessibility and Screen Recording in System Settings > Privacy & Security; opensky doctor; opensky config all. Restart OpenSky after granting screen capture.\n\nChrome tab Automation is optional and off until explicitly enabled in onboarding or with opensky browser enable. Native Accessibility control works without it. macOS owns OS consent; OpenSky adds no chat approval cards or per-click approval gate. Existing agent rules still apply.\n\nNo client configuration was changed. Rebuilding an ad-hoc signed app can require Mac permission again. Emergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
     case "config": output(configSnippet(args[1] || "all")); break;
     case "doctor": await doctor(); break;
     case "status": case "ping": {

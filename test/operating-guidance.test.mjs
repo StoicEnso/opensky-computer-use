@@ -22,6 +22,8 @@ test('MCP and CLI expose the same auto guidance without starting an absent engin
     assert.equal(tool.annotations.readOnlyHint,true);
     const result=await client.callTool({name:'get_operating_guidance',arguments:{}});
     assert.equal(result.isError,false);assert.deepEqual(result.structuredContent,getOperatingGuidance());
+    const chrome=await client.callTool({name:'chrome_tabs',arguments:{action:'list'}});
+    assert.equal(chrome.isError,true);assert.equal(chrome.structuredContent.error_code,'chrome_setup_required');
     const {stdout}=await promisify(execFile)(process.execPath,[path.resolve(import.meta.dirname,'../src/cli.mjs'),'guidance','--json'],{env:environment});
     assert.deepEqual(JSON.parse(stdout),result.structuredContent);
     await assert.rejects(access(runtime),{code:'ENOENT'});

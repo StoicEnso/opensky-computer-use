@@ -16,6 +16,7 @@ export function buildApp(destination, { root = projectRoot } = {}) {
   const macOSDirectory = path.join(destination, "Contents", "MacOS");
   mkdirSync(macOSDirectory, { recursive: true });
   mkdirSync(path.join(destination, "Contents", "Resources"), { recursive: true });
+  copyFileSync(path.join(root,'assets/2026-10-17-opensky-brand-Codex/OpenSky.icns'),path.join(destination,'Contents/Resources/OpenSky.icns'));
   copyFileSync(path.join(binDirectory, "opensky-daemon"), path.join(macOSDirectory, "OpenSky"));
   chmodSync(path.join(macOSDirectory, "OpenSky"), 0o755);
   writeFileSync(path.join(destination, "Contents", "Info.plist"), `<?xml version="1.0" encoding="UTF-8"?>
@@ -25,6 +26,7 @@ export function buildApp(destination, { root = projectRoot } = {}) {
 <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
 <key>CFBundleName</key><string>OpenSky</string>
 <key>CFBundleDisplayName</key><string>OpenSky</string>
+<key>CFBundleIconFile</key><string>OpenSky</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>${version}</string>
 <key>CFBundleVersion</key><string>${version}</string>
