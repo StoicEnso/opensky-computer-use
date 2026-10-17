@@ -77,5 +77,20 @@
   "limits": [
     "Read budgets are checked between AX messages; per-message timeouts do not establish a hard real-time guarantee.",
     "The new native 1.3.5 candidate is staged; installed live verification remains separate."
-  ]
+  ],
+  "nativeUpgradeAttempt": {
+    "attemptedAtAuthorizedIdleCheckpoint": true,
+    "newSignatureAccessibility": false,
+    "newSignatureScreenRecording": false,
+    "newSignatureEventPosting": false,
+    "ownerConsentRequired": true,
+    "approvedBuildRestored": true,
+    "approvedBuildAccessibility": true,
+    "approvedBuildScreenRecording": true,
+    "browserConnectionPreserved": true,
+    "browserPausePreserved": true,
+    "privateSettingsPreserved": true
+  },
+  "ownerHandoffPending": true,
+  "currentStatus": "Tested fixes published; fixed native build staged. Existing approved helper restored after real macOS signature-consent gate. Physical fixed-build tests remain pending that handoff."
 }
