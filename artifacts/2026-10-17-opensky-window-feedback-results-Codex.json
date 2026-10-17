@@ -61,7 +61,28 @@
       "permissionsRequested": false
     },
     "pausedMCPStatusAndDismissPassed": true,
-    "initialInstalledCheck": "Geometry, cover/uncover, dismissal and expiry checks completed; a foreground transition between owner apps made the final focus-preservation assertion inconclusive. A subsequent check passed with the foreground unchanged."
+    "initialInstalledCheck": "Geometry, cover/uncover, dismissal and expiry checks completed; a foreground transition between owner apps made the final focus-preservation assertion inconclusive. A subsequent check passed with the foreground unchanged.",
+    "postConsentNativeChecks": {
+      "passed": true,
+      "nativeBuild": "1.3.4",
+      "bothNativePermissionsVerified": true,
+      "exactInstalledBinary": true,
+      "exactDisposableWindowScreenshotAndOCR": true,
+      "exactBackgroundCounter": true,
+      "backgroundUnicodeReadback": true,
+      "selfAXPressNoCrash": true,
+      "selfSwiftUITextWriteAndClearNoCrash": true,
+      "searchFilterBindingVerified": false,
+      "nativeProcessPreserved": true,
+      "stopAndCooperationPreserved": true,
+      "browserConnectionPreserved": true,
+      "frontmostAppUnchanged": true,
+      "foregroundInputSent": false,
+      "clipboardUsed": false,
+      "ownerScreenCaptured": false,
+      "startupFindings": "Disposable AX window and new Inspector contents required bounded observation waits before input. No input was retried.",
+      "frontmostAppUnchangedScope": "Self-AX segment; separately verified for the full installed window-feedback test. The disposable counter/Unicode/capture segment reached its assertions but stopped before its final preservation assertions during Inspector readiness."
+    }
   },
   "installedVerificationPending": false,
   "limits": [
@@ -72,9 +93,9 @@
   ],
   "watchRemainsPaused": true,
   "installedNativePermissions": {
-    "accessibility": false,
-    "screenRecording": false,
-    "ownerSettingsHandoffPending": true,
-    "scope": "Visual rendering does not request these permissions; native input/capture still requires macOS consent."
+    "accessibility": true,
+    "screenRecording": true,
+    "ownerSettingsHandoffPending": false,
+    "exactInstalledBinaryVerified": true
   }
 }
