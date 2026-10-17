@@ -1,0 +1,80 @@
+{
+  "name": "opensky-computer-use",
+  "version": "1.2.0",
+  "description": "Local open-source macOS computer control with animated pointers, Accessibility, OCR, MCP, CLI and a JavaScript SDK.",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.mjs"
+    },
+    "./mcp": "./src/mcp-server.mjs"
+  },
+  "bin": {
+    "opensky": "./src/cli.mjs",
+    "opensky-mcp": "./src/mcp-server.mjs"
+  },
+  "scripts": {
+    "build:native": "swift build -c release --package-path ./Native",
+    "start": "node ./src/cli.mjs daemon",
+    "demo": "node ./src/cli.mjs demo",
+    "mcp": "node ./src/mcp-server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:packaging": "node scripts/test-packaging.mjs",
+    "test:live": "node test/live-fixture.mjs",
+    "build:app": "node scripts/build-app.mjs"
+  },
+  "keywords": [
+    "computer-use",
+    "codex",
+    "sky",
+    "macos",
+    "accessibility",
+    "mcp",
+    "agent",
+    "claude",
+    "antigravity",
+    "cursor-overlay"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "src",
+    "Native/Package.swift",
+    "Native/Sources",
+    "scripts",
+    "skills",
+    "install.sh",
+    "README.md",
+    "LICENSE",
+    "test",
+    "artifacts/2026-10-17-opensky-research-and-verification-Codex.txt",
+    "artifacts/2026-10-17-opensky-pointer-preview-Codex.png",
+    "artifacts/2026-10-17-opensky-pointer-demo-Codex.gif",
+    "artifacts/2026-10-17-opensky-antigravity-comparison-Codex.txt",
+    "artifacts/2026-10-17-opensky-live-results-Codex.json",
+    "artifacts/2026-10-17-opensky-live-verification-Codex.png",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
+    "artifacts/2026-10-17-opensky-1-2-review-Codex.txt"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StoicEnso/opensky-computer-use.git"
+  },
+  "homepage": "https://github.com/StoicEnso/opensky-computer-use#readme",
+  "bugs": {
+    "url": "https://github.com/StoicEnso/opensky-computer-use/issues"
+  }
+}

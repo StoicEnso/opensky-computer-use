@@ -1,0 +1,72 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "name": "Window screenshot, AX tree and OCR",
+      "passed": true
+    },
+    {
+      "name": "Background Accessibility click changes actual counter",
+      "passed": true
+    },
+    {
+      "name": "Old snapshot cannot act on refreshed controls",
+      "passed": true
+    },
+    {
+      "name": "Structured controls expose real identifiers and source metadata",
+      "passed": true
+    },
+    {
+      "name": "Semantic session clicks a uniquely named real control",
+      "passed": true
+    },
+    {
+      "name": "Foreground physical click changes the actual counter",
+      "passed": true
+    },
+    {
+      "name": "Semantic session sets a field by its Accessibility identifier",
+      "passed": true
+    },
+    {
+      "name": "Set a Unicode value and read it back from the real field",
+      "passed": true
+    },
+    {
+      "name": "Foreground keyboard input preserves Unicode",
+      "passed": true
+    },
+    {
+      "name": "Clipboard paste reaches the field",
+      "passed": true
+    },
+    {
+      "name": "Markdown paste alias is accepted and preserves its text",
+      "passed": true
+    },
+    {
+      "name": "Physical editor click transfers keyboard focus before typing",
+      "passed": true
+    },
+    {
+      "name": "Unknown keys fail without changing the target",
+      "passed": true
+    },
+    {
+      "name": "Emergency pause blocks input until explicit resume",
+      "passed": true
+    }
+  ],
+  "screenshot": {
+    "file": "2026-10-17-opensky-live-verification-Codex.png",
+    "width": 940,
+    "height": 592
+  },
+  "permissions": {
+    "accessibility": true,
+    "screenRecording": true
+  },
+  "mode": "visual-and-accessibility",
+  "version": "1.2.0"
+}

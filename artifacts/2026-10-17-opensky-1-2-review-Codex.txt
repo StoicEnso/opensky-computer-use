@@ -1,0 +1,75 @@
+OpenSky 1.2 — implementation and publication review
+Created 17 October 2026 (Europe/London)
+
+WHAT OPEN_SKY MEANS HERE
+OpenSky is the name of this user's project. We preserved the user's local Antigravity
+prototype as baseline commit 93786ff and developed it in an isolated checkout.
+The original already had pointer effects, Accessibility/OCR, basic input and MCP/CLI.
+It was not a separate established product that this task merely installed.
+
+ADDITIONS IN 1.1
+Authenticated loopback control and private runtime storage; explicit errors and target
+validation; snapshot-scoped indices and expiry; independent emergency pause; serialized
+input; safe clipboard restoration; bounded scripts; per-display overlays; portable
+installer, skills, CLI/SDK/MCP interoperability; permission identity through LaunchServices;
+Unicode modifier and Markdown paste corrections; real result-based verification.
+
+ADDITIONS IN 1.2
+- Structured controls with actual identifiers, source, frame, enabled/writable state,
+  actions and current snapshot binding. Agents can select exact names/roles/identifiers.
+- Semantic sessions reject ambiguous/disabled/read-only targets. Observation waits are
+  bounded; failed input is never automatically retried.
+- Stop invalidates a generation permanently across native and MCP queues. In-flight
+  loops keep their cancelled state after resume; queued requests cannot spring back.
+- MCP bounds in-flight work to 64 requests and forwards it to one native queue.
+  That queue has a 64-request limit and a five-second wait expiry. Stop/status remain
+  responsive during regular work and overload. Priority stop/resume remain ordered.
+- Managed file replacement is transactional. A simulated mid-upgrade failure restored
+  old runtime content and launcher symlinks; successful replacement cleans recovery copies.
+- Guided opensky demo uses a unique disposable app identity, points at targets, performs
+  three real clicks, types English/Dhivehi/emoji, pastes and verifies the exact editor.
+- Delayed pointer feedback belongs to its original cancellation generation. Named
+  pointers are bounded; abandoned thinking feedback expires. Wallpaper bitmap decoding
+  is cached and the menu-bar stop label reflects API as well as menu actions.
+- Explicit pointer positioning precedes foreground clicks/drags/scrolls. Background
+  control continues to refuse hardware mouse fallback.
+
+REVIEW FINDINGS RESOLVED
+1. Stop/resume could revive queued old requests: generation cancellation and regression
+   tests now prove old work remains cancelled after immediate resume.
+2. Unbounded queue growth and delayed input: bounded capacity and expiry are tested.
+3. Upgrade failure could leave partly replaced software: transactional rollback is tested.
+4. Previously declared structured elements were not populated: actual AX/OCR summaries
+   now support semantic selection and current-snapshot actions.
+5. A fixture diagnostic listener read a keyboard-only property on mouse events, consuming
+   real input. It is fixed; new live checks prove physical clicks and editor focus transfer.
+6. Multiple open disposable fixtures shared an app ID: each demo/test now has a unique
+   identity, preserving older test windows without accidentally choosing one.
+7. Historical setup notes contained local paths: private development history stays local;
+   publication uses an audited current snapshot with explicit provenance.
+
+VALIDATION
+17 automated tests passed, none skipped: real native transport and official MCP SDK
+interoperability, stop/resume cancellation, queue overload and expiry, semantic targeting,
+no automatic mutation retry, abort handling and failed-install recovery.
+14 live native Mac checks passed with OpenSky's own Accessibility and Screen Recording,
+including screenshot/OCR, background and physical foreground clicks, stable snapshot
+rejection, semantic target selection, Unicode, clipboard/Markdown paste, editor focus
+transfer and emergency pause. Packaging passed 37 assertions.
+The guided control demo independently verified its counter, typed field and editor.
+The current working source and 55 historical blobs were scanned for common credential
+patterns; none matched. Historical local paths are excluded from public history.
+Raw research, tokens, client configuration and private captures are excluded from packages.
+
+LIMITS
+No numerical 10x performance or reliability improvement is claimed without a benchmark.
+App support varies, and a pointer animation cannot prove input acceptance. Stop cannot
+undo completed effects; a timed-out input needs outcome verification before resubmission.
+The engine is MIT licensed and requires no model API. Connected models can have their
+own charges. macOS permission and secure-input boundaries remain in force.
+Local binary builds are ad-hoc signed; the release is not a notarized consumer installer.
+
+DESIGN REFERENCE LOCK
+Preserve the demonstrated native pointer, curved movement, legible intent label and click
+feedback. Refero's bundled motion guidance supplies bounded purposeful feedback, readable
+state changes and Reduce Motion support. No separate web UI or decoration was introduced.

@@ -1,0 +1,77 @@
+OpenSky — Antigravity notes comparison
+Created 17 October 2026 (Europe/London)
+
+FINDING
+These notes describe the same prototype that supplied the preserved starting point.
+The baseline CursorOverlay.swift and the legacy prototype file have SHA-256:
+bb01315f5d0da02d42b1a0fcd3daff2ca9727e7f168bc09be9884cee1dc91bce
+The original scratch checkout has been preserved. The updated implementation lives
+in the dated isolated source checkout delivered with this note.
+
+ALREADY INCLUDED
+- Native Accessibility trees and actions, screenshot OCR and indexed text locations.
+- Hybrid, background and takeover modes; keyboard, pointer, clipboard and window actions.
+- Curved pointer motion, speed-dependent tilt/stretch, glow, thinking animation,
+  click feedback, highlights, named cursors and idle dismissal.
+- MCP, CLI and JavaScript entry points, plus reusable agent instructions.
+
+ENHANCEMENTS COMPLETED AND VERIFIED
+- Authenticated local control, strict targets, snapshot expiry and rejection of stale
+  indices. The old diff scheme was replaced with complete observation-scoped snapshots.
+- One overlay window per display; the original union overlay failed on this Mac's
+  separate display Spaces. Actual pointer imagery and a short GIF were captured.
+- Independently responsive emergency pause, input serialization, bounded scripts,
+  clipboard preservation and explicit errors when background actions are unsupported.
+- LaunchServices app startup with OpenSky's own permissions. Both Accessibility and
+  Screen Recording were approved by the owner and verified after restart.
+- Fixed Command modifier leakage found by actual typing; Unicode in English, Dhivehi
+  and emoji was verified. The md paste alias now matches the public interface.
+- Disposable native live tests now check actual results, including OCR text. All 9
+  passed. Six transport/MCP tests and 37 packaging assertions also passed.
+- Existing Antigravity and Claude Desktop MCP registrations and skills now point to
+  the installed version. Client reconnection is needed to load changed registration.
+
+SHIPPED-ARTIFACT CLAIMS CHECKED WITH REA / LOCAL EVIDENCE
+The shipped native-pipe.js supports the four-byte little-endian length-prefixed
+JSON-RPC Unix-socket description and LaunchServices startup. The bundled parent
+code-requirement resource contains OpenAI Team ID 2DC432GLL2. That resource alone
+does not establish the service's runtime enforcement. Native internals were not fully
+decompiled; exact cursor formulas and private AX implementation details are not
+claimed as independently proven from a wrapper or a list of symbol names.
+
+IDEAS WORTH DEVELOPING NEXT
+1. Identity-aware compact state diffs: reduce tokens while maintaining stable target
+   identity, snapshot generation checks and an explicit full-state recovery path.
+   Reintroducing the prototype's sequential-index diffs would risk wrong-target input.
+2. An optional Unix-domain socket transport with owner-only filesystem access and
+   peer checks. Current localhost control already requires a private bearer token and
+   rejects browser origins; a transport change needs its own compatibility tests.
+3. An opt-in per-app reliability matrix and repeatable benchmark. It would show where
+   background input, OCR clicks and secure controls actually work across real apps.
+
+CLAIMS TO AVOID
+- Drop-in @oai/sky compatibility: Sky's app coordinates are window-relative; OpenSky
+  uses global desktop points, and response formats differ.
+- Universal canvas/game control: OCR supplies visible text boxes, not a general model
+  of arbitrary icons, scenes or game state.
+- A guarantee of background input: applications can reject PID events or require focus.
+- Proven superiority over Codex or a universally solved ghost-cursor bug: no comparative
+  benchmark or broad app validation supports those claims.
+
+PACKAGING DECISION
+Use one native macOS engine, exposed through MCP for agent clients, a CLI for general
+scripts and skills, and an SDK for integrations. This covers Codex, Claude, Antigravity
+and other compatible hosts without tying the engine to one model subscription.
+The engine needs no paid API; connected models may have separate costs. Source is
+MIT licensed. This local delivery has not been published to GitHub or a package registry.
+
+Primary research links and exact REA evidence scope are in the accompanying research
+and verification note. Raw proprietary package excerpts and private client backups
+are excluded from distributable archives.
+
+REVISION — 17 OCTOBER 2026, VERSION 1.2
+This comparison records the completed 1.1 milestone. The 1.2 release adds structured
+semantic controls, permanent stop cancellation, bounded/expiring queues, transactional
+upgrade recovery and a repeatable real-control demo. See the accompanying 1.2 review
+and CHANGELOG for current validation (17 automated tests, 14 live checks, 37 packaging
+assertions). Safe compact state diffs and Unix sockets remain future options.

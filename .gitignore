@@ -1,0 +1,27 @@
+# Swift Package Manager build artifacts
+Native/.build/
+Native/.swiftpm/
+
+# Compiled macOS App Bundle
+OpenSky.app/
+
+# Node.js dependencies
+node_modules/
+
+# macOS Finder metadata
+.DS_Store
+
+# Logs and runtime state
+*.log
+.opensky/
+
+# Local REA evidence may contain proprietary app excerpts; never distribute it.
+research/
+dist/
+*.tgz
+
+# Machine-specific setup snippets are a local handoff only.
+artifacts/*agent-connection-examples*
+artifacts/*handoff*
+artifacts/*source-Codex.zip
+artifacts/*macos-arm64-Codex.zip

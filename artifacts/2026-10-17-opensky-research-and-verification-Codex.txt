@@ -1,0 +1,172 @@
+OpenSky 1.1.0 — investigation and verification
+Created 17 October 2026 (Europe/London)
+
+DELIVERED
+An independent MIT-licensed macOS helper with Accessibility inspection and actions,
+window and primary-display screenshots, Apple Vision OCR, keyboard/mouse input,
+clipboard paste, window management, requested AppleScript/JXA, and named animated
+pointers. Interfaces: local stdio MCP, CLI, and JavaScript SDK. No model/provider API
+is required by the engine. Any connected model has its own cost and permissions.
+
+The existing local OpenSky prototype was preserved and copied into a separate Git
+project before changes. The original prototype and Randos checkout were not edited.
+
+INSTALLED LOCATIONS
+App: ~/Applications/OpenSky.app
+Runtime: ~/.local/share/opensky
+CLI: ~/.local/bin/opensky
+MCP launcher: ~/.local/bin/opensky-mcp
+Codex skill: ~/.codex/skills/opensky-computer-use/SKILL.md
+Agent connection examples: opensky config all
+Local token: ~/.local/share/opensky/control-token (owner-only; never distribute)
+Local captures: ~/.local/share/opensky/screenshots (owner-only)
+
+RESEARCH QUESTIONS AND EVIDENCE
+1. What does the observed Codex interaction loop expose? Answered at interface level.
+   The shipped Sky Window API documentation exposes app discovery, state capture,
+   indexed and coordinate actions, keys, typing, scrolling, dragging, value changes,
+   secondary accessibility actions, paste, and text selection. Its coordinates are
+   app-window relative. OpenSky deliberately documents global desktop points instead;
+   its SDK is not a drop-in replacement for Sky.
+
+2. How does the shipped app connect its helper? Partially answered by static evidence.
+   REA 6.5.0 analyzed the installed ChatGPT.app ASAR and its bundled @oai/sky package.
+   ASAR SHA-256:
+   bf9c41fa9770fbfacfba93042ff71c24cb65c82935819377275faac08103383f
+   Evidence IDs:
+   ev_73a758fcc5a0ba9c5d4be8d1b05185659b93c09777a7f9b8353ef76c489e3e97
+   ev_050b931cef272cab1cb243886ee30f0ec95f25cc624c48bab0a97b40e0507266
+   ev_ca1dbee28bc1321b4733f540a8362dba48732d08ce8798b41685dc05d8aaf49d
+   Source selection covered the package manifest, computer-use settings/metadata,
+   the Sky wrapper and a focused follow-up on Mac client/state/click/native-pipe files.
+   Thousands of unselected files remain outside analysis scope. Static syntax does
+   not prove execution. Several signed unpacked native components contradicted ASAR
+   integrity metadata; the original failure was retained and the follow-up explicitly
+   used record-and-continue. These components were not executed or redistributed.
+   No Hopper/Ghidra/IDA engine was present. Native implementation internals remain
+   unknown; this is an interface/behavior reconstruction, not full decompilation.
+
+3. How do the pointers behave? Answered for demonstrated behavior.
+   Reviewed OpenAI's launch demo and the detailed Computer use in Codex video.
+   The detailed transcript at 2:50–3:07 describes an independent agent pointer;
+   4:29–4:59 describes curved swimming motion and directional turns;
+   5:10–6:03 describes screenshot and Accessibility information together.
+   Video: https://www.youtube.com/watch?v=D_FCYsshMI4
+   Launch: https://www.youtube.com/watch?v=Lm7-yFZ5fZQ
+   Native screenshot evidence confirms OpenSky's own rendered pointer and label.
+
+4. Can other agents use the same implementation? Verified through an actual MCP client.
+   An official @modelcontextprotocol/sdk client negotiated the stdio server,
+   discovered at least 18 tools, and obtained native daemon status. CLI and SDK use
+   the same authenticated local transport. Claude/Cursor configuration is supplied;
+   those applications were not used for a live agent session in this task.
+
+DESIGN LOCK AND IMPLEMENTATION DECISIONS
+Primary reference: demonstrated independent pointer, curved motion, directional tilt.
+Preserve: click-through overlay, compact readable status label, visible target feedback.
+Bounded secondary guidance: the Refero motion reference's fast functional feedback and
+macOS Reduce Motion preference. Reduce Motion disables curves and thinking wiggle.
+Palette roles: white pointer outline for contrast, sampled accent for halo/highlight;
+no decorative full-screen effects. Native system text for labels.
+One overlay window per display handles macOS separate Spaces; a single union window
+failed visual verification on this Mac and was replaced. Global coordinates account
+for displays left/above the primary display and pixels versus points.
+
+CORRECTNESS IMPROVEMENTS
+- Authenticated IPv4-loopback control endpoint, no permissive CORS, browser origins
+  rejected, owner-only token, bounded HTTP input, no unauthenticated control fallback.
+- Serialized native action queue, independently responsive stop/status, menu-bar
+  pause/resume/quit and Control+Option+Command+Escape emergency pause.
+- Full snapshots with generation-specific indices, expiry, live target validation
+  and explicit errors. Full snapshots intentionally replace unsafe index-based diffs.
+  No fabricated fallback coordinates or silent desktop capture
+  when a requested app-window capture fails.
+- Background clicks use supported AXPress only and fail if unavailable. Hybrid input
+  verifies foreground target and hit ownership. Background drag fails explicitly.
+- Unknown keys/modifiers fail before input; Unicode stays intact; clipboard restoration
+  respects the original contents and concurrent changes. Live tests exposed and fixed
+  Command remaining latched after shortcuts; literal Unicode text clears modifiers.
+  The md paste alias now agrees with the MCP/SDK contract.
+- Scripts have cancellation, a timeout and bounded returned output. Stop cannot undo
+  completed actions or separately spawned processes.
+
+VERIFICATION
+Swift release build: passed.
+Native HTTP/authentication/input/stop checks and official MCP interoperability:
+6 automated tests passed, 0 failed, 0 skipped. A concurrent MCP stop response was
+verified while another tool call was still running.
+Packaging checks: 37 assertions passed.
+Source-package manifest: reviewed to exclude local runtime secrets and REA captures.
+Installed app: ad-hoc signature verified, current source built and installed.
+Real native test window: all 9 live visual/Accessibility checks passed, including
+window screenshot plus recognized OCR text, a real background AXPress counter change,
+old-snapshot rejection, writable Unicode value, foreground Unicode typing, clipboard
+paste, Markdown paste alias, invalid-key rejection, and emergency pause/resume.
+A separate Accessibility-only run also passed all 9 checks. No personal document was
+used as the target. Pointer visual QA passed after fixing the two-display overlay bug.
+
+PERMISSIONS AND LAUNCH IDENTITY — UPDATED 17 OCTOBER 2026
+The owner explicitly approved Accessibility and Screen Recording for OpenSky.
+Both are enabled and verified by the installed app's native status. The installed
+SDK now uses LaunchServices so the app obtains its own permission identity; earlier
+direct launches could inherit the parent agent's responsibility chain. A shutdown
+and CLI restart retained both permissions. Ad-hoc rebuilds can invalidate an old
+permission record even while its Settings switch remains on; removing that old
+entry and adding the current app restored access during testing.
+
+CLIENT CONNECTIONS — UPDATED 17 OCTOBER 2026
+The existing Antigravity and Claude Desktop OpenSky MCP entries were migrated from
+the legacy scratch prototype to ~/.local/bin/opensky-mcp. Unrelated configuration
+was preserved and verified. Existing OpenSky skills for both clients were updated.
+Private owner-only backups remain under research/2026-10-17-config-backups-Codex/.
+Restart/reconnect those clients to load their changed registration; no live model
+session in those clients is claimed. Codex can use the installed CLI-based skill.
+
+ANTIGRAVITY NOTES COMPARISON
+The supplied notes describe the same starting prototype, confirmed by the original
+CursorOverlay.swift hash matching preserved baseline commit 93786ff. Pointer curves,
+glow, thinking animation, OCR, named cursors, three input modes and portable interfaces
+were already represented there. See the separate comparison note for confirmed
+transport details, useful future ideas and claims that remain unverified.
+
+LIMITS
+This is not a claim of universal app support, superiority over Codex, or autonomous
+reasoning. Background PID event delivery varies by app. Default window targeting uses
+the app's focused/available window; full-screen capture covers the primary display,
+while app-window captures can be on another display. Secure input, system dialogs,
+protected content, and OS permissions can limit automation. Named pointer overlays
+are concurrent visual indicators; physical input actions are serialized.
+Ad-hoc signed local builds are not Developer-ID notarized releases. Other machines
+need to build from source and grant their own permissions. No public repository or
+package-registry release was created.
+
+PRIMARY SOURCES
+REA source/skill: https://github.com/morluto/rea
+Pinned research checkout: 509d4c8f56b0e5f65346259b2aeccbb5a8e9ba72
+Official desktop setup:
+https://developers.openai.com/training/walkthroughs/using-your-computer-and-browser
+Official driver guidance:
+https://developers.openai.com/api/docs/guides/tools-computer-use-integration
+MCP SDK: https://github.com/modelcontextprotocol/typescript-sdk
+Local private REA evidence is retained under research/ and excluded from Git/packages.
+
+REVISION — 17 OCTOBER 2026, OPEN SOURCE RELEASE 1.2
+The 1.1 findings above describe the earlier completed milestone. Version 1.2 adds
+structured controls and semantic selection, observation-only waits, permanent stop
+cancellation across native and MCP queues, queue bounds/expiry, transactional install
+rollback and a repeatable verified control demo. The live suite now has 14 checks,
+including physical foreground clicks and transfer of typing focus to another editor.
+The automated suite has 17 passing tests; packaging retains 37 passing assertions.
+A diagnostic listener in the disposable fixture read keyCode on mouse events and
+consumed them before delivery; the listener is fixed and those paths are now checked.
+The guided demo independently verifies actual counter, Unicode field and pasted editor.
+
+Public release preparation retains private development history locally and publishes
+a clean reviewed source snapshot. Credential-pattern scans found no matching secrets;
+older README/skill revisions contained local setup paths and are excluded from the
+public Git history. This pattern scan is a bounded check, not a proof of absence of
+every possible secret. Public source excludes research/, client backups and tokens.
+
+Pointer/API references consulted during input review:
+https://developer.apple.com/documentation/coregraphics/cgevent/post(tap:)
+https://developer.apple.com/documentation/coregraphics/cgwarpmousecursorposition(_:)

@@ -1,0 +1,622 @@
+#!/usr/bin/env node
+import { readFileSync, existsSync } from "node:fs";
+import { callDaemon, matchElements } from "./index.mjs";
+
+const SERVER_INFO = {
+  name: "opensky-computer-use",
+  version: "1.2.0"
+};
+
+const TOOLS = [
+  {
+    name: "find_elements",
+    description: "Inspect fresh structured controls by exact accessible name, role or identifier. Returns current indices and snapshot_id. Multiple matches are returned explicitly; never guess between them. Defaults to AX controls, avoiding duplicate OCR matches.",
+    inputSchema: { type: "object", required: ["app", "selector"], properties: {
+      app: { type: "string" },
+      selector: { type: "object", additionalProperties: false, properties: {
+        name: { type: "string" }, role: { type: "string" }, identifier: { type: "string" },
+        value: { type: "string" }, source: { type: "string", enum: ["ax", "ocr", "any"] },
+        exact: { type: "boolean" }, enabled: { type: "boolean" }
+      } }
+    } },
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
+  },
+  ...["status", "stop", "resume"].map(name => ({
+    name,
+    description: name === "status" ? "Read OpenSky readiness, macOS permissions, display coordinate bounds and stop status." : name === "stop" ? "Stop computer control immediately and dismiss agent pointers. Inspection remains available." : "Explicitly resume computer control after a stop.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: name === "status", destructiveHint: false, openWorldHint: false }
+  })),
+  {
+    name: "list_apps",
+    description:
+      "List running and installed macOS applications along with their on-screen windows and frames. Call this first if you don't know an application's bundle ID or display name.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        running_only: {
+          type: "boolean",
+          description: "If true, only list currently running applications."
+        }
+      }
+    }
+  },
+  {
+    name: "get_app_state",
+    description:
+      "Inspect a macOS application (launching it in the background if not running). Returns its hierarchical Accessibility (AX) UI tree with numeric element_index IDs, optional Apple Vision OCR text elements, and a window screenshot.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: {
+          type: "string",
+          description: "Application display name (e.g. 'Safari', 'Finder', 'Notes', 'Calculator') or bundle ID (e.g. 'com.apple.Safari')."
+        },
+        disable_diff: {
+          type: "boolean",
+          description: "Compatibility option. OpenSky returns full snapshot-scoped trees on every observation so indices cannot be confused with an earlier snapshot."
+        },
+        include_screenshot: {
+          type: "boolean",
+          description: "Set true (default) to capture a window screenshot."
+        },
+        include_ocr: {
+          type: "boolean",
+          description: "Set true to run Apple Vision OCR on the window even when AX elements exist."
+        },
+        show_cursor: {
+          type: "boolean",
+          description: "Set true to show the OpenSky cursor thinking wiggle while inspecting."
+        }
+      },
+      required: ["app"]
+    }
+  },
+  {
+    name: "click",
+    description:
+      "Click a UI element by its numeric `element_index` (from `get_app_state`) or explicit `[x, y]` screen coordinates. Smoothly animates the OpenSky virtual cursor along a curved Bezier path with dynamic wallpaper fog glow, spotlight, and click ripple. Supports background AXPress and full hardware CGEvent takeover.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: {
+          type: "string",
+          description: "Target application name or bundle ID."
+        },
+        element_index: {
+          type: "number",
+          description: "Numeric element index from the latest `get_app_state` tree (works for both AX and Vision OCR elements!)."
+        },
+        point: {
+          type: "array",
+          items: { type: "number" },
+          description: "Optional explicit [x, y] global screen coordinates if not clicking by element_index."
+        },
+        mouse_button: {
+          type: "string",
+          enum: ["left", "right", "middle"],
+          description: "Mouse button to click (default: 'left')."
+        },
+        click_count: {
+          type: "number",
+          description: "Number of clicks: 1 for single click, 2 for double-click, 3 for triple-click."
+        },
+        key: {
+          type: "string",
+          description: "Optional modifier key chord held during click (e.g. 'shift', 'super', 'alt+shift')."
+        },
+        mode: {
+          type: "string",
+          enum: ["hybrid", "background", "takeover"],
+          description: "'hybrid' (default: tries background AXPress first, falls back to CGEvent), 'background' (AXPress only; fails if unsupported), or 'takeover' (activates app and takes over physical cursor)."
+        },
+        cursor_id: {
+          type: "string",
+          description: "Virtual cursor identifier for multi-agent parallel cursors (default: 'default')."
+        },
+        label: {
+          type: "string",
+          description: "Optional status badge text shown next to the animated virtual cursor."
+        }
+      }
+    }
+  },
+  {
+    name: "set_value",
+    description:
+      "Directly set the text value of a modifiable UI element (search box, text field, editor) by `element_index`, with automatic fallback to click + select-all + type.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Target application name or bundle ID." },
+        element_index: { type: "number", description: "Numeric element index from `get_app_state`." },
+        value: { type: "string", description: "New string value to set on the element." },
+        cursor_id: { type: "string", description: "Optional virtual cursor ID." }
+      },
+      required: ["app", "element_index", "value"]
+    }
+  },
+  {
+    name: "type_text",
+    description:
+      "Type arbitrary Unicode text (including newlines) into the target app via hardware HID stream or background PID posting.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Target application name or bundle ID." },
+        text: { type: "string", description: "Text to type." },
+        mode: {
+          type: "string",
+          enum: ["hybrid", "background", "takeover"],
+          description: "Execution mode ('takeover' activates app first; 'background' posts directly to PID)."
+        }
+      },
+      required: ["text"]
+    }
+  },
+  {
+    name: "press_key",
+    description:
+      "Press one or more keys or modifier chords using xdotool-compatible syntax (e.g. ['Return'], ['super+c'], ['super+shift+t'], ['Escape'], ['Tab'], ['BackSpace']).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Optional target application name or bundle ID." },
+        keys: {
+          type: "array",
+          items: { type: "string" },
+          description: "Ordered list of keys or chords to press (e.g. ['super+l', 'Return'])."
+        },
+        mode: {
+          type: "string",
+          enum: ["hybrid", "background", "takeover"]
+        }
+      },
+      required: ["keys"]
+    }
+  },
+  {
+    name: "scroll",
+    description:
+      "Scroll up, down, left, or right on a specific `element_index` or `[x, y]` coordinate by `pages`.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Target application name or bundle ID." },
+        element_index: { type: "number", description: "Optional element index to scroll over." },
+        point: {
+          type: "array",
+          items: { type: "number" },
+          description: "Optional [x, y] coordinate to scroll over."
+        },
+        direction: {
+          type: "string",
+          enum: ["down", "up", "left", "right"],
+          description: "Scroll direction (default: 'down')."
+        },
+        pages: {
+          type: "number",
+          description: "Number of pages to scroll (e.g. 1.0 or 0.5)."
+        },
+        key: { type: "string", description: "Optional modifier key held while scrolling." }
+      }
+    }
+  },
+  {
+    name: "drag",
+    description:
+      "Drag from a start element/point to an end element/point with an animated cursor drag trail.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Target application name or bundle ID." },
+        start_element_index: { type: "number" },
+        start_point: { type: "array", items: { type: "number" } },
+        end_element_index: { type: "number" },
+        end_point: { type: "array", items: { type: "number" } },
+        mouse_button: { type: "string", enum: ["left", "right"] },
+        key: { type: "string" },
+        duration: { type: "number", description: "Drag duration in seconds (default 0.55)." }
+      }
+    }
+  },
+  {
+    name: "paste",
+    description:
+      "Paste plain text, Markdown ('md'), or HTML ('html') into an app or element while automatically backing up and restoring the user's system clipboard.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Target application name or bundle ID." },
+        content: { type: "string", description: "Content string to paste." },
+        format: {
+          type: "string",
+          enum: ["text", "md", "html"],
+          description: "Clipboard format ('text', 'md', or 'html')."
+        },
+        element_index: { type: "number", description: "Optional element index to click before pasting." },
+        point: { type: "array", items: { type: "number" } }
+      },
+      required: ["content"]
+    }
+  },
+  {
+    name: "perform_secondary_action",
+    description:
+      "Perform a secondary Accessibility action on an element (e.g. 'ShowMenu', 'Confirm', 'Cancel', 'Increment', 'Decrement', 'Pick', 'Raise').",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string" },
+        element_index: { type: "number" },
+        action: { type: "string", description: "Action name such as 'ShowMenu', 'Increment', 'Decrement', 'Confirm'." }
+      },
+      required: ["app", "element_index", "action"]
+    }
+  },
+  {
+    name: "select_text",
+    description:
+      "Select text inside an element by prefix/suffix or move the text cursor to the start/end.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string" },
+        element_index: { type: "number" },
+        prefix: { type: "string" },
+        suffix: { type: "string" },
+        selection_type: {
+          type: "string",
+          enum: ["SelectContent", "MoveCursorToStart", "MoveCursorToEnd"]
+        }
+      },
+      required: ["app", "element_index"]
+    }
+  },
+  {
+    name: "manage_window",
+    description:
+      "Focus, minimize, maximize, center, or move/resize any application window on macOS.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        app: { type: "string", description: "Target application name or bundle ID." },
+        action: {
+          type: "string",
+          enum: ["focus", "minimize", "maximize", "center", "move_resize"],
+          description: "Window action to perform."
+        },
+        frame: {
+          type: "array",
+          items: { type: "number" },
+          description: "Optional [x, y, width, height] when action is 'move_resize' or 'center'."
+        }
+      },
+      required: ["app", "action"]
+    }
+  },
+  {
+    name: "run_applescript",
+    description:
+      "Execute arbitrary AppleScript or JXA (JavaScript for Automation) on macOS for deep app automation (Finder, Music, Safari, System Events, Reminders, Messages, etc.).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        script: { type: "string", description: "AppleScript or JXA source code to execute." },
+        language: {
+          type: "string",
+          enum: ["applescript", "jxa"],
+          description: "Scripting language (default: 'applescript')."
+        }
+      },
+      required: ["script"]
+    }
+  },
+  {
+    name: "screenshot_screen",
+    description:
+      "Capture a full-screen macOS screenshot along with Apple Vision OCR text elements and their global screen coordinates.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        include_ocr: {
+          type: "boolean",
+          description: "Whether to run Apple Vision OCR on the full screen capture (default: true)."
+        }
+      }
+    }
+  },
+  {
+    name: "cursor_choreography",
+    description:
+      "Control the floating OpenSky virtual AI cursor overlay directly: move a named cursor along a curved Bezier arc, trigger the playful Codex thinking wiggle, spotlight a screen region, run the multi-cursor demo, or dismiss cursors.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        command: {
+          type: "string",
+          enum: ["move", "wiggle", "highlight", "demo", "dismiss"],
+          description: "Cursor overlay command to run."
+        },
+        cursor_id: {
+          type: "string",
+          description: "Cursor ID (supports multiple simultaneous cursors, e.g. 'main', 'subagent-1')."
+        },
+        point: {
+          type: "array",
+          items: { type: "number" },
+          description: "Target [x, y] coordinate for 'move'."
+        },
+        rect: {
+          type: "array",
+          items: { type: "number" },
+          description: "Target [x, y, width, height] rectangle for 'highlight' or spotlight."
+        },
+        label: {
+          type: "string",
+          description: "Status pill label displayed beside the virtual cursor."
+        },
+        enabled: {
+          type: "boolean",
+          description: "For 'wiggle', whether thinking wiggle is enabled (default: true)."
+        },
+        duration: {
+          type: "number",
+          description: "Optional duration in seconds."
+        }
+      },
+      required: ["command"]
+    }
+  }
+];
+
+for (const tool of TOOLS) {
+  const properties = tool.inputSchema.properties;
+  if (["get_app_state", "click", "scroll", "drag", "set_value", "paste", "select_text", "perform_secondary_action"].includes(tool.name)) {
+    properties.snapshot_id = { type: "string", description: "Optional snapshot_id from latest observation. Stale snapshots are rejected." };
+    properties.return_image_base64 = { type: "boolean", description: "Include screenshot pixels for the agent (default true)." };
+  }
+  if (["scroll", "drag"].includes(tool.name)) properties.mode = { type: "string", enum: ["background", "hybrid", "takeover"] };
+  tool.annotations ||= { readOnlyHint: ["list_apps", "get_app_state", "screenshot_screen"].includes(tool.name), destructiveHint: !["list_apps", "get_app_state", "screenshot_screen", "cursor_choreography"].includes(tool.name), openWorldHint: true };
+}
+
+async function handleToolCall(name, args = {}) {
+  const tool = TOOLS.find(tool => tool.name === name);
+  if (!tool) return { ok: false, error: `Unknown tool: ${name}` };
+  if (!args || Array.isArray(args) || typeof args !== "object") return { ok: false, error: "Tool arguments must be an object" };
+  for (const required of tool.inputSchema.required || []) if (!(required in args)) return { ok: false, error: `Missing argument: ${required}` };
+  if (name === "find_elements") {
+    matchElements({ elements: [] }, args.selector);
+    const state = await callDaemon("get_app_state", { app: args.app, include_screenshot: false, include_ocr: ["ocr", "any"].includes(args.selector.source) });
+    if (!state.ok) return state;
+    const matches = matchElements(state, args.selector);
+    return { ok: true, app: state.app, snapshot_id: state.snapshot_id, matches, match_count: matches.length };
+  }
+  if (name === "resume") {
+    const result = await callDaemon("resume", {}, { autoStart: false });
+    if (result.ok) locallyStopped = false;
+    return result;
+  }
+  if (name === "cursor_choreography") {
+    const cmd = args.command || "demo";
+    if (cmd === "move") return await callDaemon("cursor_move", args);
+    if (cmd === "wiggle") return await callDaemon("cursor_wiggle", args);
+    if (cmd === "highlight") return await callDaemon("cursor_highlight", args);
+    if (cmd === "dismiss") return await callDaemon("cursor_dismiss", args);
+    if (cmd === "demo") return await callDaemon("cursor_demo", args);
+    return { ok: false, error: `Unknown cursor command: ${cmd}` };
+  }
+
+  return await callDaemon(name, args, { autoStart: !["stop", "resume"].includes(name) });
+}
+
+function formatToolResult(result, includeImageB64 = true) {
+  const content = [];
+  if (result && typeof result.text === "string") {
+    const header = result.message ? `${result.message}\n\n` : "";
+    const shotInfo =
+      result.screenshot && result.screenshot.path
+        ? `\n\n[Screenshot saved at: ${result.screenshot.path}]`
+        : "";
+    content.push({
+      type: "text",
+      text: `${header}${result.text}${shotInfo}`
+    });
+  } else {
+    content.push({
+      type: "text",
+      text: JSON.stringify(result, null, 2)
+    });
+  }
+
+  if (
+    includeImageB64 &&
+    result &&
+    result.screenshot &&
+    result.screenshot.path &&
+    existsSync(result.screenshot.path)
+  ) {
+    try {
+      const b64 = readFileSync(result.screenshot.path).toString("base64");
+      content.push({
+        type: "image",
+        data: b64,
+        mimeType: "image/png"
+      });
+    } catch {
+      // Ignore image read failure
+    }
+  }
+
+  return {
+    content,
+    structuredContent: result,
+    isError: result && result.ok === false
+  };
+}
+
+// --- Dual Framing (Newline JSON-RPC + Content-Length) MCP Stdio Transport ---
+
+let useContentLengthFraming = false;
+
+function sendMessage(msg) {
+  const json = JSON.stringify(msg);
+  if (useContentLengthFraming) {
+    const byteLen = Buffer.byteLength(json, "utf8");
+    process.stdout.write(`Content-Length: ${byteLen}\r\n\r\n${json}`);
+  } else {
+    process.stdout.write(`${json}\n`);
+  }
+}
+
+async function processRPCMessage(msg) {
+  if (!msg || Array.isArray(msg) || typeof msg !== "object" || msg.jsonrpc !== "2.0" || typeof msg.method !== "string") {
+    sendMessage({ jsonrpc: "2.0", id: msg?.id ?? null, error: { code: -32600, message: "Invalid Request" } }); return;
+  }
+  if (msg.id === undefined && !msg.method.startsWith("notifications/")) return;
+  const { id, method, params } = msg;
+
+  try {
+    if (method === "initialize") {
+      sendMessage({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          protocolVersion: ["2024-11-05", "2025-03-26", "2025-06-18"].includes(params?.protocolVersion) ? params.protocolVersion : "2025-06-18",
+          capabilities: {
+            tools: {}
+          },
+          serverInfo: SERVER_INFO
+        }
+      });
+      return;
+    }
+
+    if (method === "notifications/initialized" || method === "initialized") {
+      return;
+    }
+
+    if (method === "ping") {
+      sendMessage({ jsonrpc: "2.0", id, result: {} });
+      return;
+    }
+
+    if (method === "tools/list") {
+      sendMessage({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          tools: TOOLS
+        }
+      });
+      return;
+    }
+
+    if (method === "tools/call") {
+      const toolName = params && params.name;
+      const toolArgs = (params && params.arguments) || {};
+      const res = await handleToolCall(toolName, toolArgs);
+      sendMessage({
+        jsonrpc: "2.0",
+        id,
+        result: formatToolResult(res, toolArgs.return_image_base64 !== false)
+      });
+      return;
+    }
+
+    if (id !== undefined) {
+      sendMessage({
+        jsonrpc: "2.0",
+        id,
+        error: {
+          code: -32601,
+          message: `Method not found: ${method}`
+        }
+      });
+    }
+  } catch (err) {
+    if (id !== undefined) {
+      sendMessage({
+        jsonrpc: "2.0",
+        id,
+        error: {
+          code: -32000,
+          message: err instanceof Error ? err.message : String(err)
+        }
+      });
+    }
+  }
+}
+
+let inputBuffer = Buffer.alloc(0);
+let priorityQueue = Promise.resolve();
+let queueGeneration = 0;
+let pendingRequests = 0;
+let locallyStopped = false;
+const readTools = new Set(["get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
+function rejectQueued(message, code, error) {
+  if (message.id !== undefined) sendMessage({ jsonrpc: "2.0", id: message.id, result: formatToolResult({ ok: false, error_code: code, error }) });
+}
+function enqueue(message) {
+  const name = message?.method === "tools/call" ? message.params?.name : null;
+  if (name === "status") { void processRPCMessage(message); return; }
+  if (name === "stop" || name === "resume") {
+    if (name === "stop") { queueGeneration++; locallyStopped = true; }
+    // Order stop/resume against each other, independently of ordinary work.
+    priorityQueue = priorityQueue.then(() => processRPCMessage(message));
+    return;
+  }
+  if (name && locallyStopped && !readTools.has(name)) { rejectQueued(message, "stopped", "Resume before submitting new actions."); return; }
+  if (pendingRequests >= 64) { rejectQueued(message, "queue_full", "OpenSky's request queue is full."); return; }
+  const generation = queueGeneration;
+  pendingRequests++;
+  // Forward promptly to the one authoritative native action queue. A second JS
+  // backlog could otherwise survive a stop initiated by another client or hotkey.
+  void Promise.resolve().then(async () => {
+    try {
+      if (generation !== queueGeneration) { rejectQueued(message, "cancelled", "Cancelled by emergency stop. Submit a new request after resuming."); return; }
+      await processRPCMessage(message);
+    } finally { pendingRequests--; }
+  }).catch(error => process.stderr.write(`${error.message}\n`));
+}
+function parseError() { sendMessage({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Invalid JSON" } }); }
+
+
+process.stdin.on("data", (chunk) => {
+  inputBuffer = Buffer.concat([inputBuffer, chunk]);
+  if (inputBuffer.length > 2 * 1024 * 1024) { process.stderr.write("MCP request exceeds 2 MiB\n"); process.exit(1); }
+
+  while (inputBuffer.length > 0) {
+    const strPreview = inputBuffer.toString("utf8", 0, Math.min(inputBuffer.length, 64));
+    if (strPreview.startsWith("Content-Length:")) {
+      useContentLengthFraming = true;
+      const headerEnd = inputBuffer.indexOf("\r\n\r\n");
+      if (headerEnd === -1) break;
+      const headerStr = inputBuffer.toString("utf8", 0, headerEnd);
+      const match = headerStr.match(/Content-Length:\s*(\d+)/i);
+      const len = match ? parseInt(match[1], 10) : 0;
+      const totalNeeded = headerEnd + 4 + len;
+      if (inputBuffer.length < totalNeeded) break;
+      const bodyStr = inputBuffer.toString("utf8", headerEnd + 4, totalNeeded);
+      inputBuffer = inputBuffer.subarray(totalNeeded);
+      try {
+        const parsed = JSON.parse(bodyStr);
+        enqueue(parsed);
+      } catch {
+        parseError();
+      }
+    } else {
+      const nlIdx = inputBuffer.indexOf("\n");
+      if (nlIdx === -1) break;
+      const lineStr = inputBuffer.toString("utf8", 0, nlIdx).trim();
+      inputBuffer = inputBuffer.subarray(nlIdx + 1);
+      if (!lineStr) continue;
+      try {
+        const parsed = JSON.parse(lineStr);
+        enqueue(parsed);
+      } catch {
+        parseError();
+      }
+    }
+  }
+});
