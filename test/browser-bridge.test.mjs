@@ -9,7 +9,7 @@ import {nativeFrame,nativeFrameReader,jsonLineReader} from '../src/browser/frami
 import {browserSettings,browserToken} from '../src/browser/settings.mjs';
 import {startBrowserBridge} from '../src/browser/server.mjs';
 import {createBrowserController} from '../assets/browser-extension/controller.mjs';
-import {installBrowserHost,removeBrowserHosts} from '../scripts/browser-install.mjs';
+import {installBrowserHost,removeBrowserHosts,browserHostStatus} from '../scripts/browser-install.mjs';
 import {HOST_NAME,EXTENSION_ID} from '../src/browser/settings.mjs';
 import {execFileSync} from 'node:child_process';
 
@@ -120,7 +120,10 @@ test('extension startup and installation events create only one native connectio
 test('native-host setup quotes paths and removes only its registered files',async t=>{
   const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'opensky-host-'));t.after(()=>fs.rm(temporary,{recursive:true,force:true}));
   const home=path.join(temporary,"owner's runtime"),manifestDir=path.join(temporary,'NativeMessagingHosts');
+  assert.equal(browserHostStatus({runtime:home,home,manifestDir}).native_host_registered,false);
+  await assert.rejects(fs.access(home),'Passive status created the runtime folder.');
   const setup=installBrowserHost({runtime:home,home,manifestDir});assert.equal(setup.extension_id,EXTENSION_ID);
+  assert.equal(browserHostStatus({runtime:home,home,manifestDir}).native_host_registered,true);
   execFileSync('/bin/sh',['-n',path.join(home,'browser-host')]);
   const manifest=JSON.parse(await fs.readFile(path.join(manifestDir,HOST_NAME+'.json'),'utf8'));assert.deepEqual(manifest.allowed_origins,[`chrome-extension://${EXTENSION_ID}/`]);
   assert.equal((await fs.stat(setup.manifest)).mode&0o777,0o600);
@@ -128,8 +131,10 @@ test('native-host setup quotes paths and removes only its registered files',asyn
   const savedLauncher=await fs.readFile(path.join(home,'browser-host'),'utf8');
   const conflictingDir=path.join(temporary,'conflicting-hosts');await fs.mkdir(conflictingDir);
   await fs.writeFile(path.join(conflictingDir,HOST_NAME+'.json'),JSON.stringify({name:'someone-else'}));
+  assert.equal(browserHostStatus({runtime:home,home,manifestDir:conflictingDir}).native_host_registered,false);
   assert.throws(()=>installBrowserHost({runtime:'/changed/runtime',home,manifestDir:conflictingDir}),/unrelated native host/);
   assert.equal(await fs.readFile(path.join(home,'browser-host'),'utf8'),savedLauncher);
   const planned=removeBrowserHosts(home,{dryRun:true});assert.equal(planned.length,2);await fs.access(setup.manifest);
   removeBrowserHosts(home);await assert.rejects(fs.access(setup.manifest),{code:'ENOENT'});assert.equal(await fs.readFile(unrelated,'utf8'),'unrelated');
+  assert.equal(browserHostStatus({runtime:home,home,manifestDir}).native_host_registered,false);
 });

@@ -9,11 +9,11 @@ import {computer_use,daemonStatus,ensureDaemonRunning,OPENSKY_HOME} from '../src
 import {chromeAutomationEnabled} from '../src/chrome.mjs';
 import {configSnippet} from './config.mjs';
 import {browserBridgeStatus} from '../src/browser/client.mjs';
-import {installBrowserHost} from './browser-install.mjs';
+import {installBrowserHost,browserHostStatus} from './browser-install.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const execute=promisify(execFile);
-export function createOnboardingServer({status=daemonStatus,computer=computer_use,start=ensureDaemonRunning,open=(url)=>execute('/usr/bin/open',[url]),config=configSnippet,demo=async()=>{const {runControlDemo}=await import('./control-demo.mjs');return runControlDemo({quick:true});},chromeEnabled=()=>chromeAutomationEnabled(OPENSKY_HOME),browserStatus=browserBridgeStatus,browserInstall=()=>installBrowserHost({runtime:root,home:OPENSKY_HOME})}={}) {
+export function createOnboardingServer({status=daemonStatus,computer=computer_use,start=ensureDaemonRunning,open=(url)=>execute('/usr/bin/open',[url]),config=configSnippet,demo=async()=>{const {runControlDemo}=await import('./control-demo.mjs');return runControlDemo({quick:true});},chromeEnabled=()=>chromeAutomationEnabled(OPENSKY_HOME),browserStatus=browserBridgeStatus,browserInstall=()=>installBrowserHost({runtime:root,home:OPENSKY_HOME}),browserInstallStatus=()=>browserHostStatus({runtime:root,home:OPENSKY_HOME}),revealFolder=(folder)=>execute('/usr/bin/open',['-R',folder])}={}) {
   const key=randomBytes(24).toString('hex');
   let origin;
   const base=`/setup/${key}`;
@@ -30,9 +30,9 @@ export function createOnboardingServer({status=daemonStatus,computer=computer_us
       if(req.method==='GET'&&route==='/app.js') return send(200,readFileSync(path.join(root,'assets/onboarding.js'),'utf8'),'text/javascript; charset=utf-8');
       if(req.method==='GET'&&route==='/icon.svg') return send(200,readFileSync(path.join(root,'assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-icon-Codex.svg'),'utf8'),'image/svg+xml');
       if(req.method==='GET'&&route==='/state') {
-        const current=await status();
-        const browser=await browserStatus();
-        return send(200,{ok:true,running:!!current.running,stopped:!!current.stopped,accessibility:!!current.axTrusted,screenRecording:!!current.screenRecordingTrusted,chromeEnabled:chromeEnabled(),browserConnected:!!browser.connected,browserExtensionPath:path.join(root,'assets/browser-extension'),configs:Object.fromEntries(['codex','claude','cursor','antigravity'].map(c=>[c,config(c)]))});
+        const [current,browser]=await Promise.all([status(),browserStatus()]);
+        const registered=browserInstallStatus().native_host_registered===true,connected=browser.connected===true,paused=!!browser.paused||!!current.stopped;
+        return send(200,{ok:true,running:!!current.running,stopped:!!current.stopped,accessibility:!!current.axTrusted,screenRecording:!!current.screenRecordingTrusted,chromeEnabled:chromeEnabled(),browserConnected:connected,browserHostRegistered:registered,browserPaused:paused,browserConnectionState:connected?(paused?'paused':'connected'):(registered?'waiting':'unregistered'),browserFolderRevealAvailable:true,browserExtensionPath:path.join(root,'assets/browser-extension'),configs:Object.fromEntries(['codex','claude','cursor','antigravity'].map(c=>[c,config(c)]))});
       }
       if(req.method!=='POST'||route!=='/action'||req.headers.origin!==origin||req.headers['content-type']!=='application/json') return send(403,{ok:false,error:'Use the local setup controls.'});
       let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>2048)return send(413,{ok:false,error:'Request too large.'});}
@@ -57,7 +57,11 @@ export function createOnboardingServer({status=daemonStatus,computer=computer_us
       }
       if(action==='browser'){
         const result=browserInstall();
-        return send(200,{ok:true,message:'Local browser host registered. Load the extension folder in your existing Chrome profile, then check again. No browser restart is needed.',extension_path:result.extension_path});
+        return send(200,{ok:true,message:'Local host registered. Finish Load unpacked in your existing Chrome profile; this page will confirm when Chrome connects.',extension_path:result.extension_path});
+      }
+      if(action==='browser-folder'){
+        await revealFolder(path.join(root,'assets/browser-extension'));
+        return send(200,{ok:true,message:'Extension folder selected in Finder. Choose this folder in Chrome’s Load unpacked picker.'});
       }
       if(action==='close'){send(200,{ok:true,message:'Setup closed. OpenSky remains available to your agent.'});setImmediate(()=>server.close());return;}
       return send(400,{ok:false,error:'Unknown setup action.'});

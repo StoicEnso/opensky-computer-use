@@ -185,6 +185,8 @@ await computer_use.browser_upload({
 // Reinspect and verify the site's upload result before proceeding.
 ```
 
+The local setup page distinguishes host registration from a verified Chrome connection and paused control. It confirms connection automatically, hides completed steps, and offers explicit **Copy folder path** and **Show in Finder** controls. Readiness checks only observe; they never install, copy, reveal, restart or resume. OpenSky 1.5.3 keeps browser worker 1.5.2 unchanged, so an existing working extension needs no reload for this onboarding update.
+
 The page pointer animates inside the task tab. It never moves your physical pointer. Existing task authorization carries across frames and tools; OpenSky adds no per-click question. The extension popup can Pause/Resume; `opensky stop` pauses browser work, and `opensky web shutdown` closes the local bridge. Native emergency pause is checked before mutations and polled during in-flight requests. Stop cannot undo delivered input.
 
 Protected Chrome pages, native dialogs, closed shadow roots, canvases and some site-specific activation requirements remain outside the verified page workflow. Root and child-frame clicks use trusted tab-scoped input after verifying the observed control at the input point. Clicks and keys temporarily emulate focus in that renderer without selecting the tab; page focus handlers can run. A site may itself open UI. In 1.5.2, independent inactive tabs, trusted Enter and root/embedded uploads also passed in the owner's existing Chrome profile, with file bytes verified at a local server. See [the owner-profile verification](artifacts/2026-10-17-opensky-owner-browser-results-Codex.json).
@@ -348,6 +350,8 @@ node src/cli.mjs help
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
 ## Tested scope
+
+The 1.5.3 setup update passed **41 automated tests and 39 packaging assertions**. OpenSky drove the rendered setup at desktop and narrow widths against controlled registration, connection, pause, failure and recovery states. Finder reveal was mocked and the clipboard was unused. A passive check against the installed real Chrome connection passed after the runtime update, with the native helper and unchanged browser worker kept running. See [the onboarding results and limits](artifacts/2026-10-17-opensky-browser-onboarding-results-Codex.json).
 
 The 1.5.2 follow-up verified **two inactive tabs, trusted Enter and two activation-gated uploads in the owner's existing Chrome profile**. A root page and cross-origin frame submitted generated Unicode-named files to a local fixture, where their contents were checked. Selected tabs and the frontmost app stayed unchanged during this background test; native process/permissions and the clipboard were preserved. Chrome extension setup was a separate explicit UI step. This establishes the local fixture workflow, not every provider's behavior. See [the owner-profile results](artifacts/2026-10-17-opensky-owner-browser-results-Codex.json).
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.3 — 2026-10-17
+
+- Separate local host registration, waiting for Chrome, verified connection and paused control in onboarding. Confirm a new connection with passive readiness checks and hide finished installation steps.
+- Add explicit Copy folder path and Show in Finder controls to help select the hidden extension folder. Readiness checks never copy, reveal, install, restart or resume anything.
+- Clear stale readiness and disable the native demo if a status check fails. Keep the native app and the unchanged 1.5.2 browser worker running; this update needs no extension reload.
+
 ## 1.5.2 — 2026-10-17
 
 - Reproduce regular Chrome acknowledging inactive-tab mouse and keyboard events without delivering them, despite successful headless checks.

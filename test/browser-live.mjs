@@ -27,6 +27,9 @@ const previous=fs.existsSync(manifest)?fs.readFileSync(manifest):null;
 installBrowserHost({runtime,home,browser:'chrome-for-testing',manifestDir:manifestDirectory,environment:{OPENSKY_BROWSER_PORT:String(port),OPENSKY_BROWSER_SOCKET:process.env.OPENSKY_BROWSER_SOCKET,OPENSKY_PORT:process.env.OPENSKY_PORT}});
 const {computer_use:browser}=await import('../src/index.mjs');
 const {setBrowserPaused}=await import('../src/browser/client.mjs');
+const {createOnboardingServer}=await import('../scripts/onboarding.mjs');
+const width=Number(process.env.OPENSKY_TEST_BROWSER_WIDTH??1280);
+assert.ok(Number.isInteger(width)&&width>=390&&width<=1920,'Use a fixture width from 390 to 1920.');
 const hits=[],uploads=[];
 const server=http.createServer(async(req,res)=>{
   if(req.url==='/upload'){
@@ -43,12 +46,12 @@ const server=http.createServer(async(req,res)=>{
   <iframe title="Cross-origin fixture" src="http://localhost:${server.address().port}/frame"></iframe><iframe title="Same-process fixture" style="width:550px;height:300px;transform:scale(.9);transform-origin:top left" src="/frame"></iframe><script>document.querySelector('#prompt').onkeydown=e=>{if(e.key==='Enter')document.querySelector('#key-trusted').textContent='Trusted key: '+e.isTrusted;};let count=0;document.querySelector('#count').onclick=e=>{document.querySelector('#counter').textContent=String(++count);document.querySelector('#trusted').textContent='Trusted click: '+e.isTrusted};document.querySelector('#choose').onclick=()=>document.querySelector('#files').click();document.querySelector('#files').onchange=()=>document.querySelector('#selected').textContent=Array.from(document.querySelector('#files').files,f=>f.name).join(',');document.querySelector('#submit').onclick=async()=>{const data=new FormData();data.append('prompt',document.querySelector('#prompt').value);for(const f of document.querySelector('#files').files)data.append('files',f);const result=await fetch('/upload',{method:'POST',body:data}).then(r=>r.json());document.querySelector('#result').textContent=result.ok?'Upload received':'Failed'};</script>`);
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
-const chrome=spawn(binary,['--headless=new','--use-mock-keychain','--password-store=basic','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update',`--user-data-dir=${profile}`,'--remote-debugging-port=0',`--disable-extensions-except=${path.join(runtime,'assets/browser-extension')}`,`--load-extension=${path.join(runtime,'assets/browser-extension')}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
+const chrome=spawn(binary,['--headless=new',`--window-size=${width},1200`,'--use-mock-keychain','--password-store=basic','--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update',`--user-data-dir=${profile}`,'--remote-debugging-port=0',`--disable-extensions-except=${path.join(runtime,'assets/browser-extension')}`,`--load-extension=${path.join(runtime,'assets/browser-extension')}`,'about:blank'],{stdio:['ignore','ignore','pipe']});
 let diagnostics='';chrome.stderr.on('data',c=>{diagnostics+=c;if(diagnostics.length>50000)diagnostics=diagnostics.slice(-50000);});
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function waitFor(fn,timeout=15000){const end=Date.now()+timeout;let result;while(Date.now()<end){try{result=await fn();if(result)return result;}catch{}await delay(75);}throw new Error('Timed out waiting for observable state. '+JSON.stringify(result));}
 async function checked(promise){const value=await promise;assert.equal(value.ok,true,JSON.stringify(value));return value;}
-let ws,bridgePid,client;
+let ws,bridgePid,client,onboarding;
 try{
   const activeFile=path.join(profile,'DevToolsActivePort');
   const [debugPort,debugPath]=await waitFor(()=>{if(!fs.existsSync(activeFile))return false;const lines=fs.readFileSync(activeFile,'utf8').trim().split('\n');return Number(lines[0])>0&&lines[1]?.startsWith('/devtools/browser/')?lines:false;});
@@ -130,11 +133,44 @@ try{
   s=await checked(browser.browser_snapshot(contexts[0]));
   const oldSnapshot=s;await checked(browser.browser_tabs({action:'navigate',...contexts[0],url:base+'/new-document'}));
   assert.equal((await browser.browser_click({...contexts[0],snapshot_id:oldSnapshot.snapshot_id,element_id:submit.element_id})).error_code,'stale_browser_snapshot');
-  const activeAfter=(await checked(browser.browser_tabs({action:'list'}))).tabs.filter(t=>t.active).map(t=>t.tab_id);assert.deepEqual(activeAfter,activeBefore,'Owner tab selection changed.');
   const folder=path.join(root,'research/2026-10-17-opensky-browser-learning-Codex');fs.mkdirSync(folder,{recursive:true});
-  const report={passed:true,transport:'OpenSky MV3 extension + native messaging + local broker',codexBrowserToolsUsed:false,headlessTestProfile:true,backgroundTabs:2,overlappingLoads:true,independentFieldValues:true,chooserUploadVerifiedAtLocalServer:true,directMultipleFiles:true,crossOriginFrameFill:true,trustedFrameChooserUploads:4,sameProcessAndNestedFrameUploads:true,scaledIframeUpload:true,coveredControlRejectedBeforeInput:true,selectOptionsObservedAndSelected:true,tabScreenshot:true,mcpUploadVerified:true,mcpBrowserTools:10,stopRejectsInput:true,trustedRootClick:true,trustedBackgroundEnter:true,unicodeFilename:true,ownershipConflictRejected:true,staleDocumentRejected:true,activeTabPreserved:true,uploadBytes:uploads[0].bytes};
+
+  // Actual rendered setup UI and OpenSky input, with simulated connection phases.
+  // The reveal hook records intent; it never opens Finder or changes the clipboard.
+  const phase={registered:false,connected:false,paused:false,error:false},setupActions={install:0,reveal:0,other:0},setupReads=[];
+  onboarding=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true}),browserStatus:async()=>{setupReads.push({...phase});if(phase.error)throw Error('Fixture status unavailable');return phase;},browserInstallStatus:()=>({native_host_registered:phase.registered}),browserInstall:()=>{phase.registered=true;setupActions.install++;return{extension_path:path.join(root,'assets/browser-extension')};},revealFolder:async()=>{setupActions.reveal++;},start:async()=>{setupActions.other++;},computer:{},config:c=>`Fixture configuration for ${c}`,chromeEnabled:()=>false,demo:async()=>{setupActions.other++;return{ok:true};},open:async()=>{setupActions.other++;}});
+  const setupUrl=await onboarding.listen(),openedSetup=await checked(browser.browser_tabs({action:'open',workflow_id:'onboarding',url:setupUrl}));
+  const setupTask={tab_id:openedSetup.tab_id,workflow_id:'onboarding'};
+  let setupState=await waitFor(async()=>{const state=await browser.browser_snapshot(setupTask);return state.ok&&state.text.includes('Set up the local connection')?state:false;});
+  const setupClick=async name=>{const state=await checked(browser.browser_snapshot(setupTask)),button=state.elements.find(e=>e.role==='button'&&e.name===name);assert.ok(button,'Missing setup control: '+name);return checked(browser.browser_click({...setupTask,snapshot_id:state.snapshot_id,element_id:button.element_id}));};
+  await setupClick('Set up browser connection');
+  setupState=await waitFor(async()=>{const state=await browser.browser_snapshot(setupTask);return state.ok&&state.text.includes('Waiting for Chrome to connect')?state:false;});
+  assert.equal(setupActions.install,1);assert.equal(setupActions.reveal,0);
+  const waitingCapture=await checked(browser.browser_screenshot(setupTask));fs.copyFileSync(waitingCapture.screenshot.path,path.join(folder,`2026-10-17-onboarding-waiting-${width}-Codex.png`));
+  await setupClick('Show in Finder');assert.equal(setupActions.reveal,1);
+  phase.connected=true;
+  setupState=await waitFor(async()=>{const state=await browser.browser_snapshot(setupTask);return state.ok&&state.text.includes('Chrome connection verified')?state:false;});
+  assert.equal(setupState.elements.some(e=>e.name==='Copy folder path'),false,'Completed setup instructions stayed visible.');
+  phase.paused=true;await setupClick('Check again');
+  await waitFor(async()=>{const state=await browser.browser_snapshot(setupTask);return state.ok&&state.text.includes('Control is paused; resume OpenSky explicitly')?state:false;});
+  phase.error=true;await setupClick('Check again');
+  setupState=await waitFor(async()=>{const state=await browser.browser_snapshot(setupTask);return state.ok&&state.text.includes('READINESS NOT VERIFIED')?state:false;}).catch(async error=>{
+    const last=await browser.browser_snapshot(setupTask),capture=await browser.browser_screenshot(setupTask);
+    if(capture.ok)fs.copyFileSync(capture.screenshot.path,path.join(folder,`2026-10-17-onboarding-error-${width}-Codex.png`));
+    throw Error(error.message+' Setup state: '+JSON.stringify({phase,setupActions,recentReads:setupReads.slice(-8),last}));
+  });
+  assert.equal(setupState.elements.find(e=>e.name==='Run verified demo').disabled,true,'A stale successful state enabled the native demo.');
+  phase.error=false;phase.paused=false;await setupClick('Check again');
+  await waitFor(async()=>{const state=await browser.browser_snapshot(setupTask);return state.ok&&state.text.includes('Chrome connection verified')&&!state.text.includes('Could not check readiness')&&!state.text.includes('Setup is no longer available')?state:false;});
+  const connectedCapture=await checked(browser.browser_screenshot(setupTask));fs.copyFileSync(connectedCapture.screenshot.path,path.join(folder,`2026-10-17-onboarding-connected-${width}-Codex.png`));
+  assert.deepEqual(setupActions,{install:1,reveal:1,other:0},'Readiness polling performed an unsolicited action.');
+  await checked(browser.browser_tabs({action:'close',...setupTask}));
+  const activeAfter=(await checked(browser.browser_tabs({action:'list'}))).tabs.filter(t=>t.active).map(t=>t.tab_id);assert.deepEqual(activeAfter,activeBefore,'Owner tab selection changed.');
+  const report={passed:true,transport:'OpenSky MV3 extension + native messaging + local broker',codexBrowserToolsUsed:false,headlessTestProfile:true,backgroundTabs:2,overlappingLoads:true,independentFieldValues:true,chooserUploadVerifiedAtLocalServer:true,directMultipleFiles:true,crossOriginFrameFill:true,trustedFrameChooserUploads:4,sameProcessAndNestedFrameUploads:true,scaledIframeUpload:true,coveredControlRejectedBeforeInput:true,selectOptionsObservedAndSelected:true,tabScreenshot:true,mcpUploadVerified:true,mcpBrowserTools:10,stopRejectsInput:true,trustedRootClick:true,trustedBackgroundEnter:true,unicodeFilename:true,ownershipConflictRejected:true,staleDocumentRejected:true,activeTabPreserved:true,uploadBytes:uploads[0].bytes,onboardingUI:{fixtureWindowWidth:width,simulatedConnectionPhases:true,actualRenderedUIAndOpenSkyInput:true,registeredIsNotConnected:true,automaticHandshakeRefresh:true,completedInstructionsHidden:true,pausedConnectionVisible:true,unavailableStateDisablesDemo:true,recoveredReadinessClearsError:true,noUnsolicitedAction:true,finderRevealMocked:true,clipboardNotUsed:true}};
+  fs.writeFileSync(path.join(folder,`2026-10-17-onboarding-live-${width}-Codex.json`),JSON.stringify(report.onboardingUI,null,2)+'\n');
   fs.writeFileSync(path.join(folder,'2026-10-17-browser-live-results-Codex.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
 }finally{
+  onboarding?.server.closeAllConnections();onboarding?.server.close();
   await client?.close();ws?.close();chrome.kill('SIGTERM');await Promise.race([once(chrome,'exit'),delay(3000)]);if(chrome.exitCode===null)chrome.kill('SIGKILL');
   if(previous)fs.writeFileSync(manifest,previous);else fs.rmSync(manifest,{force:true});
   if(!bridgePid){try{bridgePid=(await browser.browser_status()).pid;}catch{}}
