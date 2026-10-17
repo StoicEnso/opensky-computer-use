@@ -1,6 +1,6 @@
 {
   "name": "opensky-computer-use",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Fast, local-first browser and desktop control for macOS agents, with on-device OCR, animated pointers, MCP, CLI and JavaScript. No built-in telemetry or cloud relay.",
   "type": "module",
   "main": "./src/index.mjs",
@@ -80,7 +80,8 @@
     "artifacts/2026-10-17-opensky-auto-mode-and-captcha-Codex.json",
     "artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json",
     "artifacts/2026-10-17-fresh-agent-verification-Codex.png",
-    "artifacts/2026-10-17-opensky-alongside-results-Codex.json"
+    "artifacts/2026-10-17-opensky-alongside-results-Codex.json",
+    "artifacts/2026-10-17-opensky-discovery-parity-Codex.json"
   ],
   "repository": {
     "type": "git",

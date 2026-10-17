@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.4.2",
+  "nativeVersion": "1.3.0",
+  "trigger": "A live workflow tried MCP find_elements through the JavaScript SDK, where the method was missing; find --help was interpreted as an app lookup.",
+  "fixes": {
+    "sharedMcpCliSdkDiscovery": true,
+    "validatesSelectorAndExactWindowBeforeObservation": true,
+    "returnsAllMatchesWithoutGuessing": true,
+    "noScreenshotOrInputForDiscovery": true,
+    "subcommandHelpNeverLooksUpApps": true
+  },
+  "tests": {
+    "automatedPassed": 33,
+    "packagingAssertions": 39,
+    "discoveryParityCheckedWithOfficialMcpClient": true,
+    "ambiguityAndFailureHandlingVerified": true,
+    "noLaunchHelpVerified": true
+  },
+  "installed": {
+    "runtime": "1.4.2",
+    "native": "1.3.0",
+    "nativeProcessBinaryPermissionsAndStopStatePreserved": true,
+    "alongsideModePreserved": true,
+    "liveReadOnlyDiscovery": {
+      "tested": true,
+      "exactWindow": true,
+      "snapshotMetadata": true,
+      "matched": 1,
+      "inputSent": false,
+      "screenshotRequested": false
+    }
+  },
+  "limits": [
+    "Native app support remains app-dependent.",
+    "This does not add a Chrome DOM transport or native file-picker support.",
+    "Existing MCP processes must reconnect or use a fresh updated SDK/CLI process."
+  ]
+}

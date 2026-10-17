@@ -214,6 +214,16 @@ export interface ElementMatch {
   snapshot_id: string;
   state: OpenSkyActionResult;
 }
+export interface FindElementsParams {
+  app: string;
+  window_id?: number;
+  selector: ElementSelector;
+}
+export interface FindElementsResult extends OpenSkyActionResult {
+  window_id?: number;
+  matches?: OpenSkyElementNode[];
+  match_count?: number;
+}
 export interface OpenSkySession {
   app: string;
   observe(options?: Omit<GetAppStateParams, "app">): Promise<OpenSkyActionResult>;
@@ -344,6 +354,8 @@ export interface OpenSkyComputerUse {
    * window screenshot (`file://` path), and hybrid Apple Vision OCR elements.
    */
   get_app_state(params: GetAppStateParams): Promise<OpenSkyActionResult>;
+  /** Read fresh exact-window matches; returns all matches without guessing or input. */
+  find_elements(params: FindElementsParams): Promise<FindElementsResult>;
 
   /**
    * Click an element by `element_index` (from `get_app_state`) or screen `[x, y]` `point`.

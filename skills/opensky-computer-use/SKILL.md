@@ -49,6 +49,8 @@ const state = await sdk.computer_use.get_app_state({ app: "Calculator", include_
 console.log(state.text);
 ```
 
+The SDK also exposes `computer_use.find_elements({app, window_id, selector:{name:'Exact observed label'}})`, matching MCP discovery. It returns all matches with fresh snapshot metadata and sends no input. CLI discovery supports `opensky find "App name" "Exact observed label" --window OBSERVED_WINDOW_ID`; `opensky find --help` prints help without app lookup.
+
 Use `opensky rpc <method> '<JSON object>'` for native features without CLI shorthand. Methods include `click`, `drag`, `scroll`, `type_text`, `press_key`, `paste`, `perform_secondary_action`, `select_text`, `manage_window`, `run_applescript`, `screenshot_screen`, and pointer methods. Use the connected MCP tool schemas or SDK declarations for parameter details.
 
 ## Pointers and recovery

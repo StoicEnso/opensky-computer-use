@@ -33,6 +33,17 @@ function checked(result) {
   return result;
 }
 
+/** Shared read-only discovery contract for MCP, CLI and the JavaScript SDK. */
+export async function findElementsWithComputer(computer, {app, window_id, selector} = {}) {
+  if (typeof app !== 'string' || !app.trim()) throw new OpenSkyError('invalid_app', 'An exact app name or bundle ID is required.');
+  if (window_id !== undefined && (!Number.isInteger(window_id) || window_id < 1 || window_id > 0xffffffff)) throw new OpenSkyError('invalid_window', 'window_id must be a positive 32-bit integer.');
+  matchElements({elements:[]}, selector);
+  const state = await computer.get_app_state({app, window_id, include_screenshot:false, include_ocr:['ocr','any'].includes(selector.source)});
+  if (!state.ok) return state;
+  const matches = matchElements(state, selector);
+  return {ok:true, app:state.app ?? app, window_id:state.window_id, snapshot_id:state.snapshot_id, matches, match_count:matches.length};
+}
+
 export function createSessionWithComputer(computer, { app, mode, window_id } = {}) {
   if (typeof app !== 'string' || !app.trim()) throw new OpenSkyError('invalid_app', 'A session requires an exact app name or bundle ID.');
   if (mode !== undefined && !['background', 'hybrid', 'takeover'].includes(mode)) throw new OpenSkyError('invalid_mode', 'Invalid execution mode.');

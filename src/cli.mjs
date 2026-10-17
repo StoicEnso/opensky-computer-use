@@ -3,7 +3,7 @@ import { readFileSync, existsSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { computer_use, getOperatingGuidance, matchElements, DAEMON_BINARY, DAEMON_URL, OPENSKY_HOME, TOKEN_PATH, callDaemon, daemonStatus, ensureDaemonRunning } from "./index.mjs";
+import { computer_use, getOperatingGuidance, DAEMON_BINARY, DAEMON_URL, OPENSKY_HOME, TOKEN_PATH, callDaemon, daemonStatus, ensureDaemonRunning } from "./index.mjs";
 import { configSnippet } from "../scripts/config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -153,6 +153,7 @@ async function doctor() {
 }
 
 async function main() {
+  if (['--help', '-h'].includes(args[1])) { help(); return; }
   switch (command) {
     case "help": case "--help": case "-h": help(); break;
     case "version": case "--version": case "-v": output(version); break;
@@ -211,10 +212,8 @@ async function main() {
       break;
     }
     case "find": {
-      const state = await computer_use.get_app_state({ app: required(args[1], "app"), ...nativeMetadata(), include_screenshot: false });
-      if (!checkResult(state)) break;
-      const matches = matchElements(state, { name: required(nativeText(2), "exact accessible name") });
-      output({ ok: true, snapshot_id: state.snapshot_id, matches, match_count: matches.length });break;
+      const result = await computer_use.find_elements({ app: required(args[1], "app"), ...nativeMetadata(), selector: { name: required(nativeText(2), "exact accessible name") } });
+      if (checkResult(result)) output(result);break;
     }
     case "click": {
       const target = required(args[2], "element index or x,y coordinates");

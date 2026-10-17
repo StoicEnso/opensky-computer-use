@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createSessionWithComputer } from "./session.mjs";
+import { createSessionWithComputer, findElementsWithComputer } from "./session.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
 import { NATIVE_API_VERSION } from "./native-version.mjs";
 import { performChromeTabs } from "./chrome.mjs";
@@ -166,6 +166,10 @@ export const computer_use = {
    */
   async get_app_state(params = {}) {
     return callDaemon("get_app_state", params);
+  },
+  /** Inspect exact-window AX/OCR matches without screenshots or input. */
+  async find_elements(params = {}) {
+    return findElementsWithComputer(computer_use, params);
   },
 
   /**

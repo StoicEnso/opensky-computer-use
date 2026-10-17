@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.2 — 2026-10-17
+
+- Add `computer_use.find_elements` to the JavaScript SDK, fixing a real workflow's attempt to use the MCP discovery method through the SDK. MCP, CLI and SDK now share selector validation, exact-window observations and snapshot-scoped results, without screenshots or input.
+- Handle subcommand help such as `opensky find --help` before any app lookup or engine startup.
+- Preserve alongside mode and the native helper through a runtime-only update.
+
 ## 1.4.1 — 2026-10-17
 
 - Add persistent alongside/desktop cooperation mode shared by current-runtime MCP, CLI and SDK calls, checked before daemon startup or input. Alongside keeps exact-window background AX actions available and defers shared-input methods with actionable checkpoint guidance instead of permission questions.

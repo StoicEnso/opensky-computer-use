@@ -273,6 +273,8 @@ await computer_use.cursor_dismiss({});
 
 Inside a source checkout, import `./src/index.mjs`; after a local install, use the absolute `~/.local/share/opensky/src/index.mjs` path (expand `~` in your code). `hybrid` tries supported Accessibility actions and may use focus or input fallback. `background` requests background operation and cannot make every application accept background events. `takeover` deliberately operates through foreground input.
 
+For targeted read-only discovery, MCP, CLI and SDK share `find_elements`. In JavaScript, use `computer_use.find_elements({app, window_id, selector:{name:'Exact observed label'}})` with the exact window ID from `list_apps`. Results contain all matches, `match_count` and a fresh `snapshot_id`; they do not guess or click. AX matching excludes duplicate OCR by default and avoids screenshots. `opensky find --help` prints usage without inspecting an app.
+
 ## Architecture and local access
 
 OpenSky's engine runs locally and performs OCR on-device, with no built-in telemetry or cloud relay. **Screenshots are stored locally until deleted**, and observations are returned to your connected agent. That agent may transmit them to its model provider. Browser actions also communicate normally with the sites you use. See [data handling and retention](PRIVACY.md) for the exact boundaries; this is not a zero-storage or blanket GDPR-compliance claim.
@@ -312,6 +314,8 @@ Native builds use the `Native/` directory. Source changes require a rebuild; rei
 The 1.4 follow-up passed **28 automated tests and 39 packaging assertions**, a real two-tab Chrome AX workflow, a fresh-agent live trial with **zero extra permission questions**, and an independent five-scenario authorization review. The local setup screen was inspected at desktop and narrow widths. The installed MCP connection exposes 21 tools; runtime-only update preserved the native process, binary and permissions. See [the 1.4 results and remaining limits](artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json).
 
 The 1.4.1 follow-up reviewed a real workflow's focus interruptions, added alongside mode, and passed **30 automated tests and 39 packaging assertions**. A live disposable-app check clicked and wrote Unicode in the background with **zero app activations and zero clipboard changes**; a foreground key request was deferred before input. Current MCP exposes 22 tools. The real Chrome native file picker remained unsupported in background mode; a bounded existing-browser DOM fallback completed that upload. See [the cooperation results and limits](artifacts/2026-10-17-opensky-alongside-results-Codex.json).
+
+The 1.4.2 patch fixed a real workflow's missing SDK discovery method and subcommand help handling. **33 automated tests and 39 packaging assertions** passed, including MCP/CLI/SDK discovery parity and no-launch help checks. Installed read-only discovery matched the exact disposable window with fresh snapshot metadata and no screenshot or input. Native process, permissions, stop state and alongside mode were preserved. See [the discovery results](artifacts/2026-10-17-opensky-discovery-parity-Codex.json).
 
 The 1.3 check run passed **21 automated tests, 20 live native checks and 39 packaging assertions**. A real TextEdit background edit also passed: Chrome stayed active, the selected document received the exact Unicode content, and the other TextEdit document remained unchanged. See [the 1.3 results](artifacts/2026-10-17-opensky-1-3-results-Codex.json).
 

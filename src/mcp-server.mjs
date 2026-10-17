@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { readFileSync, existsSync } from "node:fs";
-import { callDaemon, computer_use, matchElements } from "./index.mjs";
+import { callDaemon, computer_use } from "./index.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.4.1"
+  version: "1.4.2"
 };
 
 const TOOLS = [
@@ -421,11 +421,7 @@ async function handleToolCall(name, args = {}) {
   if (name === 'interaction_mode') return computer_use.interaction_mode(args);
   if (name === 'chrome_tabs') return computer_use.chrome_tabs(args);
   if (name === "find_elements") {
-    matchElements({ elements: [] }, args.selector);
-    const state = await callDaemon("get_app_state", { app: args.app, window_id: args.window_id, include_screenshot: false, include_ocr: ["ocr", "any"].includes(args.selector.source) });
-    if (!state.ok) return state;
-    const matches = matchElements(state, args.selector);
-    return { ok: true, app: state.app, snapshot_id: state.snapshot_id, matches, match_count: matches.length };
+    return computer_use.find_elements(args);
   }
   if (name === "resume") {
     const result = await callDaemon("resume", {}, { autoStart: false });
