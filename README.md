@@ -383,6 +383,8 @@ Native builds use the `Native/` directory. Source changes require a rebuild; rei
 
 `npm run test:inspector -- --wait-for-idle --output /absolute/dated-private-results.json` is an opt-in real input check. It requires an already-running, permitted app and the owner's saved **auto** cooperation policy; it never selects desktop mode or resumes a pause. It creates a disposable native window, waits for at least 300 filtered external-input idle seconds, and rechecks before shared mouse/keyboard input. It covers search by label/value/identifier/role, case handling, empty results, clearing and row details. Mac activity can interrupt it; an interrupted result is not a passed test. Keep its output private because diagnostic state can include local runtime context.
 
+Native UI 1.3.5 also recreates closed Inspector windows, avoids ordering transforms and reports passive `window_ready` geometry. Showing an already-open Inspector preserves its current observation/filter. AX reads have a cancellable budget; incomplete snapshots are discarded, and passive Inspector/pointer recovery bypasses a busy action queue. A read budget is checked between messages rather than providing a hard real-time guarantee.
+
 Native UI 1.3.5 fixes own-menu physical targeting: popup menu items can extend beyond the Inspector's normal window, so a verified menu AX hit must not be mistaken for a click-through pointer. The target PID and expected-control checks remain. The explicit `--ax-menu-choice` option lets older helpers use a fresh AXPress menu target while testing the remaining physical controls. Installed and candidate verification are recorded separately in [the 18 October results](artifacts/2026-10-18-opensky-inspector-search-results-Codex.json).
 
 ## Tested scope

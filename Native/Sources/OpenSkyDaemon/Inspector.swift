@@ -170,6 +170,7 @@ final class InspectorWindowController: NSWindowController, NSWindowDelegate {
     init() {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 660), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "OpenSky Inspector"; window.isReleasedWhenClosed = false
+        window.animationBehavior = .none
         window.minSize = NSSize(width: 820, height: 630)
         super.init(window: window)
         window.contentView = NSHostingView(rootView: InspectorView(model: model))
@@ -178,8 +179,7 @@ final class InspectorWindowController: NSWindowController, NSWindowDelegate {
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func present(activate: Bool = true) {
-        model.refreshWindows()
-        if window?.isVisible != true { window?.center() }
+        if window?.isVisible != true { model.refreshWindows(); window?.center() }
         if activate {
             showWindow(nil); NSApp.activate(ignoringOtherApps: true)
         } else {

@@ -86,6 +86,13 @@ test('native control transport and real MCP client interoperability', { skip: !a
     assert.ok(results.some(result => result.error_code === 'queue_full'));
     assert.ok(results.every(result => ['queue_full', 'cancelled'].includes(result.error_code)));
   });
+  await t.test('passive Inspector and pointer recovery bypass a busy action queue', async () => {
+    const running=rpc('cursor_wiggle',{enabled:true,duration:1.5});await new Promise(r=>setTimeout(r,100));
+    for(const [method,params] of [['cursor_status',{}],['cursor_dismiss',{}],['inspector',{action:'status'}],['inspector',{action:'close'}]]){
+      const began=Date.now();assert.equal((await rpc(method,params)).ok,true);assert.ok(Date.now()-began<800,method+' must not wait behind the active request');
+    }
+    assert.equal((await rpc('status')).stopped,false);await running;
+  });
   await t.test('queued requests expire instead of delivering late desktop input', async () => {
     const running = rpc('cursor_wiggle', { enabled: true, duration: 5.4, cursor_id: 'expiry-check' });
     await new Promise(resolve => setTimeout(resolve, 100));

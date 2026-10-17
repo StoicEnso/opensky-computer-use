@@ -670,7 +670,8 @@ public final class LocalHTTPServer {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let method = json["method"] as? String,
               let params = json["params"] as? [String: Any] else { respond(connection, status: 400, body: ["ok": false, "error": "Expected {method,params} JSON"]); return }
-        let priority = ["stop", "resume", "shutdown", "status", "ping"].contains(method)
+        let passiveInspector = method == "inspector" && ["status", "close"].contains(params["action"] as? String ?? "status")
+        let priority = passiveInspector || ["stop", "resume", "shutdown", "status", "ping", "cursor_status", "cursor_dismiss"].contains(method)
         let generation = SafetyController.shared.operationGeneration
         let enqueuedAt = ProcessInfo.processInfo.systemUptime
         // Reject control submitted during a pause even if resume arrives before dispatch.

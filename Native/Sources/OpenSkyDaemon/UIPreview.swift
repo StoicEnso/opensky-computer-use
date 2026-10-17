@@ -13,6 +13,12 @@ func renderUIPreview(to directory: URL) throws {
     }
     precondition(AXEngine.inspectorEngine() !== AXEngine.shared, "Inspector must own its cache")
     try checkOwnAXExecution()
+    var readTime: TimeInterval = 0
+    var readCurrent = true
+    let readBudget = AXObservationBudget(now: { readTime }, isCurrent: { readCurrent })
+    precondition(readBudget.permitsRead)
+    readTime = 8; precondition(!readBudget.permitsRead && !readBudget.cancelled)
+    readTime = 1; readCurrent = false; precondition(!readBudget.permitsRead && readBudget.cancelled)
     for role in [kAXMenuRole, kAXMenuItemRole, kAXMenuBarItemRole] {
         precondition(OwnMenuHitTesting.permits(role: role, hitPID: 7, targetPID: 7, currentPID: 7), "Own real menus must not be treated as pointer overlays")
         precondition(!OwnMenuHitTesting.permits(role: role, hitPID: 8, targetPID: 7, currentPID: 7), "Another app's menu must remain foreign")

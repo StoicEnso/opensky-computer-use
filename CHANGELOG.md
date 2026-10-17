@@ -2,6 +2,8 @@
 
 ## 1.7.0-rc.3 — 2026-10-18
 
+- Recreate the Inspector on reopen without ordering animations, report passive rendered-frame readiness, and preserve an already-open Inspector on repeated show requests.
+- Bound Accessibility inspection with a cancellable read budget and temporary per-element messaging timeouts; clear incomplete snapshot handles and retain default timeouts for action targets. Keep passive Inspector status/close and pointer status/dismiss responsive independently of a busy action queue.
 - Fix physical own-menu hit testing: actual Inspector popup menu items may extend outside its normal window. Accept verified own menu ancestry while retaining process identity, expected-control and pointer-overlay checks.
 - Add an opt-in disposable Inspector search/filter/selection check that preserves auto cooperation, waits for 300 external idle seconds and rechecks before each shared-input step. Its explicit AX menu-choice option supports testing the rest of the UI on earlier helpers.
 - Record installed versus candidate behavior and genuine interruptions separately; never report an interrupted run as a passed filter check.

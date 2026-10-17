@@ -48,8 +48,15 @@ try {
   let paused;for(let i=0;i<30;i++){paused=await control({action:'status'});if(paused.tray_accessibility_label.includes('paused'))break;await new Promise(r=>setTimeout(r,50));}
   assert.equal(paused.control_paused,true);assert.ok(paused.tray_accessibility_label.includes('paused'));
   const closed=await control({action:'close'});assert.equal(closed.visible,false);assert.equal(closed.inspector_element_count,0);
+  const ids=new Set([shown.window_id]);
+  for(let cycle=0;cycle<3;cycle++){
+    const next=await control({action:'show'});assert.equal(next.visible,true);assert.ok(!ids.has(next.window_id),'Reopening must not reuse a closed Accessibility window.');ids.add(next.window_id);
+    let ready;for(let n=0;n<40;n++){ready=await control({action:'status'});if(ready.window_ready)break;await new Promise(r=>setTimeout(r,50));}assert.equal(ready.window_ready,true,'Rendered and logical window frames must settle before input.');
+    assert.equal((await control({action:'show'})).window_id,next.window_id,'Showing an existing Inspector must preserve its current window.');
+    assert.equal((await control({action:'close'})).visible,false);
+  }
   assert.equal(front(),before,'Background Inspector presentation must preserve the frontmost app.');
-  console.log(JSON.stringify({passed:true,distinctDisposableBundleIdentity:true,nativeBuild:native.build_version,backgroundInspectorOpened:true,liveTrayTemplateAndNoText:true,pausedTrayLabelVerified:true,invalidRequestsRejected:true,foregroundActivationDeferred:true,inspectorClosedWhilePaused:true,frontmostAppUnchanged:true,thirdPartyWindowInspectionVerified:false,installedAppPermissionsVerified:false,permissionsRequested:false}));
+  console.log(JSON.stringify({passed:true,distinctDisposableBundleIdentity:true,nativeBuild:native.build_version,backgroundInspectorOpened:true,threeFreshReopenWindowsAndSettledFramesPassed:true,liveTrayTemplateAndNoText:true,pausedTrayLabelVerified:true,invalidRequestsRejected:true,foregroundActivationDeferred:true,inspectorClosedWhilePaused:true,frontmostAppUnchanged:true,thirdPartyWindowInspectionVerified:false,installedAppPermissionsVerified:false,permissionsRequested:false}));
 } finally {
   if(daemonStatus&&(await daemonStatus()).running)await sky.shutdown();
   fs.rmSync(root,{recursive:true,force:true});

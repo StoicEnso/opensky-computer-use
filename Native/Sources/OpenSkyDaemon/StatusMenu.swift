@@ -53,16 +53,24 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     func inspectorControl(action: String, activate: Bool = false) -> [String: Any] {
         refresh() // Permission consent can change after launch; metadata must be current.
         if action == "show" {
-            if inspector == nil { inspector = InspectorWindowController() }
+            if inspector?.window?.isVisible != true { inspector = InspectorWindowController() }
             inspector?.present(activate: activate)
-        } else if action == "close" { inspector?.close() }
+        } else if action == "close" { inspector?.close(); inspector = nil }
         var result: [String: Any] = ["ok": true, "visible": inspector?.window?.isVisible ?? false,
             "control_paused": SafetyController.shared.isStopped,
             "tray_image_template": item.button?.image?.isTemplate ?? false,
             "tray_title": item.button?.title ?? "", "tray_accessibility_label": item.button?.accessibilityLabel() ?? "",
             "inspector_busy": inspector?.model.busy ?? false,
             "inspector_element_count": inspector?.model.elements.count ?? 0]
-        if let window = inspector?.window, window.isVisible { result["window_id"] = window.windowNumber }
+        if let window = inspector?.window, window.isVisible {
+            result["window_id"] = window.windowNumber
+            let f = window.frame
+            let layout = CGRect(x: f.minX, y: CGDisplayBounds(CGMainDisplayID()).height - f.maxY, width: f.width, height: f.height)
+            let values = CGWindowListCopyWindowInfo(.optionIncludingWindow, CGWindowID(window.windowNumber)) as? [[String: Any]]
+            let bounds = values?.first?[kCGWindowBounds as String] as? [String: Any]
+            let rendered = bounds.flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) }
+            result["window_ready"] = rendered.map { abs($0.minX-layout.minX)<=1 && abs($0.minY-layout.minY)<=1 && abs($0.width-layout.width)<=1 && abs($0.height-layout.height)<=1 } ?? false
+        }
         return result
     }
     @objc private func openSetup() {

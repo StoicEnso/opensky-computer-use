@@ -135,6 +135,7 @@ public final class AXEngine {
     private var snapshotsByKey: [String: CachedSnapshot] = [:]
     // Never recycle an index during this daemon's lifetime. Old indices cannot select
     // a different element after another observation, even if callers omit snapshot_id.
+    private var observationBudget: AXObservationBudget?
     private var nextElementIndex = 0
     private var instructedApps: Set<String> = []
 
@@ -307,6 +308,10 @@ public final class AXEngine {
     ) -> AppSnapshotResult {
         stateLock.lock()
         defer { stateLock.unlock() }
+        let priorBudget = observationBudget
+        let generation = SafetyController.shared.operationGeneration
+        observationBudget = AXObservationBudget(isCurrent: { SafetyController.shared.isCurrent(generation) })
+        defer { observationBudget = priorBudget }
         let trusted = isAXTrusted(prompt: false)
         let appKey = appIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard let runningApp = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: launchIfNeeded && requestedWindowID == nil, launchInBackground: true) else {
@@ -323,14 +328,18 @@ public final class AXEngine {
         let bundleId = runningApp.bundleIdentifier ?? appIdentifier
         let displayName = runningApp.localizedName ?? bundleId
         let cgWindows = fetchAllOnScreenWindows().filter { $0.pid == pid }
-        func unavailableWindow(_ message: String) -> AppSnapshotResult {
+        func unavailableWindow(_ message: String, code: String = "exact_window_unavailable") -> AppSnapshotResult {
             snapshotsByKey = snapshotsByKey.filter { $0.value.pid != pid }
-            let issue = ObservationIssue(code: "exact_window_unavailable", message: message)
+            let issue = ObservationIssue(code: code, message: message)
             return AppSnapshotResult(success: false, error: issue, warnings: [], snapshotID: nil,
                 screenshotWidth: nil, screenshotHeight: nil, screenshotFrame: nil,
                 app: appIdentifier, bundleId: bundleId, displayName: displayName, pid: pid,
                 windowId: requestedWindowID, windowFrame: nil, text: message, screenshotUrl: nil,
                 screenshotPath: nil, axTrusted: trusted, elementCount: 0, elements: [])
+        }
+        func readFailure() -> AppSnapshotResult? {
+            guard let budget = observationBudget, !budget.permitsRead else { return nil }
+            return unavailableWindow(budget.cancelled ? "Inspection was cancelled by a stop." : "Accessibility inspection exceeded its read budget. Wait for the target to respond, then observe again; no input was sent.", code: budget.cancelled ? "cancelled" : "observation_timeout")
         }
         var primaryCGWin = requestedWindowID.flatMap { id in cgWindows.first { $0.windowId == id } } ?? cgWindows.first
         if let id = requestedWindowID, !cgWindows.contains(where: { $0.windowId == id }) {
@@ -338,6 +347,8 @@ public final class AXEngine {
         }
         var axWindow: AXUIElement?
         let axApp = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(axApp, 0.25)
+        defer { AXUIElementSetMessagingTimeout(axApp, 0) }
         if trusted {
             enableEnhancedAccessibility(for: axApp)
             var focused: CFTypeRef?
@@ -358,6 +369,7 @@ public final class AXEngine {
                     guard let frame = getFrame(of: candidate) else { return false }
                     return Self.framesMatch(frame, cgWindow.frame)
                 }
+                if let failure = readFailure() { return failure }
                 guard matches.count == 1 else {
                     return unavailableWindow("Window \(requested) could not be matched to one Accessibility window. No other window was substituted.")
                 }
@@ -394,6 +406,7 @@ public final class AXEngine {
                 message: "Accessibility permission is unavailable; only screenshot and OCR observations can be provided."))
         }
 
+        if let failure = readFailure() { return failure }
         var screenshot: ScreenshotResult?
         let shouldCapture = includeScreenshot || includeOCR || (allowVisualFallback && nodeMap.count < 3)
         if shouldCapture {
@@ -539,7 +552,7 @@ public final class AXEngine {
         nodeMap: inout [Int: IndexedAXNode],
         lines: inout [String]
     ) {
-        if depth > maxDepth || nodeMap.count >= maxElements { return }
+        if depth > maxDepth || nodeMap.count >= maxElements || observationBudget?.permitsRead == false { return }
 
         let rawRole = getStringAttribute(element, kAXRoleAttribute as String) ?? "Element"
         let subrole = getStringAttribute(element, kAXSubroleAttribute as String)
@@ -607,6 +620,8 @@ public final class AXEngine {
         if rawRole == kAXMenuRole as String, frame == nil || frame!.isEmpty { return }
 
         // Recurse into children
+        guard beginRead(element) else { return }
+        defer { endRead(element) }
         var childrenRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef) == .success,
            let children = childrenRef as? [AXUIElement] {
@@ -666,7 +681,20 @@ public final class AXEngine {
         }
     }
 
+    private func beginRead(_ element: AXUIElement) -> Bool {
+        guard let budget = observationBudget else { return true }
+        guard budget.permitsRead else { return false }
+        AXUIElementSetMessagingTimeout(element, 0.25)
+        return true
+    }
+    private func endRead(_ element: AXUIElement) {
+        // Never leave the short observation timeout on cached action targets.
+        if observationBudget != nil { AXUIElementSetMessagingTimeout(element, 0) }
+    }
+
     private func getStringAttribute(_ element: AXUIElement, _ attr: String) -> String? {
+        guard beginRead(element) else { return nil }
+        defer { endRead(element) }
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attr as CFString, &ref) == .success,
               let val = ref else { return nil }
@@ -676,6 +704,8 @@ public final class AXEngine {
     }
 
     private func getBoolAttribute(_ element: AXUIElement, _ attr: String) -> Bool? {
+        guard beginRead(element) else { return nil }
+        defer { endRead(element) }
         var ref: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attr as CFString, &ref) == .success,
               let num = ref as? NSNumber else { return nil }
@@ -683,6 +713,8 @@ public final class AXEngine {
     }
 
     private func isAttributeSettable(_ element: AXUIElement, _ attr: String) -> Bool {
+        guard beginRead(element) else { return false }
+        defer { endRead(element) }
         var settable: DarwinBoolean = false
         if AXUIElementIsAttributeSettable(element, attr as CFString, &settable) == .success {
             return settable.boolValue
@@ -691,6 +723,8 @@ public final class AXEngine {
     }
 
     private func getFrame(of element: AXUIElement) -> CGRect? {
+        guard beginRead(element) else { return nil }
+        defer { endRead(element) }
         var posRef: CFTypeRef?
         var sizeRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &posRef) == .success,
@@ -708,6 +742,8 @@ public final class AXEngine {
     }
 
     private func getActions(of element: AXUIElement) -> [String] {
+        guard beginRead(element) else { return [] }
+        defer { endRead(element) }
         var namesRef: CFArray?
         guard AXUIElementCopyActionNames(element, &namesRef) == .success,
               let names = namesRef as? [String] else { return [] }
