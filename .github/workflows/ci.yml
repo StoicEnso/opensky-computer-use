@@ -1,0 +1,24 @@
+name: macOS checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:native
+      - run: npm test
+      - run: node scripts/test-packaging.mjs
+      - run: node scripts/build-app.mjs .build/OpenSky.app
+      - run: npm pack --dry-run
