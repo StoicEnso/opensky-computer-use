@@ -148,7 +148,7 @@ async function doctor() {
   let tokenOwnerOnly = null;
   if (existsSync(TOKEN_PATH)) tokenOwnerOnly = (statSync(TOKEN_PATH).mode & 0o077) === 0;
   const report = {
-    ok: process.platform === "darwin" && Number(process.versions.node.split(".")[0]) >= 22 && existsSync(DAEMON_BINARY) && daemon.running === true && daemon.axTrusted === true && daemon.screenRecordingTrusted === true && tokenOwnerOnly === true && nativeProcess.binaryMatches !== false,
+    ok: process.platform === "darwin" && Number(process.versions.node.split(".")[0]) >= 22 && existsSync(DAEMON_BINARY) && daemon.running === true && daemon.axTrusted === true && daemon.screenRecordingTrusted === true && daemon.eventPostingTrusted !== false && tokenOwnerOnly === true && nativeProcess.binaryMatches !== false,
     version, platform: process.platform, architecture: process.arch, node: process.versions.node,
     binary: DAEMON_BINARY, binaryExists: existsSync(DAEMON_BINARY), runtime: OPENSKY_HOME,
     endpoint: DAEMON_URL, tokenExists: existsSync(TOKEN_PATH), tokenOwnerOnly, daemon, cooperation, ...nativeProcess,
@@ -160,6 +160,7 @@ async function doctor() {
   if(cooperation.interaction_mode==='auto'&&!cooperation.user_activity?.ok)report.nextSteps.push('Auto activity data is unavailable; background control remains available. Native UI build 1.3.3 or later with Accessibility access supplies the filtered monitor data. Verify opensky activity before relying on automatic desktop availability.');
   if (daemon.running && !daemon.axTrusted) report.nextSteps.push("Allow OpenSky in System Settings > Privacy & Security > Accessibility.");
   if (daemon.running && !daemon.screenRecordingTrusted) report.nextSteps.push("Allow OpenSky in System Settings > Privacy & Security > Screen & System Audio Recording, then restart OpenSky.");
+  if(daemon.running&&daemon.eventPostingTrusted===false)report.nextSteps.push('macOS event-synthesizing access is missing for the current app signature. Complete its native permission setup; ordinary status checks never request it. Background AX controls remain available.');
   if (tokenOwnerOnly === false) report.nextSteps.push("Restrict the local token file to your user before controlling the daemon.");
   output(report);
   if (!report.ok) process.exitCode = 1;

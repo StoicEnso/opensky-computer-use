@@ -54,6 +54,7 @@ public final class OpenSkyRPCDispatcher {
             return ["ok": true, "message": "OpenSky is shutting down."]
         case "ping", "status":
             if (params["promptScreen"] as? Bool) == true { _ = CGRequestScreenCaptureAccess() }
+            if (params["promptPostEvent"] as? Bool) == true { _ = CGRequestPostEventAccess() }
             return [
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
@@ -62,6 +63,7 @@ public final class OpenSkyRPCDispatcher {
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
+                "eventPostingTrusted": CGPreflightPostEventAccess(),
                 "coordinates": "global desktop points, origin at primary display top-left",
                 "displays": NSScreen.screens.map { screen -> [String: Any] in
                     let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
@@ -398,6 +400,7 @@ public final class OpenSkyRPCDispatcher {
             "action": res.action,
             "message": res.message
         ]
+        if let code = res.errorCode { out["error_code"] = code }
         if let pt = res.point {
             out["point"] = pt
         }
@@ -415,7 +418,7 @@ public final class OpenSkyRPCDispatcher {
         if let cursor = params["cursor_id"] as? String, cursor.utf8.count > 128 { return "cursor_id exceeds 128 bytes" }
         if let label = params["label"] as? String, label.utf8.count > 512 { return "label exceeds 512 bytes" }
         if let app = params["app"] as? String, app.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "app must not be empty" }
-        for name in ["include_screenshot", "include_ocr", "includeScreenshot", "includeOCR", "disable_diff", "disableDiff", "show_cursor", "running_only", "enabled", "activate", "promptAX", "promptScreen"] {
+        for name in ["include_screenshot", "include_ocr", "includeScreenshot", "includeOCR", "disable_diff", "disableDiff", "show_cursor", "running_only", "enabled", "activate", "promptAX", "promptScreen", "promptPostEvent"] {
             if let value = params[name], CFGetTypeID(value as CFTypeRef) != CFBooleanGetTypeID() { return "\(name) must be a boolean" }
         }
         if let value = params["keys"] { guard let keys = value as? [String], !keys.isEmpty, keys.count <= 256 else { return "keys must be a nonempty array of up to 256 strings" } }

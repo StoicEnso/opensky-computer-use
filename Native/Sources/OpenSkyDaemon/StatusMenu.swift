@@ -35,13 +35,13 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) { refresh() }
     private func refresh() {
         let stopped = SafetyController.shared.isStopped
-        let ax = AXEngine.shared.isAXTrusted(), screen = CGPreflightScreenCaptureAccess()
-        let state = stopped ? "Control paused" : (ax && screen ? "Ready for your agent" : "Desktop permissions needed")
+        let ax = AXEngine.shared.isAXTrusted(), screen = CGPreflightScreenCaptureAccess(), post = CGPreflightPostEventAccess()
+        let state = stopped ? "Control paused" : (ax && screen && post ? "Ready for your agent" : "Desktop permissions needed")
         item.button?.image = CloudMark.image(stopped: stopped)
         item.button?.toolTip = "OpenSky · \(state)"
         item.button?.setAccessibilityLabel("OpenSky, \(state.lowercased())")
         status.title = "OpenSky · \(state)"
-        permissions.title = "Accessibility \(ax ? "✓" : "—")   Screen Capture \(screen ? "✓" : "—")"
+        permissions.title = "Accessibility \(ax ? "✓" : "—")   Screen Capture \(screen ? "✓" : "—")   Event Posting \(post ? "✓" : "—")"
         stopItem.isEnabled = !stopped; resumeItem.isEnabled = stopped
     }
     @objc private func controlStateChanged() { DispatchQueue.main.async { self.refresh() } }

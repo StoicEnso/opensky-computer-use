@@ -11,6 +11,7 @@ public struct ActionExecutionResult: Codable {
     public let message: String
     public let point: [Double]?
     public let appState: AppSnapshotResult?
+    public var errorCode: String? = nil
 }
 
 public final class ActionExecutor {
@@ -73,6 +74,7 @@ public final class ActionExecutor {
         guard let targetPoint = resolvedPoint, validPoint(targetPoint) else {
             return failure("click", "Provide a valid element index from the latest app state or a point on an active display.")
         }
+        guard CGPreflightPostEventAccess() else { return postingPermissionFailure("click") }
         guard prepareHardwareTarget(target) else { return focusFailure("click") }
         guard waitForPointOwnership(targetPoint, target) else {
             return failure("click", "The click point is covered by another app or is outside the target app. Refresh app state.")
@@ -137,6 +139,7 @@ public final class ActionExecutor {
         guard let start = from, let end = to, validPoint(start), validPoint(end) else {
             return failure("drag", "Both drag endpoints must resolve to finite points on active displays.")
         }
+        guard CGPreflightPostEventAccess() else { return postingPermissionFailure("drag") }
         guard prepareHardwareTarget(target) else { return focusFailure("drag") }
         guard waitForPointOwnership(start, target), pointMatchesNode(start, startNode) else {
             return failure("drag", "The drag start is outside the target app or covered by another element/app. Refresh app state.")
@@ -227,6 +230,7 @@ public final class ActionExecutor {
             return failure("scroll", "Provide a valid point/element, or inspect the app first to obtain its window position.")
         }
         let background = executionMode == .background
+        guard CGPreflightPostEventAccess() else { return postingPermissionFailure("scroll") }
         if !background {
             guard prepareHardwareTarget(target) else { return focusFailure("scroll") }
             guard waitForPointOwnership(scrollPoint, target) else {
@@ -339,6 +343,7 @@ public final class ActionExecutor {
         guard target != nil else { return failure("type_text", "No foreground app was found. Provide a running app.") }
         let background = executionMode == .background
         guard !background || resolvedTarget != nil else { return failure("type_text", "Background typing requires an app.") }
+        guard CGPreflightPostEventAccess() else { return postingPermissionFailure("type_text") }
         if !background && !prepareHardwareTarget(target) { return focusFailure("type_text") }
         let source = UserActivityTracker.eventSource()
         let normalized = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
@@ -408,6 +413,7 @@ public final class ActionExecutor {
         guard target != nil else { return failure("press_key", "No foreground app was found. Provide a running app.") }
         let background = executionMode == .background
         guard !background || resolvedTarget != nil else { return failure("press_key", "Background keys require an app.") }
+        guard CGPreflightPostEventAccess() else { return postingPermissionFailure("press_key") }
         if !background && !prepareHardwareTarget(target) { return focusFailure("press_key") }
         for (code, flags) in resolved {
             guard !SafetyController.shared.isStopped, background || canContinue(target), target?.isTerminated != true else {
@@ -433,6 +439,7 @@ public final class ActionExecutor {
         returnState: Bool = true
     ) -> ActionExecutionResult {
         guard !SafetyController.shared.isStopped else { return stopped("paste") }
+        guard CGPreflightPostEventAccess() else { return postingPermissionFailure("paste") }
         guard ["text", "md", "markdown", "html"].contains(format.lowercased()) else {
             return failure("paste", "Format must be text, markdown, or html.")
         }
@@ -772,6 +779,12 @@ public final class ActionExecutor {
         ActionExecutionResult(success: false, action: action, message: message, point: nil, appState: nil)
     }
 
+    private func postingPermissionFailure(_ action: String) -> ActionExecutionResult {
+        ActionExecutionResult(success: false, action: action,
+            message: "macOS event-synthesizing access is unavailable for this OpenSky process. Complete its native permission setup; no input events were sent. Background AX controls remain available.",
+            point: nil, appState: nil, errorCode: "event_posting_permission_required")
+    }
+
     private func stopped(_ action: String) -> ActionExecutionResult {
         failure(action, "Action stopped. Resume computer control before sending more input.")
     }
@@ -820,7 +833,17 @@ public final class ActionExecutor {
         guard !SafetyController.shared.isStopped else { return false }
         guard let target = target else { return true } // Explicit global screen/keyboard operation.
         guard !target.isTerminated else { return false }
-        target.activate()
+        if target.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            let pinned = target.bundleIdentifier.flatMap { AXEngine.shared.pinnedWindowID(appIdentifier: $0) }
+            let result = OpenSkyAXActions.run(AXUIElementCreateApplication(target.processIdentifier)) {
+                if let pinned, let window = NSApp.windows.first(where: { $0.windowNumber == Int(pinned) && $0.canBecomeKey }) {
+                    window.makeKeyAndOrderFront(nil)
+                }
+                NSApp.activate(ignoringOtherApps: true)
+                return .success
+            }
+            guard result == .success else { return false }
+        } else { target.activate() }
         let deadline = Date().addingTimeInterval(0.5)
         repeat {
             if canContinue(target) { return true }

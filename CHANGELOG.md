@@ -2,6 +2,8 @@
 
 ## 1.7.0-rc.3 — 2026-10-18
 
+- Activate the own accessory app on the main thread and raise its pinned key-capable window with cancellation checks.
+- Report macOS event-synthesizing readiness separately from AX access. Missing real OS event-posting access now fails before CG input; background AX remains available. Permission requests remain explicit setup actions, never ordinary input side effects.
 - Recreate the Inspector on reopen without ordering animations, report passive rendered-frame readiness, and preserve an already-open Inspector on repeated show requests.
 - Bound Accessibility inspection with a cancellable read budget and temporary per-element messaging timeouts; clear incomplete snapshot handles and retain default timeouts for action targets. Keep passive Inspector status/close and pointer status/dismiss responsive independently of a busy action queue.
 - Fix physical own-menu hit testing: actual Inspector popup menu items may extend outside its normal window. Accept verified own menu ancestry while retaining process identity, expected-control and pointer-overlay checks.

@@ -190,6 +190,8 @@ export interface OpenSkyActionResult {
 }
 
 export interface StatusParams {
+  /** Explicit owner-authorized macOS event-synthesizing permission request; never used by passive status. */
+  promptPostEvent?: boolean;
   [key: string]: unknown;
 }
 

@@ -42,6 +42,7 @@ test('native control transport and real MCP client interoperability', { skip: !a
     assert.equal((await fetch(`${url}/anything`, { headers })).status, 404);
     const health = await (await fetch(`${url}/health`)).json();
     assert.equal(health.service, 'OpenSky Computer Use Daemon');
+    assert.equal(typeof (await rpc('status')).eventPostingTrusted,'boolean');
     assert.equal('pid' in health, false);
     assert.equal('access-control-allow-origin' in Object.fromEntries(unsigned.headers), false);
   });

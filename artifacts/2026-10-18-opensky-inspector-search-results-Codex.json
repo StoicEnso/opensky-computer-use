@@ -23,6 +23,16 @@
     {
       "finding": "The first fixture-control count changed from 16 to 17 after activation/enhanced Accessibility.",
       "scope": "The test now reacquires current fixture controls rather than treating the startup count as a fixed UI contract. This is a test correction, not a claimed app defect."
+    },
+    {
+      "finding": "A foreground focus command could not activate the accessory app itself while idle remained above 300 seconds; no hardware input was sent.",
+      "fix": "Self activation now runs on the main thread, raises the pinned key-capable window and preserves the original cancellation generation.",
+      "liveInstalledFixVerified": false
+    },
+    {
+      "finding": "Some existing-helper clicks were acknowledged or rejected without a verified UI outcome. The exact cause is not established.",
+      "fix": "Expose the separate macOS event-synthesizing preflight and return event_posting_permission_required before event delivery when that actual OS capability is absent. Background AX actions remain available.",
+      "scope": "This diagnostic does not claim the existing helper lacked that permission."
     }
   ],
   "validation": {
@@ -37,7 +47,13 @@
     "browserConnectionPreserved": true,
     "threeFreshReopenWindowsAndSettledFramesPassed": true,
     "observationBudgetClockAndCancellationPassed": true,
-    "passiveRecoveryDuringBusyQueuePassed": true
+    "passiveRecoveryDuringBusyQueuePassed": true,
+    "feedbackHitProbe": {
+      "sameFieldHitBeforeAndDuringFeedback": true,
+      "feedbackVisibleDuringProbe": true,
+      "screenshotCaptured": false,
+      "physicalClickSent": false
+    }
   },
   "cooperation": {
     "savedPolicy": "auto",
@@ -48,8 +64,8 @@
   },
   "watchRemainsPaused": true,
   "pending": [
-    "Finish physical search/filter/selection through an idle desktop turn",
-    "Install/live-verify the frozen own-menu targeting fix after any genuine new macOS consent"
+    "Complete physical search/filter/selection on the fixed native build",
+    "Verify own physical menu targeting and activation on the fixed native build after any genuine macOS consent"
   ],
   "recovery": {
     "sameApprovedNativeBuildRestarted": true,
