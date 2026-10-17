@@ -1,6 +1,6 @@
 {
   "name": "opensky-computer-use",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Fast, local-first browser and desktop control for macOS agents, with on-device OCR, animated pointers, MCP, CLI and JavaScript. No built-in telemetry or cloud relay.",
   "type": "module",
   "main": "./src/index.mjs",
@@ -27,6 +27,7 @@
     "test:chrome": "node test/chrome-native-live.mjs",
     "test:browser": "node test/browser-live.mjs",
     "test:ui": "node test/native-ui-preview.mjs",
+    "test:ui-service": "node test/native-ui-service.mjs",
     "build:app": "node scripts/build-app.mjs"
   },
   "keywords": [
@@ -88,7 +89,8 @@
     "artifacts/2026-10-17-opensky-frame-upload-results-Codex.json",
     "artifacts/2026-10-17-opensky-owner-browser-results-Codex.json",
     "artifacts/2026-10-17-opensky-browser-onboarding-results-Codex.json",
-    "artifacts/2026-10-17-opensky-tray-results-Codex.json"
+    "artifacts/2026-10-17-opensky-tray-results-Codex.json",
+    "artifacts/2026-10-17-opensky-native-upgrade-results-Codex.json"
   ],
   "repository": {
     "type": "git",

@@ -177,11 +177,15 @@ final class InspectorWindowController: NSWindowController, NSWindowDelegate {
         window.setFrameAutosaveName("OpenSkyInspector")
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    func present() {
+    func present(activate: Bool = true) {
         model.refreshWindows()
         if window?.isVisible != true { window?.center() }
-        // Only a person's explicit menu action presents this window.
-        showWindow(nil); NSApp.activate(ignoringOtherApps: true)
+        if activate {
+            showWindow(nil); NSApp.activate(ignoringOtherApps: true)
+        } else {
+            // An explicit CLI/SDK request can open this app-owned window behind the owner.
+            window?.orderBack(nil)
+        }
     }
     func windowWillClose(_ notification: Notification) { model.close() }
 }

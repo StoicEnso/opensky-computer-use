@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.6.1",
+  "nativeAPI": "1.3.0",
+  "candidateNativeUIBuild": "1.3.2",
+  "status": "native upgrade awaiting macOS consent; working helper restored",
+  "installedNewNativeApp": false,
+  "rollbackVerified": true,
+  "workingAppAccessibility": true,
+  "workingAppScreenRecording": true,
+  "originalNativeBinaryRestored": true,
+  "browserConnectionPreserved": true,
+  "browserWorkerVersion": "1.5.2",
+  "alongsideModePreserved": true,
+  "runtimeOnlyUpdateInstalled": true,
+  "watchRemainsPaused": true,
+  "validation": {
+    "automatedTestsPassed": 41,
+    "packagingAssertionsPassed": 45,
+    "swiftReleaseBuildPassed": true,
+    "strictSignaturePassedOutsideICloud": true,
+    "offscreenLightDarkAndRecoveryChecksPassed": true,
+    "liveUIService": {
+      "passed": true,
+      "distinctDisposableBundleIdentity": true,
+      "temporaryRuntimeOutsideDocuments": true,
+      "isolatedPorts": true,
+      "trayTemplateAndEmptyTitle": true,
+      "pausedAccessibleLabel": true,
+      "backgroundInspectorOpened": true,
+      "closedWhilePaused": true,
+      "invalidRequestsRejected": true,
+      "foregroundActivationDeferred": true,
+      "frontmostAppUnchanged": true,
+      "permissionsRequested": false
+    }
+  },
+  "installationFinding": "Replacing the previously approved ad-hoc binary caused both independent-app permission checks to return false. The verified backup was restored, recovering both permissions; browser PID/connection/worker stayed intact.",
+  "newBehavior": [
+    "CLI inspector status/show/close with exact app-owned window ID",
+    "Background presentation by default",
+    "Readiness/no-launch behavior and actionable message for older native helpers"
+  ],
+  "notYetVerified": [
+    "New installed-app Accessibility/Screen Recording after owner consent",
+    "New Inspector reading third-party windows under its independent permission identity"
+  ],
+  "limits": [
+    "The disposable UI-service test is not independent-app permission validation.",
+    "Native signature changes can require fresh macOS consent. No permission database was edited or permission gate bypassed.",
+    "The working app is intentionally still the original native binary while the system-setting handoff is pending.",
+    "A Documents/iCloud runtime/log path caused isolated LaunchServices error -10810; the isolated UI test passed with its runtime in a temporary unprotected directory. This isolates the path-related condition but does not prove the complete internal macOS failure cause."
+  ],
+  "postRollbackBrowserVerification": {
+    "verified": true,
+    "existingOwnerProfile": true,
+    "driver": "OpenSky 1.6.1",
+    "codexBrowserToolsUsed": false,
+    "inactiveTabs": 2,
+    "independentValuesVerified": true,
+    "rootAndCrossOriginFrameUploadsVerifiedAtServer": true,
+    "unicodeFilename": true,
+    "trustedBackgroundEnter": true,
+    "concurrentTabKeysVerified": true,
+    "foreignWorkflowUploadRejectedBeforeInput": true,
+    "staleDocumentUploadRejectedBeforeInput": true,
+    "duplicateUploadReceipts": 0,
+    "inactivePageRemainedHidden": true,
+    "selectedTabsUnchanged": true,
+    "frontmostAppUnchanged": true,
+    "nativePermissionsPreserved": true,
+    "nativeProcessPreserved": true,
+    "clipboardInputUsed": false,
+    "cleanup": [
+      {
+        "taskTabClosed": true
+      },
+      {
+        "taskTabClosed": true
+      }
+    ]
+  },
+  "olderHelperMessageVerified": "native_ui_upgrade_required"
+}

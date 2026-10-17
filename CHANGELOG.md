@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.1 — 2026-10-17
+
+- Add `opensky inspector status|show|close`. Show opens the app-owned Inspector behind other apps and returns its exact native window ID. Status and close never launch a missing engine.
+- Keep explicit activation deferred in alongside mode. Validate Inspector actions and boolean arguments, and report a clear native upgrade requirement for older helpers.
+- Add a live UI-service check using a disposable app identity and temporary local runtime: tray template, paused accessibility label, background Inspector opening, validation and closing while paused. It requests no permissions and does not establish the installed app's consent or third-party-window inspection.
+- Validate a real native upgrade and recovery: macOS required fresh Accessibility/Screen Recording consent for the changed ad-hoc signature, so the working app was restored with its original permissions, private settings and browser connection. Completing that machine's upgrade awaits the owner's system-setting handoff.
+
 ## 1.6.0 — 2026-10-17
 
 - Give OpenSky an original cloud companion app icon and a compact, appearance-aware menu-bar template. Eyes change to pause bars when control stops; accessible labels retain the app name and state.

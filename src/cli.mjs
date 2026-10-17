@@ -35,6 +35,7 @@ Usage: opensky <command> [arguments] [--json]
   browser close TAB_ID                    Close an exact tab; preserve unrelated tabs
   doctor                                 Check installation, daemon, and permissions (no launch)
   status                                 Query an existing daemon (no launch)
+  inspector [status|show|close]           Read/open/close OpenSky Inspector; show stays behind other apps
   daemon [start|stop]                     Start daemon, or shut it down
   stop | emergency-stop                  Pause actions and dismiss cursors (no launch)
   resume                                 Explicitly resume a paused daemon (no launch)
@@ -164,6 +165,14 @@ async function main() {
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
     case "mode": {actionOutput(await computer_use.interaction_mode({mode:args[1]}));break;}
+    case "inspector": {
+      const action=args[1]??'status';
+      if(!['status','show','close'].includes(action))throw new Error('Use inspector status, show or close.');
+      const result=await callDaemon('inspector',{action},{autoStart:action==='show'});
+      actionOutput(!result.ok&&result.error?.startsWith('Unknown method')
+        ? {...result,error_code:'native_ui_upgrade_required',error:'This Inspector command needs native UI build 1.3.2 or later. Upgrade the native app and complete any macOS consent; existing browser/native workflows can keep using the installed helper.'}
+        : result);break;
+    }
     case 'web': {
       const action=args[1]??'status';
       if(action==='shutdown'){const {shutdownBrowserBridge}=await import('./browser/client.mjs');output(await shutdownBrowserBridge());break;}

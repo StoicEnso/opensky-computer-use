@@ -62,6 +62,8 @@ test('alongside retains exact-window AX work, forces omitted mode to background 
     assert.equal(prepareInteraction(home,method,{...target,snapshot_id:undefined}).result.error_code,'fresh_target_required');
   }
   assert.equal(prepareInteraction(home,'get_app_state',{app:'Fixture',window_id:123}).params.window_id,123);
+  assert.equal(prepareInteraction(home,'inspector',{action:'show',activate:true}).result.error_code,'desktop_turn_required');
+  assert.deepEqual(prepareInteraction(home,'inspector',{action:'show',activate:false}),{params:{action:'show',activate:false}});
   await writeFile(path.join(home,'interaction-mode.json'),'broken');
   assert.equal(readInteractionMode(home).ok,false);
   assert.equal(prepareInteraction(home,'click',target).result.error_code,'invalid_interaction_mode');

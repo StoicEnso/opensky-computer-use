@@ -5,7 +5,7 @@ import Network
 import Security
 import Carbon.HIToolbox
 
-private let inspectionMethods: Set<String> = ["ping", "status", "list_apps", "get_app_state", "screenshot_screen", "stop", "resume", "shutdown", "cursor_dismiss"]
+private let inspectionMethods: Set<String> = ["ping", "status", "inspector", "list_apps", "get_app_state", "screenshot_screen", "stop", "resume", "shutdown", "cursor_dismiss"]
 
 // MARK: - JSON-RPC Request & Dispatcher
 
@@ -28,6 +28,14 @@ public final class OpenSkyRPCDispatcher {
             return ["ok": false, "error_code": "accessibility_permission_required", "error": "Enable OpenSky in System Settings > Privacy & Security > Accessibility, then restart OpenSky."]
         }
         switch method {
+        case "inspector":
+            let action = params["action"] as? String ?? "status"
+            guard ["status", "show", "close"].contains(action) else { return ["ok": false, "error_code": "invalid_arguments", "error": "Use status, show or close."] }
+            let control = {
+                residentMenu?.inspectorControl(action: action, activate: params["activate"] as? Bool ?? false)
+                    ?? ["ok": false, "error_code": "native_ui_unavailable", "error": "The resident menu is not ready."]
+            }
+            return Thread.isMainThread ? control() : DispatchQueue.main.sync(execute: control)
         case "stop":
             SafetyController.shared.setStopped(true)
             CursorOverlayManager.shared.dismissCursor()
@@ -45,7 +53,7 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
-                "build_version": "1.3.1",
+                "build_version": "1.3.2",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
@@ -398,7 +406,7 @@ public final class OpenSkyRPCDispatcher {
         if let cursor = params["cursor_id"] as? String, cursor.utf8.count > 128 { return "cursor_id exceeds 128 bytes" }
         if let label = params["label"] as? String, label.utf8.count > 512 { return "label exceeds 512 bytes" }
         if let app = params["app"] as? String, app.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "app must not be empty" }
-        for name in ["include_screenshot", "include_ocr", "includeScreenshot", "includeOCR", "disable_diff", "disableDiff", "show_cursor", "running_only", "enabled", "promptAX", "promptScreen"] {
+        for name in ["include_screenshot", "include_ocr", "includeScreenshot", "includeOCR", "disable_diff", "disableDiff", "show_cursor", "running_only", "enabled", "activate", "promptAX", "promptScreen"] {
             if let value = params[name], CFGetTypeID(value as CFTypeRef) != CFBooleanGetTypeID() { return "\(name) must be a boolean" }
         }
         if let value = params["keys"] { guard let keys = value as? [String], !keys.isEmpty, keys.count <= 256 else { return "keys must be a nonempty array of up to 256 strings" } }

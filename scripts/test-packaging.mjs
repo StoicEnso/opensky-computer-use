@@ -44,7 +44,7 @@ try {
   const sentinel = path.join(temporary, "daemon-sentinel");
   const sentinelResult = path.join(temporary, "spawned");
   writeFileSync(sentinel, `#!/bin/sh\ntouch '${sentinelResult}'\n`, { mode: 0o755 });
-  for (const args of [["status"], ["doctor"], ["stop"], ["resume"], ["shutdown"], ["rpc", "status", "{}"]]) {
+  for (const args of [["status"], ["doctor"], ["stop"], ["resume"], ["shutdown"], ["inspector", "status"], ["inspector", "close"], ["rpc", "status", "{}"]]) {
     const run = spawnSync(process.execPath, [path.join(root, "src", "cli.mjs"), ...args, "--json"], { encoding: "utf8", env: { ...process.env, OPENSKY_HOME: noStartRuntime, OPENSKY_BINARY: sentinel, OPENSKY_PORT: "53791" } });
     equal(run.status, 1, `${args.join(" ")} must fail when absent.`);
     check(!existsSync(sentinelResult), `${args.join(" ")} must never launch a daemon.`);

@@ -1,0 +1,46 @@
+// Opt-in: runs a disposable UI service, never upgrades the installed app or requests access.
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import net from 'node:net';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+
+const source=path.resolve(process.argv[2]??'.build/OpenSky.app');
+assert.ok(fs.existsSync(path.join(source,'Contents/MacOS/OpenSky')),'Build an app bundle first, then pass its path.');
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'2026-10-17-opensky-ui-service-Codex-'));
+const candidate=path.join(root,'OpenSkyFixture.app');
+const fixtureBundle='dev.opensky.fixture.nativeui.'+randomUUID().replaceAll('-','');
+const front=()=>execFileSync('/usr/bin/lsappinfo',['front'],{encoding:'utf8'}).trim();
+async function freePort(){const server=net.createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));const port=server.address().port;await new Promise(r=>server.close(r));return port;}
+let sky,daemonStatus;
+try {
+  fs.cpSync(source,candidate,{recursive:true});
+  execFileSync('/usr/libexec/PlistBuddy',['-c','Set :CFBundleIdentifier '+fixtureBundle,path.join(candidate,'Contents/Info.plist')]);
+  execFileSync('/usr/bin/codesign',['--force','--sign','-','--identifier',fixtureBundle,candidate],{stdio:'ignore'});
+  execFileSync('/usr/bin/codesign',['--verify','--strict',candidate],{stdio:'ignore'});
+  // App-owned runtime/logs belong outside protected Documents/iCloud paths.
+  process.env.OPENSKY_HOME=path.join(root,'runtime');
+  process.env.OPENSKY_PORT=String(await freePort());process.env.OPENSKY_BROWSER_PORT=String(await freePort());
+  process.env.OPENSKY_BINARY=path.join(candidate,'Contents/MacOS/OpenSky');
+  const sdk=await import('../src/index.mjs');sky=sdk.computer_use;daemonStatus=sdk.daemonStatus;
+  const before=front();await sky.interaction_mode({mode:'alongside'});await sdk.ensureDaemonRunning();
+  const native=await daemonStatus();
+  const control=params=>sdk.callDaemon('inspector',params,{autoStart:false});
+  const initial=await control({action:'status'});
+  assert.equal(initial.ok,true);assert.equal(initial.visible,false);assert.equal(initial.tray_image_template,true);assert.equal(initial.tray_title,'');
+  assert.equal((await control({action:'show',activate:'wrong'})).error_code,'invalid_arguments');
+  assert.equal((await control({action:'unknown'})).error_code,'invalid_arguments');
+  const shown=await control({action:'show'});assert.equal(shown.visible,true);assert.ok(shown.window_id>0);
+  assert.equal((await control({action:'show',activate:true})).error_code,'desktop_turn_required');
+  await sky.stop();
+  let paused;for(let i=0;i<30;i++){paused=await control({action:'status'});if(paused.tray_accessibility_label.includes('paused'))break;await new Promise(r=>setTimeout(r,50));}
+  assert.equal(paused.control_paused,true);assert.ok(paused.tray_accessibility_label.includes('paused'));
+  const closed=await control({action:'close'});assert.equal(closed.visible,false);assert.equal(closed.inspector_element_count,0);
+  assert.equal(front(),before,'Background Inspector presentation must preserve the frontmost app.');
+  console.log(JSON.stringify({passed:true,distinctDisposableBundleIdentity:true,nativeBuild:native.build_version,backgroundInspectorOpened:true,liveTrayTemplateAndNoText:true,pausedTrayLabelVerified:true,invalidRequestsRejected:true,foregroundActivationDeferred:true,inspectorClosedWhilePaused:true,frontmostAppUnchanged:true,thirdPartyWindowInspectionVerified:false,installedAppPermissionsVerified:false,permissionsRequested:false}));
+} finally {
+  if(daemonStatus&&(await daemonStatus()).running)await sky.shutdown();
+  fs.rmSync(root,{recursive:true,force:true});
+}

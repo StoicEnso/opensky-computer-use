@@ -47,6 +47,9 @@ export function prepareInteraction(home, method, params) {
   const state = readInteractionMode(home);
   if (!state.ok) return { result: state };
   if (state.interaction_mode !== 'alongside') return { params };
+  if (method === 'inspector' && params.activate === true) {
+    return {result:deferred(method,'Open the Inspector without activation while working alongside the owner.')};
+  }
   if (observations.has(method) && !Number.isInteger(params.window_id)) {
     return { result: deferred(method, 'Alongside inspection needs the exact task-owned window_id from list_apps.', 'window_required') };
   }

@@ -47,8 +47,21 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     @objc func stopControl() { SafetyController.shared.setStopped(true); CursorOverlayManager.shared.dismissCursor(); refresh() }
     @objc private func resumeControl() { SafetyController.shared.setStopped(false); refresh() }
     @objc private func openInspector() {
-        if inspector == nil { inspector = InspectorWindowController() }
-        inspector?.present()
+        _ = inspectorControl(action: "show", activate: true)
+    }
+    func inspectorControl(action: String, activate: Bool = false) -> [String: Any] {
+        if action == "show" {
+            if inspector == nil { inspector = InspectorWindowController() }
+            inspector?.present(activate: activate)
+        } else if action == "close" { inspector?.close() }
+        var result: [String: Any] = ["ok": true, "visible": inspector?.window?.isVisible ?? false,
+            "control_paused": SafetyController.shared.isStopped,
+            "tray_image_template": item.button?.image?.isTemplate ?? false,
+            "tray_title": item.button?.title ?? "", "tray_accessibility_label": item.button?.accessibilityLabel() ?? "",
+            "inspector_busy": inspector?.model.busy ?? false,
+            "inspector_element_count": inspector?.model.elements.count ?? 0]
+        if let window = inspector?.window, window.isVisible { result["window_id"] = window.windowNumber }
+        return result
     }
     @objc private func openSetup() {
         let home = ProcessInfo.processInfo.environment["OPENSKY_HOME"] ?? NSHomeDirectory() + "/.local/share/opensky"
@@ -64,7 +77,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     }
     @objc private func about() {
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "OpenSky", .applicationVersion: "Native UI 1.3.1 · API 1.3.0",
+            .applicationName: "OpenSky", .applicationVersion: "Native UI 1.3.2 · API 1.3.0",
             .credits: NSAttributedString(string: "Your agent. Your Mac.\nOpen source · MIT\nLocal MCP, CLI and JavaScript computer use.")
         ])
         NSApp.activate(ignoringOtherApps: true)

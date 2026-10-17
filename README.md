@@ -252,7 +252,7 @@ Your agent can use the same MCP, CLI or SDK tools continuously under a task such
 
 The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. Applicable system, developer, harness and tool rules retain their authority whether or not they mention OpenSky. Restrictions exclusive to a different tool are not automatically imported. macOS permissions, protected dialogs, authentication, stale-target checks and emergency pause remain effective. Auto adds no authority for unrelated work and does not resume stopped control.
 
-The 1.5/1.6 JavaScript/browser runtime works with the existing 1.3.0 native API; an existing installation does not need a native rebuild for browser workflows. Full builds now include the cloud companion icon and native UI build 1.3.1.
+The 1.5/1.6 JavaScript/browser runtime works with the existing 1.3.0 native API; an existing installation does not need a native rebuild for browser workflows. Full builds now include the cloud companion icon and native UI build 1.3.2.
 
 ### A little companion in your menu bar
 
@@ -267,6 +267,10 @@ The native Inspector lets you choose an exact on-screen window, read its Accessi
 The tray and Inspector require a full native app upgrade; `--runtime-only` deliberately preserves the current native UI and permissions. An ad-hoc signed native upgrade can require macOS consent again. Finish active automation before a full upgrade. The Inspector is a window/control browser, rather than a continuous pointer-following overlay.
 
 [View the Inspector fixture](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-inspector-light-Codex.png). Light/dark previews and recovery checks use disposable fixture data; live inspection of third-party windows by this new UI is not yet verified. [Validation and installation scope](artifacts/2026-10-17-opensky-tray-results-Codex.json).
+
+`opensky inspector show` opens the Inspector behind other apps. `opensky inspector status` returns visibility, its exact native `window_id`, tray metadata and pause state without launching a service. `opensky inspector close` closes only this app-owned window. These commands need native UI build 1.3.2; older helpers return an actionable upgrade message. The authenticated native method is `inspector` with `action: 'status'|'show'|'close'`; `activate` defaults to false and foreground activation is deferred by alongside mode.
+
+`npm run test:ui-service -- /path/to/OpenSky.app` checks the real UI service through a disposable app identity and isolated ports/runtime. It verifies background opening, template/paused tray state, invalid requests and closing while paused. It does not grant permissions or prove the installed app can inspect third-party windows. The [native upgrade results](artifacts/2026-10-17-opensky-native-upgrade-results-Codex.json) distinguish that test from independent-app consent. On the test Mac, the changed ad-hoc signature required fresh macOS access; restoring the original app recovered both permissions and retained the existing browser bridge. Full installation pauses browser control during shutdown; verify readiness and explicitly restore the prior active state after a successful authorized upgrade, while preserving any newer owner pause.
 
 For an existing managed 1.3.0 native installation, update JavaScript and optional skills with `./install.sh --runtime-only --skill codex` (use `--skill claude` for Claude). This validates the existing helper and preserves its files, running state and macOS permissions. Reconnect MCP clients to load new connection instructions. Use a full install when the required native version changes.
 
