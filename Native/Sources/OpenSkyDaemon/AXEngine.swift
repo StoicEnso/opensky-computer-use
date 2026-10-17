@@ -140,6 +140,9 @@ public final class AXEngine {
 
     private init() {}
 
+    // A local Inspector must never retire snapshots currently used by an agent.
+    static func inspectorEngine() -> AXEngine { AXEngine() }
+
     public func isAXTrusted(prompt: Bool = false) -> Bool {
         if prompt {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
@@ -299,6 +302,7 @@ public final class AXEngine {
         includeScreenshot: Bool = true,
         includeOCR: Bool = false,
         launchIfNeeded: Bool = true,
+        allowVisualFallback: Bool = true,
         windowID requestedWindowID: UInt32? = nil
     ) -> AppSnapshotResult {
         stateLock.lock()
@@ -391,7 +395,7 @@ public final class AXEngine {
         }
 
         var screenshot: ScreenshotResult?
-        let shouldCapture = includeScreenshot || includeOCR || nodeMap.count < 3
+        let shouldCapture = includeScreenshot || includeOCR || (allowVisualFallback && nodeMap.count < 3)
         if shouldCapture {
             if let id = windowId {
                 switch VisionScreenshotEngine.shared.captureWindowResult(windowID: id, windowFrame: windowFrame) {

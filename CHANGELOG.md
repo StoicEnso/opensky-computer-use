@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 — 2026-10-17
+
+- Give OpenSky an original cloud companion app icon and a compact, appearance-aware menu-bar template. Eyes change to pause bars when control stops; accessible labels retain the app name and state.
+- Add a native, read-only Inspector with exact-window selection, searchable controls and element details. Use a separate AX cache, reject superseded results, and clear observations on close. Inspection never launches an app, captures a screenshot, sends input or changes the clipboard.
+- Add passive permission status, Setup & Connections and About to the tray. Menu opening never requests consent or resumes control.
+- Native UI build 1.3.1 retains API 1.3.0 compatibility. Existing runtime-only updates preserve the running helper; the new tray and Inspector require a full native app upgrade.
+
 ## 1.5.3 — 2026-10-17
 
 - Separate local host registration, waiting for Chrome, verified connection and paused control in onboarding. Confirm a new connection with passive readiness checks and hide finished installation steps.

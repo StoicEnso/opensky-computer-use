@@ -252,7 +252,21 @@ Your agent can use the same MCP, CLI or SDK tools continuously under a task such
 
 The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. Applicable system, developer, harness and tool rules retain their authority whether or not they mention OpenSky. Restrictions exclusive to a different tool are not automatically imported. macOS permissions, protected dialogs, authentication, stale-target checks and emergency pause remain effective. Auto adds no authority for unrelated work and does not resume stopped control.
 
-The 1.5 JavaScript/browser release works with the existing 1.3.0 native engine; an existing installation does not need a native rebuild for these workflow features. New full builds include the branded app icon.
+The 1.5/1.6 JavaScript/browser runtime works with the existing 1.3.0 native API; an existing installation does not need a native rebuild for browser workflows. Full builds now include the cloud companion icon and native UI build 1.3.1.
+
+### A little companion in your menu bar
+
+<img src="assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-icon-Codex.png" width="96" height="96" alt="OpenSky cloud companion icon">
+
+The cloud replaces the old text label. It uses a macOS template image for light and dark menu bars, with eyes when ready and pause bars when stopped. The menu offers passive permission status, **Open Inspector**, **Setup & Connections**, pause/resume and About.
+
+![Ready and paused cloud marks in light and dark menu-bar fixtures](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-tray-preview-Codex.png)
+
+The native Inspector lets you choose an exact on-screen window, read its Accessibility controls, search labels and values, and inspect roles, geometry and available actions. It reads only on request and clears observations when closed. Its independent cache leaves agent snapshot handles intact. It does not capture screenshots, run actions, change the clipboard or launch a missing app. Opening setup from the menu is an explicit action that opens the local guide in Chrome.
+
+The tray and Inspector require a full native app upgrade; `--runtime-only` deliberately preserves the current native UI and permissions. An ad-hoc signed native upgrade can require macOS consent again. Finish active automation before a full upgrade. The Inspector is a window/control browser, rather than a continuous pointer-following overlay.
+
+[View the Inspector fixture](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-inspector-light-Codex.png). Light/dark previews and recovery checks use disposable fixture data; live inspection of third-party windows by this new UI is not yet verified. [Validation and installation scope](artifacts/2026-10-17-opensky-tray-results-Codex.json).
 
 For an existing managed 1.3.0 native installation, update JavaScript and optional skills with `./install.sh --runtime-only --skill codex` (use `--skill claude` for Claude). This validates the existing helper and preserves its files, running state and macOS permissions. Reconnect MCP clients to load new connection instructions. Use a full install when the required native version changes.
 

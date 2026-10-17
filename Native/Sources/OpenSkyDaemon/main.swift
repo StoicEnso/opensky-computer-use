@@ -45,6 +45,7 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
+                "build_version": "1.3.1",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
@@ -721,28 +722,6 @@ private func loadControlToken() throws -> String {
     return token
 }
 
-private final class OpenSkyMenu: NSObject {
-    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-    override init() {
-        super.init()
-        item.button?.title = "◈ OpenSky"
-        let menu = NSMenu()
-        menu.addItem(withTitle: "Stop control (⌃⌥⌘ Esc)", action: #selector(stopControl), keyEquivalent: "")
-        menu.addItem(withTitle: "Resume control", action: #selector(resumeControl), keyEquivalent: "")
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit OpenSky", action: #selector(quit), keyEquivalent: "")
-        for entry in menu.items { entry.target = self }
-        item.menu = menu
-        NotificationCenter.default.addObserver(self, selector: #selector(controlStateChanged), name: .openskyControlStateChanged, object: nil)
-    }
-    @objc private func controlStateChanged() {
-        DispatchQueue.main.async { self.item.button?.title = SafetyController.shared.isStopped ? "◈ Stopped" : "◈ OpenSky" }
-    }
-    @objc func stopControl() { SafetyController.shared.setStopped(true); CursorOverlayManager.shared.dismissCursor(); item.button?.title = "◈ Stopped" }
-    @objc func resumeControl() { SafetyController.shared.setStopped(false); item.button?.title = "◈ OpenSky" }
-    @objc func quit() { SafetyController.shared.setStopped(true); NSApplication.shared.terminate(nil) }
-}
-
 // MARK: - Main Entrypoint
 
 let args = CommandLine.arguments
@@ -758,6 +737,15 @@ private var residentMenu: OpenSkyMenu?
 var stopMonitor: Any?
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
+
+// Offscreen fixture rendering never starts control, creates a status item or asks for access.
+if let flag = args.firstIndex(of: "--render-ui-preview") {
+    guard args.indices.contains(flag + 1), !args[flag + 1].hasPrefix("--") else {
+        fputs("--render-ui-preview requires an output directory.\n", stderr); exit(64)
+    }
+    do { try renderUIPreview(to: URL(fileURLWithPath: args[flag + 1])); exit(0) }
+    catch { fputs("UI preview failed: \(error)\n", stderr); exit(1) }
+}
 
 DispatchQueue.main.async {
     // Initialize transparent click-through overlay window

@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.6.0",
+  "nativeAPI": "1.3.0",
+  "nativeUIBuild": "1.3.1",
+  "browserWorkerChanged": false,
+  "request": "Original cute icon and cleaner tray with Inspector access",
+  "implemented": [
+    "Original cloud companion PNG/SVG/ICNS",
+    "20\u00d718pt light/dark menu template with ready/paused silhouettes and accessible labels",
+    "Passive permission status and explicit setup/about menu actions",
+    "Exact-window native Accessibility Inspector with search and details",
+    "Independent Inspector AX cache; generation-checked results and clear-on-close",
+    "No automatic screenshots, clipboard input, app launch or window activation while reading controls",
+    "Known forbidden signing metadata removed only from the generated build bundle"
+  ],
+  "validation": {
+    "automatedTestsPassed": 41,
+    "packagingAssertionsPassed": 39,
+    "swiftReleaseBuild": true,
+    "offscreenUIChecks": [
+      "Light and dark Inspector rendering",
+      "20\u00d718pt ready/paused template preview",
+      "Fixture window selection and permission state",
+      "Superseded window-result recovery",
+      "Search across labels and values",
+      "Clear observed content on close",
+      "Independent engine identity",
+      "No runtime credentials/service initialization",
+      "No preview process activation"
+    ]
+  },
+  "deployment": {
+    "nativeAppInstalled": false,
+    "newInspectorLiveThirdPartyWindowVerified": false,
+    "nativeAppAndPermissionsPreserved": true,
+    "newTrayRequiresFullNativeUpgrade": true,
+    "stagedAppAdHocSigned": true,
+    "notarized": false
+  },
+  "limits": [
+    "Rendered Inspector checks use disposable fixture data; these are not live third-party-window success claims.",
+    "The native Inspector is an on-demand Accessibility browser, not a continuous pointer-following overlay.",
+    "A full ad-hoc signed native upgrade can require macOS consent again; runtime-only update retains the current native UI.",
+    "Initial reused build failed signing because the file provider added FinderInfo; staged-only metadata cleanup and strict verification were added.",
+    "Old iCloud-backed compiler cache stalled on mmap; a fresh task-specific compiler cache built successfully without changing user services."
+  ],
+  "artwork": {
+    "tool": "built-in Image Gen",
+    "master": "assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-cloud-master-Codex.png",
+    "prompt": "assets/2026-10-17-opensky-brand-Codex/2026-10-17-brand-notes-Codex.md",
+    "license": "MIT",
+    "peekabooCodeOrArtworkCopied": false
+  },
+  "reference": "https://github.com/openclaw/Peekaboo/blob/main/Apps/Mac/Peekaboo/Features/StatusBar/StatusBarController.swift"
+}
