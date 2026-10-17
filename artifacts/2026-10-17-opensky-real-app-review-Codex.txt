@@ -1,0 +1,87 @@
+OpenSky real-app verification — 17 October 2026
+
+Scope and result
+
+The installed OpenSky service controlled the owner's actual Google Chrome,
+Finder and TextEdit using its JavaScript SDK and animated pointer overlay.
+The real workflow completed; the saved file was reopened from Finder and its
+contents compared exactly against the intended Unicode text. Existing Chrome
+tabs were retained, its original display/frame restored, and the test note left
+open in TextEdit. Only System Settings permission maintenance used the parent
+computer-use tool after rebuilding the ad-hoc signed native app.
+
+Workflow performed
+
+1. Created one Chrome tab in the existing session. Opened the public OpenSky
+   1.2.0 release page, read its actual page content, scrolled to downloads and
+   physically clicked the Assets disclosure closed and open.
+2. Created a new Finder window. Used Go to Folder to reach Documents, created
+   a dated folder with New Folder, named it and entered it.
+3. Opened TextEdit through Finder, selected Make Plain Text from its real menu,
+   typed a heading, and pasted a short release note with English, Dhivehi,
+   emoji and a check mark. Used Save, Go to Folder, the filename field and the
+   Save button to write a UTF-8 document.
+4. Closed the document, selected it in Finder, opened it, and compared the
+   reopened Accessibility text and the actual file bytes with the intended text.
+5. Retested the updated native engine in Chrome and TextEdit. Verified an open
+   native menu exposes commands, explicit focus reopens a windowless TextEdit,
+   quitting TextEdit stays quit, real Chrome activation-to-click succeeds once,
+   and moving/resizing Chrome across both displays reaches the requested frame.
+
+File proof
+
+Name: 2026-10-17-opensky-release-check-Codex.txt
+Encoding: UTF-8
+Bytes: 653
+SHA-256: f3e2ee928fd29e636130e64c83627da82a648b6d80e561fa92fd7ad3607b636e
+Exact persisted contents: passed
+See the accompanying JSON result and screenshot of only the test document.
+
+Defects addressed
+
+- SDK import assumed a process global hidden by the embedded Codex Node host.
+  Defaults now work in that host while ordinary Node retains environment overrides.
+- Menu traversal stopped at the menu container, excluding its commands. Visible
+  menus are now traversed deeper within a bounded budget; collapsed descendants
+  are skipped.
+- Immediate post-action captures could precede window/sheet transitions. Bounded
+  observation-only retries handle those conditions without replaying input.
+- Post-action capture could resolve/launch a just-quit app. Those captures now
+  inspect running apps only; the live suite confirms quitting is not undone.
+- Activating windowless TextEdit did not reopen its normal UI. Explicit window
+  focus now uses the normal LaunchServices reopen event in that case.
+- Focus PID could update before the target point belonged to the newly activated
+  app. Mouse actions now wait briefly for ownership before sending any input.
+- Window operations trusted AX setter success while the actual frame differed.
+  AX can report an animation destination before WindowServer reaches it. Frame
+  operations now observe actual on-screen size before final positioning, verify
+  the resulting complete frame, and report application constraints explicitly.
+- CLI treated an observation warning as failed input even when ok was true.
+  Successful actions retain a successful exit status and print the warning.
+
+Validation
+
+Native release build: passed.
+Automated tests: 19 passed, zero skipped.
+Live native checks on two displays: 18 passed.
+Packaging assertions: 37 passed.
+Own Accessibility and Screen Recording permissions after installation: verified.
+
+New regressions cover embedded SDK import, CLI warning/error distinction, visible
+menu commands, same-display geometry, cross-display geometry in both directions,
+and quitting without relaunch. Existing live tests continue to cover actual mouse
+clicks, focus transfer, Unicode, clipboard handling, stale snapshots and stop.
+
+Limits and interpretation
+
+Web reloads and external app launches remain asynchronous. Wait for a usable
+observation with the intended page/document before dependent input. During this
+run, an immediate Chrome reload check and an immediate TextEdit launch capture
+were premature; fresh observations confirmed the intended UI without replaying
+their successful input. Genuine app window constraints are reported as errors.
+
+This verifies the described workflow on this Mac; it does not establish universal
+application support or numerical superiority over another computer-use system.
+Raw app trees and desktop captures remain local in ignored research storage.
+No private browser tabs, desktop captures, credentials or third-party app source
+are included in the published evidence.

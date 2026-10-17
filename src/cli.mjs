@@ -82,7 +82,7 @@ function mode(fallback = "hybrid") {
   return args.includes("--takeover") ? "takeover" : args.includes("--background") ? "background" : fallback;
 }
 function checkResult(result) {
-  if (result && typeof result === "object" && (result.ok === false || result.error)) {
+  if (result && typeof result === "object" && (result.ok === false || (result.ok === undefined && result.error))) {
     output(result); process.exitCode = 1; return false;
   }
   return true;
@@ -90,7 +90,11 @@ function checkResult(result) {
 function actionOutput(result) {
   if (!checkResult(result)) return;
   if (wantsJSON) output(result);
-  else if (result?.message) { output(result.message); if (result.text) output(result.text); }
+  else if (result?.message) {
+    output(result.message);
+    if (result.observation_ok === false) console.error(`Observation warning: ${result.error || "Refresh the app state before further input."}`);
+    if (result.text) output(result.text);
+  }
   else output(result);
 }
 

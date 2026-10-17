@@ -210,7 +210,8 @@ public final class AXEngine {
     public func resolveOrLaunchApp(
         identifier: String,
         launchIfNeeded: Bool = true,
-        launchInBackground: Bool = true
+        launchInBackground: Bool = true,
+        reopenIfRunning: Bool = false
     ) -> NSRunningApplication? {
         let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -220,16 +221,16 @@ public final class AXEngine {
         // 1. Check already-running applications
         let running = NSWorkspace.shared.runningApplications.filter { !$0.isTerminated }
         let exactBundles = running.filter { $0.bundleIdentifier?.lowercased() == lower }
-        if exactBundles.count == 1 { return exactBundles[0] }
+        if exactBundles.count == 1 && !reopenIfRunning { return exactBundles[0] }
         if exactBundles.count > 1 { return nil }
         let exactNames = running.filter { $0.localizedName?.lowercased() == lower }
-        if exactNames.count == 1 { return exactNames[0] }
+        if exactNames.count == 1 && !reopenIfRunning { return exactNames[0] }
         if exactNames.count > 1 { return nil }
         let partialMatches = running.filter {
             ($0.localizedName?.lowercased().contains(lower) == true) ||
             ($0.bundleIdentifier?.lowercased().contains(lower) == true)
         }
-        if partialMatches.count == 1 { return partialMatches[0] }
+        if partialMatches.count == 1 && !reopenIfRunning { return partialMatches[0] }
         // An ambiguous short name must never launch or control an arbitrary match.
         if partialMatches.count > 1 { return nil }
 
@@ -294,13 +295,14 @@ public final class AXEngine {
         appIdentifier: String,
         disableDiff: Bool = false,
         includeScreenshot: Bool = true,
-        includeOCR: Bool = false
+        includeOCR: Bool = false,
+        launchIfNeeded: Bool = true
     ) -> AppSnapshotResult {
         stateLock.lock()
         defer { stateLock.unlock() }
         let trusted = isAXTrusted(prompt: false)
         let appKey = appIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard let runningApp = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: true, launchInBackground: true) else {
+        guard let runningApp = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: launchIfNeeded, launchInBackground: true) else {
             snapshotsByKey.removeValue(forKey: appKey)
             let issue = ObservationIssue(code: "app_not_found_or_ambiguous",
                 message: "Application '\(appIdentifier)' was not found or is ambiguous. Use an exact bundle ID from list_apps().")
@@ -352,7 +354,7 @@ public final class AXEngine {
             var menuBar: CFTypeRef?
             if AXUIElementCopyAttributeValue(axApp, kAXMenuBarAttribute as CFString, &menuBar) == .success,
                let value = menuBar, CFGetTypeID(value) == AXUIElementGetTypeID() {
-                traverseAXElement(value as! AXUIElement, depth: 0, maxDepth: 2, maxElements: 620,
+                traverseAXElement(value as! AXUIElement, depth: 0, maxDepth: 8, maxElements: 750,
                     nextIndex: &nextIndex, nodeMap: &nodeMap, lines: &lines)
             }
         } else {
@@ -556,6 +558,10 @@ public final class AXEngine {
 
         lines.append(indent + parts.joined(separator: " "))
 
+        // Collapsed menus expose hidden descendants too. Traverse only visible menus
+        // so the open menu's commands fit within the bounded observation budget.
+        if rawRole == kAXMenuRole as String, frame == nil || frame!.isEmpty { return }
+
         // Recurse into children
         var childrenRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef) == .success,
@@ -677,6 +683,14 @@ public final class AXEngine {
         let pid: Int32
         let title: String?
         let frame: CGRect
+    }
+
+    public func onScreenWindowID(pid: pid_t, frame: CGRect) -> UInt32? {
+        fetchAllOnScreenWindows().first { $0.pid == pid && Self.framesMatch($0.frame, frame) }?.windowId
+    }
+
+    public func onScreenWindowFrame(windowID: UInt32) -> CGRect? {
+        fetchAllOnScreenWindows().first { $0.windowId == windowID }?.frame
     }
 
     private func fetchAllOnScreenWindows() -> [CGWinInfo] {

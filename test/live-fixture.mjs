@@ -113,6 +113,32 @@ try {
     assert.equal((await computer.stop()).stopped,true);assert.equal((await computer.type_text({app,text:'SHOULD NOT TYPE',mode:'takeover'})).ok,false);await computer.resume();
     state=await observe();assert.equal(state.text.includes('SHOULD NOT TYPE'),false);
   });
+  await verify('Window resize finishes at the requested geometry',async()=>{
+    const frame=[250,140,1000,650];const result=await computer.manage_window({app,action:'move_resize',frame});
+    assert.equal(result.ok,true,result.message);assert.equal(result.observation_ok,true,result.error);
+    assert.ok(result.window_frame.every((value,i)=>Math.abs(value-frame[i])<=2));state=await observe();
+  });
+  if(status.displays?.length>1)await verify('Moving and resizing across displays preserves the complete requested frame',async()=>{
+    const other=status.displays.find(display=>!display.frame.every((value,i)=>value===status.displays[0].frame[i]));
+    for(const frame of [[other.frame[0]+200,other.frame[1]+120,1100,700],[250,140,1000,650]]){
+      const result=await computer.manage_window({app,action:'move_resize',frame});
+      assert.equal(result.ok,true,result.message);assert.equal(result.observation_ok,true,result.error);
+      assert.ok(result.window_frame.every((value,i)=>Math.abs(value-frame[i])<=2));
+    }
+    state=await observe();
+  });
+  await verify('Open native menu commands are exposed beyond their container',async()=>{
+    state=await observe();const menu=state.elements.find(element=>element.role==='menu bar item'&&element.title==='Edit');
+    assert.ok(menu);const result=await computer.click({app,element_index:menu.element_index,snapshot_id:state.snapshot_id,mode:'takeover'});
+    assert.equal(result.ok,true,result.message);assert.equal(result.observation_ok,true,result.error);
+    assert.ok(result.elements.some(element=>element.role==='menu item'&&element.title==='Paste'));
+    await computer.press_key({app,keys:['Escape'],mode:'takeover'});state=await observe();
+  });
+  await verify('Quitting a target is not undone by its post-action observation',async()=>{
+    const result=await computer.press_key({app,keys:['super+q'],mode:'takeover'});assert.equal(result.ok,true,result.message);
+    await new Promise(resolve=>setTimeout(resolve,200));
+    assert.equal((await computer.list_apps({running_only:true})).some(candidate=>candidate.id===app),false);
+  });
   fs.writeFileSync(reportPath,JSON.stringify({status:'passed',checks,screenshot:state.screenshot,permissions:{accessibility:true,screenRecording:status.screenRecordingTrusted},mode:axOnly?'accessibility-only':'visual-and-accessibility'},null,2));
   console.log(`Live verification passed (${checks.length} checks): ${reportPath}`);
 } catch(error) {fs.writeFileSync(reportPath,JSON.stringify({status:'failed',checks,error:error.message,last_observation:state?.text,fixture:fs.existsSync(fixtureState)?JSON.parse(fs.readFileSync(fixtureState)):null},null,2));throw error;}

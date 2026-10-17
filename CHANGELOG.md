@@ -1,5 +1,16 @@
 # Changelog
 
+## After 1.2.0 — 17 October 2026
+
+- Tested a real Chrome → Finder → TextEdit workflow: read the public release page, create a folder, type and paste Unicode, save as UTF-8, close and reopen from Finder, then compare exact contents.
+- Fixed SDK import in embedded Node hosts that hide the `process` global.
+- Expose visible native menu commands while excluding collapsed-menu descendants.
+- Retry only transient post-action observations during window/sheet transitions; never replay delivered input or relaunch an app during action verification.
+- Explicitly focus a windowless app through its normal LaunchServices reopen event.
+- Wait for target point ownership after app activation, verify requested window geometry, and finish positioning after cross-display resizing.
+- Keep successful CLI actions successful when only their follow-up screenshot is unavailable; report that condition as an observation warning.
+- Added embedded-SDK and CLI regression tests, plus live menu and quit-without-relaunch checks.
+
 ## 1.2.0 — 17 October 2026
 
 - Added structured Accessibility/OCR controls with labels, identifiers, frames, enabled/writable state, actions and snapshot bindings.

@@ -67,7 +67,10 @@
     "CHANGELOG.md",
     "SECURITY.md",
     "CONTRIBUTING.md",
-    "artifacts/2026-10-17-opensky-1-2-review-Codex.txt"
+    "artifacts/2026-10-17-opensky-1-2-review-Codex.txt",
+    "artifacts/2026-10-17-opensky-real-app-review-Codex.txt",
+    "artifacts/2026-10-17-opensky-real-app-results-Codex.json",
+    "artifacts/2026-10-17-opensky-real-app-verification-Codex.png"
   ],
   "repository": {
     "type": "git",

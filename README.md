@@ -211,6 +211,8 @@ node src/cli.mjs help
 
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
+The 17 October [real-app verification](artifacts/2026-10-17-opensky-real-app-review-Codex.txt) covers Chrome, Finder and TextEdit, including a UTF-8 file saved and reopened through their actual interfaces. The updated live suite also checks open menu commands, quitting without accidental relaunch, and complete window geometry across displays. Read [the results](artifacts/2026-10-17-opensky-real-app-results-Codex.json) for the tested scope and remaining limits. A successful input with `observation_ok: false` needs a fresh observation before dependent input; external app launch and web navigation can remain asynchronous.
+
 ## Uninstall
 
 ```sh

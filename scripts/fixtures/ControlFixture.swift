@@ -2,7 +2,7 @@ import AppKit
 
 // Disposable local verification surface. No personal apps or documents are edited.
 final class Fixture: NSObject, NSApplicationDelegate, NSTextFieldDelegate, NSTextViewDelegate {
-    let window = NSWindow(contentRect: NSRect(x: 360, y: 330, width: 940, height: 560), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
+    let window = NSWindow(contentRect: NSRect(x: 360, y: 330, width: 940, height: 560), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
     let output = ProcessInfo.processInfo.environment["OPENSKY_FIXTURE_OUTPUT"]
     var count = 0
     var observedEvents: [[String: Any]] = []

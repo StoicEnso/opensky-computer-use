@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-17",
+  "status": "passed",
+  "workflow": [
+    "Chrome: new tab in existing session, public release page read, physical scrolling and Assets toggles",
+    "Finder: new window, Go to Folder, create and name a new folder",
+    "TextEdit: plain-text menu, Unicode typing and clipboard paste, UTF-8 Save dialog",
+    "Finder: select and open the actual saved file",
+    "TextEdit: reopened body exactly equals intended UTF-8 text"
+  ],
+  "file": {
+    "name": "2026-10-17-opensky-release-check-Codex.txt",
+    "bytes": 653,
+    "sha256": "f3e2ee928fd29e636130e64c83627da82a648b6d80e561fa92fd7ad3607b636e",
+    "exactContent": true
+  },
+  "regressions": {
+    "automatedTests": 19,
+    "liveNativeChecks": 18,
+    "packagingAssertions": 37,
+    "realApps": [
+      "Google Chrome",
+      "Finder",
+      "TextEdit"
+    ],
+    "permissions": {
+      "accessibility": true,
+      "screenRecording": true
+    }
+  },
+  "fixes": [
+    "SDK import without process global",
+    "Visible native menu commands",
+    "Bounded observation-only transition waits",
+    "Post-action capture never relaunches target",
+    "Windowless app reopens through explicit focus",
+    "Target ownership settles before hardware input",
+    "Actual WindowServer geometry verifies cross-display resizing",
+    "CLI separates successful action from observation warning"
+  ],
+  "limits": [
+    "External app launch and network navigation can remain asynchronous: observe until the intended UI is present before dependent input.",
+    "Apps can constrain their own window geometry; the engine reports an error if the requested frame is not reached.",
+    "These checks do not establish universal application support."
+  ],
+  "restoration": {
+    "chromeOriginalFrameRestored": true,
+    "originalTabsPreserved": true,
+    "testDocumentLeftOpen": true
+  }
+}

@@ -74,7 +74,7 @@ public final class ActionExecutor {
             return failure("click", "Provide a valid element index from the latest app state or a point on an active display.")
         }
         guard prepareHardwareTarget(target) else { return focusFailure("click") }
-        guard pointBelongsToTarget(targetPoint, target) else {
+        guard waitForPointOwnership(targetPoint, target) else {
             return failure("click", "The click point is covered by another app or is outside the target app. Refresh app state.")
         }
         animateClick(at: targetPoint, node: node, cursorId: cursorId, label: label, clickCount: clickCount)
@@ -138,7 +138,7 @@ public final class ActionExecutor {
             return failure("drag", "Both drag endpoints must resolve to finite points on active displays.")
         }
         guard prepareHardwareTarget(target) else { return focusFailure("drag") }
-        guard pointBelongsToTarget(start, target), pointMatchesNode(start, startNode) else {
+        guard waitForPointOwnership(start, target), pointMatchesNode(start, startNode) else {
             return failure("drag", "The drag start is outside the target app or covered by another element/app. Refresh app state.")
         }
         let flags = parseModifierFlags(from: key)
@@ -229,7 +229,7 @@ public final class ActionExecutor {
         let background = executionMode == .background
         if !background {
             guard prepareHardwareTarget(target) else { return focusFailure("scroll") }
-            guard pointBelongsToTarget(scrollPoint, target) else {
+            guard waitForPointOwnership(scrollPoint, target) else {
                 return failure("scroll", "The scroll point is outside the target app or covered by another app.")
             }
         }
@@ -490,7 +490,7 @@ public final class ActionExecutor {
         let normalized = action.hasPrefix("AX") ? action : "AX\(action)"
         let err = AXUIElementPerformAction(axEl, normalized as CFString)
         Thread.sleep(forTimeInterval: 0.15)
-        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app) : nil
+        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false) : nil
         return ActionExecutionResult(
             success: err == .success,
             action: "perform_secondary_action (\(normalized))",
@@ -560,7 +560,7 @@ public final class ActionExecutor {
         let status = AXUIElementSetAttributeValue(axEl, kAXSelectedTextRangeAttribute as CFString, rangeVal)
         guard status == .success else { return failure("select_text", "Selection failed with Accessibility error \(status.rawValue).") }
 
-        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app) : nil
+        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false) : nil
         return ActionExecutionResult(
             success: true,
             action: "select_text",
@@ -600,6 +600,17 @@ public final class ActionExecutor {
             window = windows.first
         }
         if action == "focus" || action == "activate" {
+            // Activation alone does not reopen a windowless document app. An explicit
+            // focus request may send the normal LaunchServices reopen event.
+            if window == nil, let url = target.bundleURL {
+                _ = AXEngine.shared.resolveOrLaunchApp(identifier: url.path, launchIfNeeded: true,
+                    launchInBackground: false, reopenIfRunning: true)
+                var reopened: CFTypeRef?
+                if AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &reopened) == .success,
+                   let reopened = reopened, CFGetTypeID(reopened) == AXUIElementGetTypeID() {
+                    window = (reopened as! AXUIElement)
+                }
+            }
             guard prepareHardwareTarget(target) else { return focusFailure("manage_window") }
             if let window = window {
                 let result = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
@@ -614,7 +625,11 @@ public final class ActionExecutor {
             guard result == .success else { return failure("manage_window", "Minimize failed with Accessibility error \(result.rawValue).") }
         } else {
             let existing = accessibilityFrame(window)
-            let screen = quartzVisibleScreen(containing: existing.map { CGPoint(x: $0.midX, y: $0.midY) })
+            guard let existing = existing,
+                  let windowID = AXEngine.shared.onScreenWindowID(pid: target.processIdentifier, frame: existing) else {
+                return failure("manage_window", "Could not match the focused Accessibility window to its on-screen window. Observe the app again before moving it.")
+            }
+            let screen = quartzVisibleScreen(containing: CGPoint(x: existing.midX, y: existing.midY))
             let desired: CGRect
             switch action {
             case "move_resize": desired = frame!
@@ -622,9 +637,10 @@ public final class ActionExecutor {
                 guard let screen = screen else { return failure("manage_window", "No active screen was found.") }
                 desired = screen
             default:
-                guard let screen = screen, let size = frame?.size ?? existing?.size else {
+                guard let screen = screen else {
                     return failure("manage_window", "Could not determine the window size and active screen.")
                 }
+                let size = frame?.size ?? existing.size
                 desired = CGRect(x: screen.midX - size.width / 2, y: screen.midY - size.height / 2, width: size.width, height: size.height)
             }
             var size = desired.size
@@ -632,11 +648,41 @@ public final class ActionExecutor {
             guard let sizeValue = AXValueCreate(.cgSize, &size), let positionValue = AXValueCreate(.cgPoint, &position) else {
                 return failure("manage_window", "Could not create the requested window frame.")
             }
-            let sizeResult = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
-            guard sizeResult == .success else { return failure("manage_window", "Resize failed with Accessibility error \(sizeResult.rawValue).") }
-            guard !SafetyController.shared.isStopped else { return stopped("manage_window") }
+            // Move first: a display transition can otherwise restore the old size.
             let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
-            guard positionResult == .success else { return failure("manage_window", "Window resized, but moving it failed with Accessibility error \(positionResult.rawValue).") }
+            guard positionResult == .success else { return failure("manage_window", "Move failed with Accessibility error \(positionResult.rawValue).") }
+            Thread.sleep(forTimeInterval: 0.25)
+            guard !SafetyController.shared.isStopped else { return stopped("manage_window") }
+            let sizeResult = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+            guard sizeResult == .success else { return failure("manage_window", "Window moved, but resizing it failed with Accessibility error \(sizeResult.rawValue).") }
+            // AppKit animates AX resizing. Setting position before that animation
+            // finishes can cancel it at an intermediate size. Observe the size first.
+            let sizeDeadline = Date().addingTimeInterval(1.5)
+            // AX can report the requested destination before WindowServer has
+            // reached it. Use the actual on-screen geometry to await completion.
+            while AXEngine.shared.onScreenWindowFrame(windowID: windowID).map({ abs($0.width - desired.width) > 2 || abs($0.height - desired.height) > 2 }) ?? true,
+                  Date() < sizeDeadline, !SafetyController.shared.isStopped {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            guard !SafetyController.shared.isStopped else { return stopped("manage_window") }
+            guard let sized = AXEngine.shared.onScreenWindowFrame(windowID: windowID), abs(sized.width - desired.width) <= 2, abs(sized.height - desired.height) <= 2 else {
+                return failure("manage_window", "The app constrained or did not finish resizing to \(desired.size). Actual frame: \(String(describing: AXEngine.shared.onScreenWindowFrame(windowID: windowID))). Refresh app state.")
+            }
+            // Resizing across displays can shift the origin to keep the window on
+            // its former display. Finish the frame operation by setting its origin.
+            let finalPosition = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+            guard finalPosition == .success else { return failure("manage_window", "Final window positioning failed with Accessibility error \(finalPosition.rawValue).") }
+            let deadline = Date().addingTimeInterval(1.5)
+            var actual = AXEngine.shared.onScreenWindowFrame(windowID: windowID)
+            while actual.map({ !Self.framesClose($0, desired) }) ?? true,
+                  Date() < deadline, !SafetyController.shared.isStopped {
+                Thread.sleep(forTimeInterval: 0.05)
+                actual = AXEngine.shared.onScreenWindowFrame(windowID: windowID)
+            }
+            guard !SafetyController.shared.isStopped else { return stopped("manage_window") }
+            guard let actual = actual, Self.framesClose(actual, desired) else {
+                return failure("manage_window", "The app constrained or did not apply the requested frame \(desired). Actual frame: \(String(describing: actual)). Refresh app state before using coordinates.")
+            }
         }
         return completed("manage_window", "Applied window action '\(action)' to \(app).", app: app, returnState: true)
     }
@@ -733,9 +779,23 @@ public final class ActionExecutor {
     private func completed(_ action: String, _ message: String, app: String?, point: CGPoint? = nil,
                            returnState: Bool) -> ActionExecutionResult {
         Thread.sleep(forTimeInterval: 0.12)
-        let snapshot = returnState ? app.map { AXEngine.shared.getAppState(appIdentifier: $0) } : nil
+        var snapshot = returnState ? app.map { AXEngine.shared.getAppState(appIdentifier: $0, launchIfNeeded: false) } : nil
+        // Only repeat observations, never the delivered input. WindowServer may lag
+        // AX during a sheet transition, resize, or new-window animation.
+        let deadline = Date().addingTimeInterval(0.8)
+        while let observed = snapshot, !observed.success,
+              ["app_window_unavailable", "window_moved"].contains(observed.error?.code ?? ""),
+              let app = app, Date() < deadline, !SafetyController.shared.isStopped {
+            Thread.sleep(forTimeInterval: 0.1)
+            snapshot = AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false)
+        }
         return ActionExecutionResult(success: true, action: action, message: message,
                                      point: point.map { [Double($0.x), Double($0.y)] }, appState: snapshot)
+    }
+
+    private static func framesClose(_ actual: CGRect, _ requested: CGRect) -> Bool {
+        abs(actual.minX - requested.minX) <= 2 && abs(actual.minY - requested.minY) <= 2
+            && abs(actual.width - requested.width) <= 2 && abs(actual.height - requested.height) <= 2
     }
 
     private func resolveTarget(_ app: String?) -> NSRunningApplication? {
@@ -770,6 +830,16 @@ public final class ActionExecutor {
         var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
         guard CGGetActiveDisplayList(count, &displays, &count) == .success else { return false }
         return displays.prefix(Int(count)).contains { CGDisplayBounds($0).contains(point) }
+    }
+
+    private func waitForPointOwnership(_ point: CGPoint, _ target: NSRunningApplication?) -> Bool {
+        let deadline = Date().addingTimeInterval(0.6)
+        repeat {
+            guard canContinue(target) else { return false }
+            if pointBelongsToTarget(point, target) { return true }
+            Thread.sleep(forTimeInterval: 0.03)
+        } while Date() < deadline
+        return false
     }
 
     private func pointBelongsToTarget(_ point: CGPoint, _ target: NSRunningApplication?) -> Bool {

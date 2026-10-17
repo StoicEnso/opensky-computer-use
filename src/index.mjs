@@ -8,12 +8,15 @@ import { createSessionWithComputer } from "./session.mjs";
 export { OpenSkyError, matchElements } from "./session.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Embedded Node hosts may hide the process global. Defaults still support an
+// already-installed local service; ordinary Node keeps environment overrides.
+const environment = globalThis.process?.env ?? {};
 export const PROJECT_ROOT = path.resolve(__dirname, "..");
-export const OPENSKY_HOME = process.env.OPENSKY_HOME || path.join(os.homedir(), ".local", "share", "opensky");
+export const OPENSKY_HOME = environment.OPENSKY_HOME || path.join(os.homedir(), ".local", "share", "opensky");
 export const TOKEN_PATH = path.join(OPENSKY_HOME, "control-token");
 const bundledBinary = path.join(os.homedir(), "Applications", "OpenSky.app", "Contents", "MacOS", "OpenSky");
-export const DAEMON_BINARY = process.env.OPENSKY_BINARY || (existsSync(bundledBinary) ? bundledBinary : path.join(PROJECT_ROOT, "Native", ".build", "release", "opensky-daemon"));
-export const DEFAULT_PORT = Number(process.env.OPENSKY_PORT || 43821);
+export const DAEMON_BINARY = environment.OPENSKY_BINARY || (existsSync(bundledBinary) ? bundledBinary : path.join(PROJECT_ROOT, "Native", ".build", "release", "opensky-daemon"));
+export const DEFAULT_PORT = Number(environment.OPENSKY_PORT || 43821);
 if (!Number.isInteger(DEFAULT_PORT) || DEFAULT_PORT < 1024 || DEFAULT_PORT > 65535) throw new Error("OPENSKY_PORT must be an integer from 1024 to 65535.");
 export const DAEMON_URL = `http://127.0.0.1:${DEFAULT_PORT}`;
 
@@ -75,11 +78,11 @@ export async function ensureDaemonRunning() {
   const launchArgs = isAppBundle
     ? ["-g", "-n", "-a", bundle, "--env", `OPENSKY_PORT=${DEFAULT_PORT}`, "--env", `OPENSKY_HOME=${OPENSKY_HOME}`, "--stderr", logPath, "--stdout", logPath]
     : [];
-  if (isAppBundle && process.env.OPENSKY_REDUCE_MOTION) launchArgs.push("--env", `OPENSKY_REDUCE_MOTION=${process.env.OPENSKY_REDUCE_MOTION}`);
+  if (isAppBundle && environment.OPENSKY_REDUCE_MOTION) launchArgs.push("--env", `OPENSKY_REDUCE_MOTION=${environment.OPENSKY_REDUCE_MOTION}`);
   const child = spawn(launchCommand, launchArgs, {
     detached: true,
     stdio: ["ignore", logFd, logFd],
-    env: { ...process.env, OPENSKY_PORT: String(DEFAULT_PORT), OPENSKY_HOME, OPENSKY_AUTH_TOKEN: token }
+    env: { ...environment, OPENSKY_PORT: String(DEFAULT_PORT), OPENSKY_HOME, OPENSKY_AUTH_TOKEN: token }
   });
   child.on("error", () => {});
   closeSync(logFd);
