@@ -36,6 +36,8 @@ try {
   equal(connectionCommand({ root: runtime, binDir }).command, mcp);
   const config = JSON.parse(configSnippet("cursor", { root: runtime, binDir }));
   equal(config.mcpServers["opensky-computer-use"].command, mcp);
+  equal(config.mcpServers["opensky-computer-use"].type, "stdio");
+  equal(JSON.parse(configSnippet("antigravity", {root: runtime, binDir})).mcpServers["opensky-computer-use"], {command:mcp,args:[]});
   check(configSnippet("codex", { root: runtime, binDir }).includes("[mcp_servers.opensky-computer-use]"));
 
   const noStartRuntime = path.join(temporary, "never-started");

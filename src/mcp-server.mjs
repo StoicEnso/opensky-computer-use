@@ -4,7 +4,7 @@ import { callDaemon, matchElements } from "./index.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.2.0"
+  version: "1.3.0"
 };
 
 const TOOLS = [
@@ -13,6 +13,7 @@ const TOOLS = [
     description: "Inspect fresh structured controls by exact accessible name, role or identifier. Returns current indices and snapshot_id. Multiple matches are returned explicitly; never guess between them. Defaults to AX controls, avoiding duplicate OCR matches.",
     inputSchema: { type: "object", required: ["app", "selector"], properties: {
       app: { type: "string" },
+      window_id: { type: "integer", minimum: 1, maximum: 4294967295, description: "Optional exact on-screen window from list_apps." },
       selector: { type: "object", additionalProperties: false, properties: {
         name: { type: "string" }, role: { type: "string" }, identifier: { type: "string" },
         value: { type: "string" }, source: { type: "string", enum: ["ax", "ocr", "any"] },
@@ -56,6 +57,7 @@ const TOOLS = [
           type: "boolean",
           description: "Compatibility option. OpenSky returns full snapshot-scoped trees on every observation so indices cannot be confused with an earlier snapshot."
         },
+        window_id: { type: "integer", minimum: 1, maximum: 4294967295, description: "Exact on-screen window ID from list_apps. Never falls back to another window." },
         include_screenshot: {
           type: "boolean",
           description: "Set true (default) to capture a window screenshot."
@@ -124,13 +126,14 @@ const TOOLS = [
   {
     name: "set_value",
     description:
-      "Directly set the text value of a modifiable UI element (search box, text field, editor) by `element_index`, with automatic fallback to click + select-all + type.",
+      "Set a writable Accessibility field by element_index. Defaults to background AX only; hybrid/takeover explicitly permit foreground click + select-all + type fallback. Verify the resulting value.",
     inputSchema: {
       type: "object",
       properties: {
         app: { type: "string", description: "Target application name or bundle ID." },
         element_index: { type: "number", description: "Numeric element index from `get_app_state`." },
         value: { type: "string", description: "New string value to set on the element." },
+        mode: { type: "string", enum: ["background", "hybrid", "takeover"], default: "background", description: "Background uses AX only. Other modes allow foreground keyboard fallback." },
         cursor_id: { type: "string", description: "Optional virtual cursor ID." }
       },
       required: ["app", "element_index", "value"]
@@ -387,7 +390,7 @@ async function handleToolCall(name, args = {}) {
   for (const required of tool.inputSchema.required || []) if (!(required in args)) return { ok: false, error: `Missing argument: ${required}` };
   if (name === "find_elements") {
     matchElements({ elements: [] }, args.selector);
-    const state = await callDaemon("get_app_state", { app: args.app, include_screenshot: false, include_ocr: ["ocr", "any"].includes(args.selector.source) });
+    const state = await callDaemon("get_app_state", { app: args.app, window_id: args.window_id, include_screenshot: false, include_ocr: ["ocr", "any"].includes(args.selector.source) });
     if (!state.ok) return state;
     const matches = matchElements(state, args.selector);
     return { ok: true, app: state.app, snapshot_id: state.snapshot_id, matches, match_count: matches.length };

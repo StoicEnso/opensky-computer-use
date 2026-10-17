@@ -1,0 +1,44 @@
+OpenSky background control and Peekaboo comparison — 17 October 2026
+
+Scope
+One owner's Mac, macOS 26.5.2 arm64, two displays, existing Chrome profile, Finder and TextEdit. OpenSky 1.3.0 and official Peekaboo 4.9.5. This is a reproducible engineering check, not a statistical market ranking. Private browser trees, account details and screenshots are excluded.
+
+Permissions and provenance
+Peekaboo CLI came from the official Homebrew tap; the GUI archive came from the official 4.9.5 release. Its Developer ID signature and Gatekeeper assessment passed as notarized. Release commit: 260fc35320d6c350af503338b944d68311e2bebb. GUI archive SHA-256: d176301b0ef4b695c11cbdb8c0bdbbc71f47f866f76c734ddad8343ab5f93e38. All input tests used the explicitly selected GUI Bridge with Screen Recording, Accessibility and Event Synthesizing verified granted.
+
+Observed Peekaboo results
+- Exact Chrome screenshot capture passed. AX-only inspection passed; depth 30 was needed to expose the demo login inputs.
+- Combined Chrome screenshot/AX inspection repeatedly rejected inconsistent window-title evidence. Screenshot-only and AX-only routes worked separately.
+- Background new-tab input, direct address-bar value write, navigation and username write passed.
+- The secure demo password field rejected direct value setting. Background click/pixel-focus routes did not establish a verified exact keyboard destination; exact foreground window focus timed out. App-level activation worked after the owner cleared an OS notification alert. The public demo login was not completed with Peekaboo.
+- Finder and TextEdit native menu actions created new windows. Finder Go to Folder was refused before dispatch because the focused element lay outside the target window.
+- TextEdit direct AX writing preserved exact English, Dhivehi, accented text and emoji. Exact-window focus and the background Save step did not complete a save/reopen workflow. A separate local backup preserved the disposable note.
+- Command-shape errors and a test submission made without a password were excluded from intrinsic tool comparisons. Accepted dispatch was not counted as verified completion.
+
+Observed OpenSky results
+Earlier real-app testing completed Chrome → Finder → TextEdit → Finder, saving and reopening a 653-byte UTF-8 document with exact contents. The public username/password demo login reached and verified its signed-in page.
+The 1.3 run passed 21 automated tests, 20 live native checks and 39 packaging assertions. New tests cover background write rejection without physical input and two-window pinned editing. A real TextEdit test then changed only the selected document while Chrome remained active; the other TextEdit document still matched its saved contents exactly.
+No CAPTCHA was completed for either tool in this comparison. Seeing its checkbox does not establish solve capability.
+
+What OpenSky adopted
+The review used Peekaboo's official docs and BackgroundWindowKeyboardPreparation.swift at the pinned commit. Useful ideas are exact window/process identity, explicit foreground/background intent, private receipts and observing an uncertain result before any retry. Peekaboo is MIT licensed, copyright Peter Steinberger (2025). OpenSky's changes are independent implementations; no Peekaboo source was copied. Future substantial source reuse must retain the applicable license notice.
+
+OpenSky 1.3 adds exact window_id inspection, pinned SDK sessions and process-launch identity checks. Background field writes inherit the selected mode and cannot silently fall back to foreground click-and-type. Low-level set_value is AX-only by default; explicit hybrid/takeover retains foreground fallback. An unavailable or ambiguous window fails rather than selecting another document. Antigravity configuration output and Cursor's explicit stdio setting were added.
+
+Restriction audit
+No content-based domain, login, agreement or CAPTCHA denylist was found in the native driver, SDK, CLI or MCP server. Existing checks cover local authentication, owner-private files, stale references, supported capabilities, focus ownership, bounded queues and emergency pause. Removing these would reduce control reliability. The agent can operate continuously under the owner's task authority; its host rules, macOS permissions and provider behavior remain separate. A free-text zero-spend rule must be applied by the agent; this driver does not inspect purchase semantics or enforce a payment lock.
+
+Background-use boundaries
+AX reads, window screenshots, supported AXPress and direct field writes can work behind other apps. AX actions may themselves open UI. Background process keys follow that app's own keyboard focus. Foreground input and clipboard paste share the physical desktop. Use compatible browser DOM/API tools for web workflows that should coexist with the owner's keyboard/pointer; OpenSky currently has native AX/OCR and no bundled DOM connection.
+
+Assessment
+OpenSky completed more of this particular end-to-end workflow. This is not evidence that it is universally better or the best available tool. Peekaboo offers signed/notarized distribution, browser tooling and a broader established ecosystem. OpenSky source builds still require Node, Swift/Xcode tools and owner-granted permissions; ad-hoc rebuilds can require those permissions again. All advertised integration configs share standard MCP; every host application's UI has not been tested end to end.
+
+Primary sources
+https://peekaboo.sh/permissions.html
+https://peekaboo.sh/commands/type.html
+https://peekaboo.sh/commands/browser.html
+https://github.com/openclaw/Peekaboo/tree/260fc35320d6c350af503338b944d68311e2bebb
+https://cursor.com/docs/mcp
+https://code.claude.com/docs/en/mcp
+https://antigravity.google/docs/mcp

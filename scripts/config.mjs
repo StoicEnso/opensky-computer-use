@@ -32,9 +32,10 @@ export function configSnippet(client = "all", options = {}) {
     case "claude-code": return claude;
     case "claude":
     case "claude-desktop":
-    case "cursor":
+    case "antigravity":
     case "json": return json;
-    case "all": return `Codex (~/.codex/config.toml):\n${codex}\nClaude Code (run explicitly):\n${claude}\n\nClaude Desktop / Cursor (merge into the client MCP configuration):\n${json}\n`;
-    default: throw new Error(`Unknown client '${client}'. Choose codex, claude-code, claude-desktop, cursor, json, or all.`);
+    case "cursor": return JSON.stringify({ mcpServers: { [server]: { type: "stdio", ...connection } } }, null, 2);
+    case "all": return `Codex (~/.codex/config.toml):\n${codex}\nClaude Code (run explicitly):\n${claude}\n\nClaude Desktop / Antigravity (merge into the client MCP configuration):\n${json}\n\nCursor (~/.cursor/mcp.json):\n${configSnippet("cursor", options)}\n`;
+    default: throw new Error(`Unknown client '${client}'. Choose codex, claude-code, claude-desktop, cursor, antigravity, json, or all.`);
   }
 }

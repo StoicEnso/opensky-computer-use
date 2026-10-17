@@ -2,13 +2,15 @@ import AppKit
 
 // Disposable local verification surface. No personal apps or documents are edited.
 final class Fixture: NSObject, NSApplicationDelegate, NSTextFieldDelegate, NSTextViewDelegate {
-    let window = NSWindow(contentRect: NSRect(x: 360, y: 330, width: 940, height: 560), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+    let window = NSWindow(contentRect: NSRect(x: 360, y: 330, width: 940, height: 640), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
     let output = ProcessInfo.processInfo.environment["OPENSKY_FIXTURE_OUTPUT"]
     var count = 0
     var observedEvents: [[String: Any]] = []
     let counter = NSTextField(labelWithString: "0")
     let field = NSTextField(string: "")
+    var rejectAXWrites = false
     let editor = NSTextView()
+    var otherWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Standard responder-chain menu shortcuts match an ordinary native Mac app.
@@ -38,7 +40,11 @@ final class Fixture: NSObject, NSApplicationDelegate, NSTextFieldDelegate, NSTex
         let increment = NSButton(title: "Increment counter", target: self, action: #selector(incrementCounter));increment.bezelStyle = .rounded;increment.setAccessibilityIdentifier("increment-counter")
         counter.font = .monospacedDigitSystemFont(ofSize: 30, weight: .semibold);counter.textColor = .white;counter.setAccessibilityIdentifier("counter-value")
         row.addArrangedSubview(increment);row.addArrangedSubview(counter);root.addArrangedSubview(row)
-        field.placeholderString = "Type a verification phrase";field.delegate = self;field.setAccessibilityIdentifier("verification-input");field.setAccessibilityLabel("Verification input");root.addArrangedSubview(field)
+        let reject = NSButton(checkboxWithTitle: "Reject AX writes", target: self, action: #selector(toggleAXWrites))
+        reject.setAccessibilityIdentifier("reject-ax-writes");row.addArrangedSubview(reject)
+        let other = NSButton(title: "Open another window", target: self, action: #selector(openOtherWindow))
+        other.setAccessibilityIdentifier("open-other-window");row.addArrangedSubview(other)
+        field.placeholderString = "Type a verification phrase";field.delegate = self;field.setAccessibilityRole(.textField);field.setAccessibilityIdentifier("verification-input");field.setAccessibilityLabel("Verification input");root.addArrangedSubview(field)
         let scroll = NSScrollView();scroll.hasVerticalScroller = true;scroll.borderType = .bezelBorder
         editor.isRichText = false;editor.font = .systemFont(ofSize: 16);editor.delegate = self;editor.string = "Scratch area for Unicode and clipboard checks.";editor.setAccessibilityLabel("Scratch editor");scroll.documentView = editor;root.addArrangedSubview(scroll)
         root.addArrangedSubview(NSTextField(labelWithString: "Stop at any time: Control + Option + Command + Escape"))
@@ -57,9 +63,17 @@ final class Fixture: NSObject, NSApplicationDelegate, NSTextFieldDelegate, NSTex
         window.makeKeyAndOrderFront(nil);NSApp.activate();save()
     }
     @objc func incrementCounter() { count += 1;counter.stringValue = String(count);save() }
+    @objc func toggleAXWrites(_ sender: NSButton) { rejectAXWrites = sender.state == .on;field.isEditable = !rejectAXWrites;field.isSelectable = true;save() }
+    @objc func openOtherWindow() {
+        let other = NSWindow(contentRect: NSRect(x: 80, y: 90, width: 500, height: 250), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        other.title = "OpenSky · Other Window";other.isReleasedWhenClosed = false
+        let label = NSTextField(labelWithString: "SECOND_WINDOW_ONLY");label.frame = NSRect(x: 30, y: 110, width: 400, height: 30)
+        other.contentView!.addSubview(label);other.standardWindowButton(.closeButton)?.setAccessibilityIdentifier("close-other-window")
+        otherWindow = other;other.makeKeyAndOrderFront(nil);save()
+    }
     func controlTextDidChange(_ notification: Notification) { save() }
     func textDidChange(_ notification: Notification) { save() }
-    func save() { guard let output else { return }; let data = try! JSONSerialization.data(withJSONObject:["pid":ProcessInfo.processInfo.processIdentifier,"counter":count,"input":field.stringValue,"editor":editor.string,"events":observedEvents]);try? data.write(to:URL(fileURLWithPath:output),options:.atomic) }
+    func save() { guard let output else { return }; let data = try! JSONSerialization.data(withJSONObject:["pid":ProcessInfo.processInfo.processIdentifier,"counter":count,"input":field.stringValue,"editor":editor.string,"events":observedEvents,"rejectAXWrites":rejectAXWrites]);try? data.write(to:URL(fileURLWithPath:output),options:.atomic) }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender:NSApplication)->Bool { true }
 }
 let app=NSApplication.shared

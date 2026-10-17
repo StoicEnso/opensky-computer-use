@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-17",
+  "version": "1.3.0",
+  "status": "passed",
+  "automatedTests": 21,
+  "liveNativeChecks": 20,
+  "packagingAssertions": 39,
+  "permissions": {"accessibility": true, "screenRecording": true},
+  "newLiveChecks": [
+    "A non-writable AX field rejects a background write without physical mouse or keyboard events",
+    "A pinned session edits the selected window while a second window in that app remains focused",
+    "An unavailable explicit window fails without substituting another window"
+  ],
+  "realTextEditBackgroundCheck": {
+    "exactUnicodeText": true,
+    "selectedWindowRetained": true,
+    "chromeActiveBeforeAndAfter": true,
+    "otherTextEditDocumentUnchanged": true
+  },
+  "priorRealWorkflow": "Chrome → Finder → TextEdit → Finder: saved and reopened exact 653-byte UTF-8 content",
+  "protocol": "Official MCP client handshake, tool discovery, status and cancellation checks passed",
+  "clientScope": "Configuration outputs cover Codex, Claude Code, Claude Desktop, Cursor, Antigravity and generic stdio MCP. Individual client UIs have not all been tested.",
+  "limits": [
+    "Background support varies by app; process-targeted keys follow that application's keyboard focus",
+    "Foreground mouse, keyboard and clipboard operations share the owner's desktop",
+    "No bundled browser DOM transport or standalone autonomous reasoning engine",
+    "No semantic content blacklist; host authorization rules and macOS permissions still apply",
+    "A no-spending instruction is not a driver-enforced financial lock",
+    "CAPTCHA completion is untested in this comparison",
+    "Ad-hoc signed source updates may need macOS permissions to be granted again"
+  ]
+}

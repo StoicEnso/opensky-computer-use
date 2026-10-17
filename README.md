@@ -1,10 +1,18 @@
 # OpenSky
 
-Open-source macOS computer use for agents, with native Accessibility inspection, screenshots and OCR, input actions, and animated virtual pointers. The same Swift service can be used through MCP, a command-line tool, or a JavaScript SDK.
+**Open-source computer use for your Mac.** Give your agent native app controls, screenshots, on-device OCR and a visible animated pointer. Connect through MCP, the command line or JavaScript.
 
-OpenSky is an independent implementation using public macOS APIs. It does not call OpenAI's private computer-use service or bypass its client restrictions. Similar method names are a convenience; this project does not claim drop-in compatibility or better reliability than Codex.
+[![macOS checks](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/StoicEnso/opensky-computer-use)](https://github.com/StoicEnso/opensky-computer-use/releases/latest)
+[![MIT license](https://img.shields.io/badge/license-MIT-teal)](LICENSE)
+
+**macOS 14+ · Apple silicon & Intel source builds · Node.js 22+ · Local engine · MIT**
+
+[Install](#install-from-source) · [Connect your agent](#connect-an-agent) · [Work in the background](#work-while-you-use-the-mac) · [See test results](#tested-scope) · [Releases](https://github.com/StoicEnso/opensky-computer-use/releases)
 
 ![OpenSky's native animated pointer](artifacts/2026-10-17-opensky-pointer-demo-Codex.gif)
+
+The control engine is free and runs locally. Bring your own agent or model; its subscription or API costs are separate. OpenSky is an independent implementation built on public macOS APIs.
 
 ## Watch it control your Mac
 
@@ -79,9 +87,20 @@ opensky config codex
 opensky config claude-code
 opensky config claude-desktop
 opensky config cursor
+opensky config antigravity
 ```
 
 These commands only print configuration. Merge it into the chosen client's MCP configuration, then restart or reconnect that client. Generated commands use absolute paths so a GUI application's limited `PATH` does not prevent Node from being found.
+
+| Agent | Connection |
+| --- | --- |
+| Codex | `opensky config codex` |
+| Claude Code | `opensky config claude-code` |
+| Claude Desktop | `opensky config claude-desktop` |
+| Cursor | `opensky config cursor` |
+| Antigravity | `opensky config antigravity` |
+| Other local MCP clients | `opensky config json` |
+| Agents with terminal or Node access | CLI or JavaScript SDK |
 
 MCP clients can use `find_elements` to inspect controls by exact name, role or Accessibility identifier. The result includes current indices, source metadata and a snapshot ID. Multiple matches are explicit; refine the selector before acting.
 
@@ -108,6 +127,8 @@ Claude Desktop and Cursor use an MCP server entry such as:
 
 Use the output of `opensky config` for your actual absolute path. Other MCP clients can start the same `opensky-mcp` launcher with standard input/output. The bundled [agent skill](skills/opensky-computer-use/SKILL.md) describes the inspect → act → verify workflow without depending on one model vendor.
 
+For Antigravity, open **MCP Servers → Manage MCP Servers → View raw config** and merge the generated entry. Current versions use `~/.gemini/config/mcp_config.json`; older versions may show a different path. Cursor uses `~/.cursor/mcp.json` or project `.cursor/mcp.json`; its generated entry includes `type: "stdio"`. Claude Code's generated command registers the same local server. Client permission settings remain under the owner's control. The standard MCP handshake is tested with the official client SDK; every agent application's UI has not been tested end to end.
+
 ## Select controls by name
 
 Every observation now includes an `elements` array alongside the readable tree. The SDK supports exact selection without parsing tree text:
@@ -122,6 +143,29 @@ await session.click({ role: 'button', name: 'Save' });
 ```
 
 Use actual labels/identifiers from your app's current observation. `find` defaults to exact, case-insensitive AX names; OCR is opt-in. Ambiguous/disabled targets fail explicitly. `setValue(selector, text)` requires a writable control. `waitFor(selector, { timeoutMs: 5000 })` polls observations; it does not repeat input. Abort signals are checked between observations. A timed-out input request has an unknown delivery outcome and must be verified before submitting it again.
+
+## Work while you use the Mac
+
+Use an explicit background session for supported AX actions, pinned to an on-screen window from `list_apps`:
+
+```js
+const session = createSession({
+  app: 'com.apple.TextEdit',
+  window_id: observedWindowId,
+  mode: 'background'
+});
+await session.setValue({ identifier: observedFieldIdentifier }, 'New text');
+```
+
+Window inspection never substitutes another window when an explicit ID is unavailable or ambiguous. Background session field writes remain AX-only. Low-level `set_value` also defaults to background in 1.3; `hybrid` or `takeover` explicitly allows click-and-type fallback. This is a behavior change from 1.2, whose automatic field fallback could take focus.
+
+Background is app dependent. An AXPress may open UI, background keys follow the app's own keyboard focus, and foreground keyboard/mouse actions share your desktop. Clipboard paste also takes focus. Avoid simultaneous editing of the same app. For web workflows alongside your own work, use a compatible browser DOM/API tool where available and OpenSky for native dialogs and other Mac apps; OpenSky does not yet include a browser DOM connection.
+
+## Delegated auto operation
+
+Your agent can use the same MCP, CLI or SDK tools continuously under a task such as "create the benchmark accounts and complete free trials; spend no money." OpenSky has no content blacklist for sites, sign-ins, agreements or CAPTCHAs and no per-click approval dialog. Its bundled skill carries existing task authority forward, verifies outcomes, records checkpoints and continues independent work when a provider is blocked.
+
+The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. macOS permissions, protected dialogs and the connected agent's own rules still apply. Authentication, stale-target checks and emergency pause protect control of the Mac.
 
 MCP bounds in-flight work to 64 requests and forwards it promptly to the single native action queue. The native queue accepts up to 64 pending requests and expires work after five seconds of waiting. Emergency stop invalidates their current generation. Resuming does not revive old queued actions. Physical desktop input remains serialized across clients.
 
@@ -153,7 +197,7 @@ opensky shutdown             # Terminate the service
 
 Press **Control+Option+Command+Escape** for an emergency pause while the daemon is running. Captures are stored in `$OPENSKY_HOME/screenshots`.
 
-Stopping the service cannot undo an action that an application has already received. Review consequential actions through your agent before it performs them.
+Stopping the service cannot undo an action that an application has already received. Your agent applies the user's task authority and constraints to consequential actions.
 
 ## JavaScript SDK
 
@@ -211,7 +255,15 @@ node src/cli.mjs help
 
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
+## Tested scope
+
+The 1.3 check run passed **21 automated tests, 20 live native checks and 39 packaging assertions**. A real TextEdit background edit also passed: Chrome stayed active, the selected document received the exact Unicode content, and the other TextEdit document remained unchanged. See [the 1.3 results](artifacts/2026-10-17-opensky-1-3-results-Codex.json).
+
 The 17 October [real-app verification](artifacts/2026-10-17-opensky-real-app-review-Codex.txt) covers Chrome, Finder and TextEdit, including a UTF-8 file saved and reopened through their actual interfaces. The updated live suite also checks open menu commands, quitting without accidental relaunch, and complete window geometry across displays. Read [the results](artifacts/2026-10-17-opensky-real-app-results-Codex.json) for the tested scope and remaining limits. A successful input with `observation_ok: false` needs a fresh observation before dependent input; external app launch and web navigation can remain asynchronous.
+
+Peekaboo 4.9.5 was also installed and exercised on the same Mac. It completed several background actions; exact-window focus and combined Chrome capture failed in this run. [Read the comparison and design review](artifacts/2026-10-17-opensky-background-and-peekaboo-review-Codex.txt). This is a bounded comparison, not a claim of universal superiority.
+
+Current limits: app-dependent AX support, shared foreground input, no bundled browser DOM connection, no standalone autonomous agent and no driver-enforced spending cap. Source builds are ad-hoc signed; macOS can require permissions again after an update. The source build path requires Xcode Command Line Tools.
 
 ## Uninstall
 
@@ -225,3 +277,5 @@ Alternatively, run `./install.sh --uninstall` with the same custom path options 
 ## License
 
 [MIT](LICENSE). See [the investigation and verification notes](artifacts/2026-10-17-opensky-research-and-verification-Codex.txt) for evidence and limits. Private REA captures and proprietary reference code are excluded from distributions.
+
+OpenSky began as the owner's Antigravity prototype and has since gained structured control selection, queued-action cancellation, installation recovery, exact-window background sessions and live regression checks. It does not call OpenAI's private computer-use service or claim drop-in compatibility with it. [Peekaboo](https://github.com/openclaw/Peekaboo) informed the background-control design review; the 1.3 changes are independently implemented and contain no copied Peekaboo source.

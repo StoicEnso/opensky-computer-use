@@ -55,3 +55,25 @@ test('aborted waits stop before further inspection', async () => {
   const session = createSessionWithComputer({ get_app_state: async () => { observations++;return snapshot; } }, { app: 'fixture' });
   await assert.rejects(session.waitFor({ name: 'Save' }, { signal: controller.signal }), { name: 'AbortError' });assert.equal(observations, 0);
 });
+test('field writes inherit background mode and never retry a rejected write', async () => {
+  const calls = [];
+  const computer = {
+    get_app_state: async () => snapshot,
+    set_value: async params => { calls.push(params);return { ok: false, error: 'AX write rejected' }; }
+  };
+  for (const mode of ['background', 'hybrid', 'takeover']) {
+    const session = createSessionWithComputer(computer, { app: 'fixture', mode });
+    await assert.rejects(session.setValue({ identifier: 'name' }, 'test'), /AX write rejected/);
+    assert.equal(calls.at(-1).mode, mode);
+    assert.equal(calls.at(-1).snapshot_id, 'fresh');
+  }
+  assert.equal(calls.length, 3);
+});
+test('a pinned session retains its exact window across observations and rejects invalid IDs', async () => {
+  const windows=[];
+  const computer={get_app_state:async params=>{windows.push(params.window_id);return snapshot;}};
+  const session=createSessionWithComputer(computer,{app:'fixture',window_id:123,mode:'background'});
+  await session.observe({window_id:456});await session.find({identifier:'name'});
+  assert.deepEqual(windows,[123,123]);
+  for(const window_id of [0,-1,1.5,NaN,0x100000000,'123']) assert.throws(()=>createSessionWithComputer(computer,{app:'fixture',window_id}),{code:'invalid_window'});
+});

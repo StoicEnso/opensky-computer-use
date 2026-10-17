@@ -124,7 +124,9 @@ public final class AXEngine {
         let id: String
         let pid: Int32
         let bundleID: String?
+        let launchDate: Date?
         let windowId: UInt32?
+        let explicitWindow: Bool
         let frame: CGRect
         let createdAt: TimeInterval
         let nodes: [Int: IndexedAXNode]
@@ -296,13 +298,14 @@ public final class AXEngine {
         disableDiff: Bool = false,
         includeScreenshot: Bool = true,
         includeOCR: Bool = false,
-        launchIfNeeded: Bool = true
+        launchIfNeeded: Bool = true,
+        windowID requestedWindowID: UInt32? = nil
     ) -> AppSnapshotResult {
         stateLock.lock()
         defer { stateLock.unlock() }
         let trusted = isAXTrusted(prompt: false)
         let appKey = appIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard let runningApp = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: launchIfNeeded, launchInBackground: true) else {
+        guard let runningApp = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: launchIfNeeded && requestedWindowID == nil, launchInBackground: true) else {
             snapshotsByKey.removeValue(forKey: appKey)
             let issue = ObservationIssue(code: "app_not_found_or_ambiguous",
                 message: "Application '\(appIdentifier)' was not found or is ambiguous. Use an exact bundle ID from list_apps().")
@@ -316,7 +319,19 @@ public final class AXEngine {
         let bundleId = runningApp.bundleIdentifier ?? appIdentifier
         let displayName = runningApp.localizedName ?? bundleId
         let cgWindows = fetchAllOnScreenWindows().filter { $0.pid == pid }
-        var primaryCGWin = cgWindows.first
+        func unavailableWindow(_ message: String) -> AppSnapshotResult {
+            snapshotsByKey = snapshotsByKey.filter { $0.value.pid != pid }
+            let issue = ObservationIssue(code: "exact_window_unavailable", message: message)
+            return AppSnapshotResult(success: false, error: issue, warnings: [], snapshotID: nil,
+                screenshotWidth: nil, screenshotHeight: nil, screenshotFrame: nil,
+                app: appIdentifier, bundleId: bundleId, displayName: displayName, pid: pid,
+                windowId: requestedWindowID, windowFrame: nil, text: message, screenshotUrl: nil,
+                screenshotPath: nil, axTrusted: trusted, elementCount: 0, elements: [])
+        }
+        var primaryCGWin = requestedWindowID.flatMap { id in cgWindows.first { $0.windowId == id } } ?? cgWindows.first
+        if let id = requestedWindowID, !cgWindows.contains(where: { $0.windowId == id }) {
+            return unavailableWindow("Window \(id) is not an on-screen window owned by \(displayName). Refresh list_apps; no other window was substituted.")
+        }
         var axWindow: AXUIElement?
         let axApp = AXUIElementCreateApplication(pid)
         if trusted {
@@ -330,7 +345,20 @@ public final class AXEngine {
                 if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows) == .success,
                    let elements = windows as? [AXUIElement] { axWindow = elements.first }
             }
-            if let frame = axWindow.flatMap({ getFrame(of: $0) }) {
+            if let requested = requestedWindowID, let cgWindow = primaryCGWin {
+                var windows: CFTypeRef?
+                AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windows)
+                var candidates = (windows as? [AXUIElement]) ?? []
+                if let focused = axWindow, !candidates.contains(where: { CFEqual($0, focused) }) { candidates.append(focused) }
+                let matches = candidates.filter { candidate in
+                    guard let frame = getFrame(of: candidate) else { return false }
+                    return Self.framesMatch(frame, cgWindow.frame)
+                }
+                guard matches.count == 1 else {
+                    return unavailableWindow("Window \(requested) could not be matched to one Accessibility window. No other window was substituted.")
+                }
+                axWindow = matches[0]
+            } else if let frame = axWindow.flatMap({ getFrame(of: $0) }) {
                 let title = axWindow.flatMap({ getStringAttribute($0, kAXTitleAttribute as String) })
                 // CG window ordering and an app's focused AX window are not necessarily the
                 // same. Select the screenshot ID by geometry and title of the actual AX tree.
@@ -396,7 +424,7 @@ public final class AXEngine {
             error = ObservationIssue(code: "observation_unavailable", message: "The app exposed no accessibility elements and its window could not be captured.")
         }
         let snapshotID = UUID().uuidString
-        let cached = CachedSnapshot(id: snapshotID, pid: pid, bundleID: runningApp.bundleIdentifier, windowId: windowId, frame: windowFrame,
+        let cached = CachedSnapshot(id: snapshotID, pid: pid, bundleID: runningApp.bundleIdentifier, launchDate: runningApp.launchDate, windowId: windowId, explicitWindow: requestedWindowID != nil, frame: windowFrame,
             createdAt: ProcessInfo.processInfo.systemUptime, nodes: nodeMap)
         // Retire aliases from prior observations too (for example, a previous short name).
         snapshotsByKey = snapshotsByKey.filter { $0.value.pid != pid }
@@ -456,6 +484,18 @@ public final class AXEngine {
         return (snapshot.windowId, snapshot.frame)
     }
 
+    public func pinnedWindowID(appIdentifier: String) -> UInt32? {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        // Keep the requested ID even if the action moved/closed its window. The
+        // following observation must report that outcome, not follow another window.
+        let key = appIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard let snapshot = snapshotsByKey[key], snapshot.explicitWindow,
+              let running = NSRunningApplication(processIdentifier: snapshot.pid), !running.isTerminated,
+              running.bundleIdentifier == snapshot.bundleID, running.launchDate == snapshot.launchDate else { return nil }
+        return snapshot.windowId
+    }
+
     public func validateSnapshot(appIdentifier: String, snapshotID: String) -> Bool {
         stateLock.lock()
         defer { stateLock.unlock() }
@@ -466,7 +506,7 @@ public final class AXEngine {
         let key = appIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard let snapshot = snapshotsByKey[key], ProcessInfo.processInfo.systemUptime - snapshot.createdAt <= 60,
               let running = NSRunningApplication(processIdentifier: snapshot.pid), !running.isTerminated,
-              running.bundleIdentifier == snapshot.bundleID else { return nil }
+              running.bundleIdentifier == snapshot.bundleID, running.launchDate == snapshot.launchDate else { return nil }
         if let id = snapshot.windowId {
             guard let live = fetchAllOnScreenWindows().first(where: { $0.pid == snapshot.pid && $0.windowId == id }),
                   Self.framesMatch(live.frame, snapshot.frame) else { return nil }

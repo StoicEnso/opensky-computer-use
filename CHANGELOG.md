@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 — 17 October 2026
+
+- Add exact `window_id` inspection and pinned semantic sessions. A missing or ambiguous window fails explicitly; background action observations retain the selected window.
+- Make low-level field setting AX-only by default. Foreground fallback requires explicit hybrid/takeover mode, and session field writes inherit the selected mode.
+- Add Antigravity configuration output and Cursor's explicit stdio transport field.
+- Document delegated task authority, background limitations and cross-agent setup without adding content-based driver gates.
+- Add live read-only field and two-window background regression checks, plus session and transport validation.
+
 ## After 1.2.0 — 17 October 2026
 
 - Tested a real Chrome → Finder → TextEdit workflow: read the public release page, create a folder, type and paste Unicode, save as UTF-8, close and reopen from Finder, then compare exact contents.

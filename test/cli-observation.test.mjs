@@ -13,7 +13,7 @@ test('CLI distinguishes delivered input with an observation warning from failed 
   let result = { ok: true, observation_ok: false, message: 'Sent one key.', error: 'Window closed.', error_code: 'app_window_unavailable' };
   const server = http.createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json');
-    response.end(JSON.stringify(request.url === '/health' ? { service: 'OpenSky Computer Use Daemon', version: '1.2.0' }
+    response.end(JSON.stringify(request.url === '/health' ? { service: 'OpenSky Computer Use Daemon', version: '1.3.0' }
       : request.url === '/status' ? { ok: true, service: 'OpenSky Computer Use Daemon' } : result));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

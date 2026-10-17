@@ -49,6 +49,8 @@ test('native control transport and real MCP client interoperability', { skip: !a
     assert.equal((await rpc('get_app_state', {})).error_code, 'invalid_arguments');
     assert.equal((await rpc('get_app_state', {app: 42})).error_code, 'invalid_arguments');
     assert.equal((await rpc('get_app_state', {app: 'Finder', include_ocr: 'true'})).error_code, 'invalid_arguments');
+    for (const window_id of [0,-1,1.5,true,4294967296]) assert.equal((await rpc('get_app_state',{app:'Finder',window_id})).error_code,'invalid_arguments');
+    assert.ok(['exact_window_unavailable','app_not_found_or_ambiguous'].includes((await rpc('get_app_state',{app:'com.apple.finder',window_id:4294967295,include_screenshot:false})).error_code));
     assert.equal((await rpc('cursor_move', { point: [1] })).ok, false);
     assert.equal((await rpc('click', { element_index: -1 })).ok, false);
     assert.equal((await rpc('cursor_move', { point: [10, 10], duration: -1 })).ok, false);
@@ -100,7 +102,7 @@ test('native control transport and real MCP client interoperability', { skip: !a
       for (const name of ['status', 'stop', 'resume', 'get_app_state', 'click', 'cursor_choreography']) assert.ok(result.tools.some(tool => tool.name === name));
       const status = await client.callTool({ name: 'status', arguments: {} });
       assert.equal(status.isError, false);
-      assert.equal(status.structuredContent.version, '1.2.0');
+      assert.equal(status.structuredContent.version, '1.3.0');
       assert.equal(status.structuredContent.screen.width > 0, true);
       const invalid = await client.callTool({ name: 'get_app_state', arguments: {} });
       assert.equal(invalid.isError, true);

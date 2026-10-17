@@ -33,10 +33,11 @@ function checked(result) {
   return result;
 }
 
-export function createSessionWithComputer(computer, { app, mode = 'hybrid' } = {}) {
+export function createSessionWithComputer(computer, { app, mode = 'hybrid', window_id } = {}) {
   if (typeof app !== 'string' || !app.trim()) throw new OpenSkyError('invalid_app', 'A session requires an exact app name or bundle ID.');
   if (!['background', 'hybrid', 'takeover'].includes(mode)) throw new OpenSkyError('invalid_mode', 'Invalid execution mode.');
-  const observe = async (options = {}) => checked(await computer.get_app_state({ ...options, app }));
+  if (window_id !== undefined && (!Number.isInteger(window_id) || window_id < 1 || window_id > 0xffffffff)) throw new OpenSkyError('invalid_window', 'window_id must be a positive 32-bit integer.');
+  const observe = async (options = {}) => checked(await computer.get_app_state({ ...options, app, ...(window_id === undefined ? {} : {window_id}) }));
   async function find(selector, { timeoutMs = 0, pollIntervalMs = 150, include_ocr = ['ocr', 'any'].includes(selector?.source), signal } = {}) {
     // Validate before inspecting/launching an app.
     matchElements({ elements: [] }, selector);
@@ -64,7 +65,7 @@ export function createSessionWithComputer(computer, { app, mode = 'hybrid' } = {
     async setValue(selector, value) {
       const target = await find(selector);
       if (target.element.enabled === false || !target.element.settable) throw new OpenSkyError('element_not_writable', 'The selected control is not writable.');
-      return checked(await computer.set_value({ app, element_index: target.element.element_index, snapshot_id: target.snapshot_id, value }));
+      return checked(await computer.set_value({ app, element_index: target.element.element_index, snapshot_id: target.snapshot_id, value, mode }));
     }
   };
 }

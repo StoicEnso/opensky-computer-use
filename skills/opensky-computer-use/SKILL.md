@@ -60,3 +60,15 @@ The local access token is stored at `$OPENSKY_HOME/control-token` (default `~/.l
 `opensky demo` brings forward a new disposable native window and verifies real clicks, Unicode typing and clipboard paste with animated pointers. `--pointers-only` previews effects without input. `--quick` shortens presentation pauses. The demo preserves its result locally and leaves the test window open.
 
 The SDK exports `createSession({app})`. Use `session.find({name, role})`, `session.click(selector)` or `session.setValue({identifier}, value)` with actual observed labels. Selectors default to exact AX names and refuse ambiguity. `session.waitFor(selector, {timeoutMs})` retries observations only. Input actions are attempted once; no implicit input retry is safe.
+
+## Working alongside the owner
+
+For supported background work, use `createSession({app, window_id, mode:'background'})`, taking the exact on-screen window ID from `list_apps`. The window may be behind another app. Inspection fails if that window disappears or cannot be uniquely matched; never substitute another document. Background clicks use AXPress; field writes use AXValue. As of 1.3, `set_value` defaults to background and never falls back to foreground input unless `mode:'hybrid'` or `mode:'takeover'` is explicit. Session field writes inherit the session mode.
+
+AX actions can themselves open a window or change an app's UI. Process-targeted background keys follow that app's own keyboard focus and cannot isolate two windows or prevent interference when the owner uses the same app. Prefer direct field values and supported AX actions while the owner is working. Foreground input and clipboard paste need a shared desktop turn. Browser DOM/API control can avoid sharing the physical pointer, but OpenSky currently provides native AX/OCR rather than its own DOM transport.
+
+## Delegated workflows
+
+Carry forward the user's goal, authorized actions and constraints across steps. For example, authorization to create benchmark accounts with no spending should be reused throughout that task; do not ask again merely because another provider has a similar signup. Keep verified progress, outstanding checkpoints and the scope of existing approvals in a local task record without secrets. Continue independent authorized steps when one provider is blocked. An uncertain submission needs observation before any retry.
+
+OpenSky has no website, login, agreement or CAPTCHA content blacklist. It provides control primitives; the connected agent applies its host rules and the user's authority. Auto operation belongs to that agent. A free-text rule such as "spend nothing" is an instruction to the agent, not a financial limit enforced by mouse events. At a real OS, host or changed-scope gate, preserve the exact state and explain the one remaining action needed.

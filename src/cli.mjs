@@ -25,14 +25,15 @@ Usage: opensky <command> [arguments] [--json]
   stop | emergency-stop                  Pause actions and dismiss cursors (no launch)
   resume                                 Explicitly resume a paused daemon (no launch)
   shutdown                               Exit the daemon (no launch)
-  config [codex|claude-code|claude-desktop|cursor|all]
+  config [codex|claude-code|claude-desktop|cursor|antigravity|all]
                                          Print MCP configuration; does not write client files
   rpc <method> [JSON|-]                   Call any native method; '-' reads JSON from stdin
   apps [--running]                       List macOS apps and windows
   state <App> [--ocr] [--full]            Inspect app tree and capture its window
   find <App> <exact name>                 Find structured AX controls by name
   click <App> <index|x,y> [--background|--takeover] [--double|--right]
-  set-value <App> <index> <text>          Set an Accessibility field value
+  set-value <App> <index> <text> [--takeover]
+                                         Set an AX value; foreground fallback is opt-in
   type <App> <text>                       Type Unicode text (takes focus)
   key <App> <key...>                      Send keys/chords, such as super+c Return
   scroll <App> <up|down|left|right> [pages]
@@ -174,7 +175,7 @@ async function main() {
       actionOutput(await computer_use.click(params)); break;
     }
     case "set-value": case "set_value":
-      actionOutput(await computer_use.set_value({ app: required(args[1], "app"), element_index: index(args[2]), value: required(args.slice(3).join(" "), "text") })); break;
+      actionOutput(await computer_use.set_value({ app: required(args[1], "app"), element_index: index(args[2]), value: required(args.slice(3).filter(item => !["--background", "--takeover"].includes(item)).join(" "), "text"), mode: mode("background") })); break;
     case "type": case "type_text":
       actionOutput(await computer_use.type_text({ app: required(args[1], "app"), text: required(args.slice(2).filter((item) => !["--background", "--takeover"].includes(item)).join(" "), "text"), mode: mode("takeover") })); break;
     case "key": case "press_key":

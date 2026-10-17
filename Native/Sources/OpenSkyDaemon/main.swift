@@ -44,7 +44,7 @@ public final class OpenSkyRPCDispatcher {
             return [
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
-                "version": "1.2.0",
+                "version": "1.3.0",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
@@ -99,7 +99,8 @@ public final class OpenSkyRPCDispatcher {
                 appIdentifier: app,
                 disableDiff: disableDiff,
                 includeScreenshot: includeScreenshot,
-                includeOCR: includeOCR
+                includeOCR: includeOCR,
+                windowID: asInt(params["window_id"]).map { UInt32($0) }
             )
             if let showCursor = params["show_cursor"] as? Bool, showCursor {
                 CursorOverlayManager.shared.setWiggle(id: "default", enabled: false)
@@ -193,6 +194,7 @@ public final class OpenSkyRPCDispatcher {
                 app: app,
                 elementIndex: elementIndex,
                 value: value,
+                mode: (params["mode"] as? String) ?? "background",
                 cursorId: cursorId
             )
             return encodeActionResult(res)
@@ -401,6 +403,10 @@ public final class OpenSkyRPCDispatcher {
         if let value = params["keys"] { guard let keys = value as? [String], !keys.isEmpty, keys.count <= 256 else { return "keys must be a nonempty array of up to 256 strings" } }
         if let value = params["rect"] { guard let rect = value as? [Double], rect.count == 4, rect.allSatisfy({$0.isFinite}), rect[2] > 0, rect[3] > 0 else { return "rect must be [x,y,width,height] with positive dimensions" } }
         if let mode = params["mode"] as? String, !["background", "hybrid", "takeover"].contains(mode) { return "Invalid mode" }
+        if let value = params["window_id"] {
+            guard let number = asDouble(value), number.isFinite, number > 0,
+                  number <= Double(UInt32.max), number.rounded() == number else { return "window_id must be a positive 32-bit integer" }
+        }
         for name in ["duration", "pages"] {
             if let value = params[name] {
                 guard let n = asDouble(value), n.isFinite, n >= 0, n <= 30 else { return "\(name) must be between 0 and 30" }
@@ -635,7 +641,7 @@ public final class LocalHTTPServer {
         guard parts.count == 3 else { respond(connection, status: 400, body: ["ok": false, "error": "Invalid request"]); return }
         let route = String(parts[1])
         if parts[0] == "GET" && route == "/health" {
-            respond(connection, body: ["ok": true, "service": "OpenSky Computer Use Daemon", "version": "1.2.0"]); return
+            respond(connection, body: ["ok": true, "service": "OpenSky Computer Use Daemon", "version": "1.3.0"]); return
         }
         guard headers["authorization"] == "Bearer \(token)" else { respond(connection, status: 401, body: ["ok": false, "error": "Unauthorized"]); return }
         if parts[0] == "GET" && route == "/status" {

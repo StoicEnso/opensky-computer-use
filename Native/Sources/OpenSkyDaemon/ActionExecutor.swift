@@ -273,13 +273,22 @@ public final class ActionExecutor {
         app: String,
         elementIndex: Int,
         value: String,
+        mode: String = "background",
         cursorId: String = "default",
         returnState: Bool = true
     ) -> ActionExecutionResult {
+        guard let executionMode = ExecutionMode(rawValue: mode.lowercased()) else {
+            return failure("set_value", "Invalid mode. Use background, hybrid, or takeover.")
+        }
         guard !SafetyController.shared.isStopped else { return stopped("set_value") }
         guard resolveTarget(app) != nil else { return invalidTarget("set_value", app) }
         guard let node = AXEngine.shared.lookupNode(appIdentifier: app, elementIndex: elementIndex) else {
             return invalidIndex("set_value", elementIndex)
+        }
+        var writable = DarwinBoolean(false)
+        let valueWritable = node.axElement.map { AXUIElementIsAttributeSettable($0, kAXValueAttribute as CFString, &writable) == .success && writable.boolValue } ?? false
+        if executionMode == .background && !valueWritable {
+            return failure("set_value", "The field does not expose a writable Accessibility value. Background mode never falls back to foreground clicks or keyboard input.")
         }
         if let element = node.axElement,
            AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, value as CFTypeRef) == .success {
@@ -288,6 +297,9 @@ public final class ActionExecutor {
             }
             return completed("set_value (AX direct)", "Set the value of element #\(elementIndex).",
                              app: app, point: node.centerPoint, returnState: returnState)
+        }
+        guard executionMode != .background else {
+            return failure("set_value", "The Accessibility value write failed. Background mode never falls back to foreground clicks or keyboard input. Inspect the field before choosing another action.")
         }
         guard let element = node.axElement else {
             return failure("set_value", "This element has no editable Accessibility reference. Use an explicit click and type_text if appropriate.")
@@ -490,7 +502,7 @@ public final class ActionExecutor {
         let normalized = action.hasPrefix("AX") ? action : "AX\(action)"
         let err = AXUIElementPerformAction(axEl, normalized as CFString)
         Thread.sleep(forTimeInterval: 0.15)
-        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false) : nil
+        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false, windowID: AXEngine.shared.pinnedWindowID(appIdentifier: app)) : nil
         return ActionExecutionResult(
             success: err == .success,
             action: "perform_secondary_action (\(normalized))",
@@ -560,7 +572,7 @@ public final class ActionExecutor {
         let status = AXUIElementSetAttributeValue(axEl, kAXSelectedTextRangeAttribute as CFString, rangeVal)
         guard status == .success else { return failure("select_text", "Selection failed with Accessibility error \(status.rawValue).") }
 
-        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false) : nil
+        let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false, windowID: AXEngine.shared.pinnedWindowID(appIdentifier: app)) : nil
         return ActionExecutionResult(
             success: true,
             action: "select_text",
@@ -779,7 +791,8 @@ public final class ActionExecutor {
     private func completed(_ action: String, _ message: String, app: String?, point: CGPoint? = nil,
                            returnState: Bool) -> ActionExecutionResult {
         Thread.sleep(forTimeInterval: 0.12)
-        var snapshot = returnState ? app.map { AXEngine.shared.getAppState(appIdentifier: $0, launchIfNeeded: false) } : nil
+        let pinnedWindow = app.flatMap { AXEngine.shared.pinnedWindowID(appIdentifier: $0) }
+        var snapshot = returnState ? app.map { AXEngine.shared.getAppState(appIdentifier: $0, launchIfNeeded: false, windowID: pinnedWindow) } : nil
         // Only repeat observations, never the delivered input. WindowServer may lag
         // AX during a sheet transition, resize, or new-window animation.
         let deadline = Date().addingTimeInterval(0.8)
@@ -787,7 +800,7 @@ public final class ActionExecutor {
               ["app_window_unavailable", "window_moved"].contains(observed.error?.code ?? ""),
               let app = app, Date() < deadline, !SafetyController.shared.isStopped {
             Thread.sleep(forTimeInterval: 0.1)
-            snapshot = AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false)
+            snapshot = AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false, windowID: pinnedWindow)
         }
         return ActionExecutionResult(success: true, action: action, message: message,
                                      point: point.map { [Double($0.x), Double($0.y)] }, appState: snapshot)

@@ -82,6 +82,8 @@ export interface ListAppsParams {
 
 export interface GetAppStateParams {
   app: string;
+  /** Exact on-screen window ID from list_apps. Fails rather than substituting another window. */
+  window_id?: number;
   /** Accepted for compatibility; observations return full snapshots. */
   disable_diff?: boolean;
   include_screenshot?: boolean;
@@ -128,6 +130,8 @@ export interface ScrollParams {
 }
 
 export interface SetValueParams {
+  /** Defaults to background (AX only). hybrid/takeover explicitly allow keyboard fallback. */
+  mode?: ExecutionMode;
   snapshot_id?: string;
   app: string;
   element_index: number;
@@ -166,7 +170,7 @@ export interface OpenSkySession {
 }
 export declare class OpenSkyError extends Error { code: string; details?: unknown; }
 export declare function matchElements(state: OpenSkyActionResult, selector: ElementSelector): OpenSkyElementNode[];
-export declare function createSession(options: { app: string; mode?: ExecutionMode }): OpenSkySession;
+export declare function createSession(options: { app: string; mode?: ExecutionMode; window_id?: number }): OpenSkySession;
 
 export interface TypeTextParams {
   app?: string;
@@ -293,7 +297,7 @@ export interface OpenSkyComputerUse {
   /** Scroll up/down/left/right on an element or window by `pages` */
   scroll(params: ScrollParams): Promise<OpenSkyActionResult>;
 
-  /** Directly set the value of an input/text field by `element_index` (with keyboard fallback) */
+  /** Set an AX value. Foreground keyboard fallback requires explicit hybrid/takeover mode. */
   set_value(params: SetValueParams): Promise<OpenSkyActionResult>;
 
   /** Type arbitrary Unicode text into the target app */

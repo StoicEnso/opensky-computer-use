@@ -53,7 +53,7 @@ export async function ensureDaemonRunning() {
     const res = await fetch(`${DAEMON_URL}/health`, { signal: AbortSignal.timeout(600) });
     if (res.ok) {
       const health = await res.json();
-      if (health.service !== "OpenSky Computer Use Daemon" || health.version !== "1.2.0") throw new Error("Port is occupied by an incompatible daemon. Stop it or choose another OPENSKY_PORT.");
+      if (health.service !== "OpenSky Computer Use Daemon" || health.version !== "1.3.0") throw new Error("Port is occupied by an incompatible daemon. Stop it or choose another OPENSKY_PORT.");
       const status = await daemonStatus();
       if (!status.running) throw new Error("OpenSky is running with a different control token. Use the same OPENSKY_HOME.");
       return true;
@@ -174,7 +174,7 @@ export const computer_use = {
     return callDaemon("scroll", params);
   },
 
-  /** Directly set the value of an input/text field by `element_index` (with keyboard fallback) */
+  /** Set an AX value. Foreground keyboard fallback requires explicit hybrid/takeover mode. */
   async set_value(params = {}) {
     return callDaemon("set_value", params);
   },

@@ -40,7 +40,7 @@ try {
     for(;;){
       const result=await computer.get_app_state({app,include_ocr:!axOnly,include_screenshot:!axOnly});
       if(result.ok){state=result;break;}
-      if(!['app_window_unavailable','app_not_found_or_ambiguous'].includes(result.error_code)||Date.now()>=deadline)assert.fail(JSON.stringify(result));
+      if(!['app_window_unavailable','app_not_found_or_ambiguous','window_moved'].includes(result.error_code)||Date.now()>=deadline)assert.fail(JSON.stringify(result));
       await new Promise(resolve=>setTimeout(resolve,150));
     }
     if(!axOnly){
@@ -83,6 +83,32 @@ try {
   await verify('Set a Unicode value and read it back from the real field',async()=>{
     const field=index(state,line=>/text field.*Verification input/.test(line));
     const result=await computer.set_value({app,element_index:field,value:'OpenSky — café 🌍'});assert.ok(result.ok,JSON.stringify(result));state=await observe();assert.ok(state.text.includes('OpenSky — café 🌍'));
+  });
+  await verify('Rejected background AX writes never fall back to physical input',async()=>{
+    let toggle=state.elements.find(element=>element.identifier==='reject-ax-writes');assert.ok(toggle);
+    let result=await computer.click({app,element_index:toggle.element_index,snapshot_id:state.snapshot_id,mode:'background'});assert.equal(result.ok,true,result.message);
+    const before=JSON.parse(fs.readFileSync(fixtureState));assert.equal(before.rejectAXWrites,true);
+    state=await observe();let field=state.elements.find(element=>element.identifier==='verification-input');assert.ok(field);
+    assert.equal(field.role,'text field');assert.equal(field.settable,false);
+    result=await computer.set_value({app,element_index:field.element_index,snapshot_id:state.snapshot_id,value:'BACKGROUND MUST NOT TYPE',mode:'background'});
+    assert.equal(result.ok,false);assert.match(result.message,/Background mode never falls back/);
+    const after=JSON.parse(fs.readFileSync(fixtureState));assert.equal(after.input,before.input);assert.deepEqual(after.events,before.events);
+    state=await observe();toggle=state.elements.find(element=>element.identifier==='reject-ax-writes');
+    result=await computer.click({app,element_index:toggle.element_index,snapshot_id:state.snapshot_id,mode:'background'});assert.equal(result.ok,true,result.message);state=await observe();
+  });
+  await verify('A pinned background session edits one window while another stays focused',async()=>{
+    const primaryID=state.window_id;
+    const openOther=state.elements.find(element=>element.identifier==='open-other-window');assert.ok(openOther);
+    let result=await computer.click({app,element_index:openOther.element_index,snapshot_id:state.snapshot_id,mode:'background'});assert.equal(result.ok,true,result.message);
+    state=await observe();const otherID=state.window_id;assert.notEqual(otherID,primaryID);assert.ok(state.text.includes('SECOND_WINDOW_ONLY'));
+    const pinned=createSession({app,window_id:primaryID,mode:'background'});
+    result=await pinned.setValue({identifier:'verification-input'},'Pinned background window ✓');assert.equal(result.window_id,primaryID);
+    assert.ok(result.elements.some(element=>element.value==='Pinned background window ✓'));
+    state=await observe();assert.equal(state.window_id,otherID);assert.ok(state.text.includes('SECOND_WINDOW_ONLY'));
+    result=await computer.get_app_state({app,window_id:4294967295,include_screenshot:false});assert.equal(result.ok,false);assert.equal(result.error_code,'exact_window_unavailable');
+    state=await observe();const close=state.elements.find(element=>element.identifier==='close-other-window');assert.ok(close);
+    result=await computer.click({app,element_index:close.element_index,snapshot_id:state.snapshot_id,mode:'background'});assert.equal(result.ok,true,result.message);
+    state=await observe();assert.equal(state.window_id,primaryID);
   });
   await verify('Foreground keyboard input preserves Unicode',async()=>{
     const field=index(state,line=>/text field.*Verification input/.test(line));
