@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.7.0-rc.2",
+  "candidateNativeBuild": "1.3.4",
+  "installedNativeBuild": "1.3.4",
+  "installedWindowFeedbackFix": true,
+  "ownerReportedFailure": "An automatic native pointer and action badge rendered over an unrelated focused window during background work.",
+  "ownerChosenBehavior": "Expose feedback only inside uncovered portions of the actual background task window, while leaving the focused owner window clear.",
+  "changes": [
+    "Normal-level, exact-window rendering instead of screen-saver/all-Spaces planes",
+    "Pixel clipping for normal occluders and the focused owner window; higher layers use WindowServer stacking",
+    "App/window scope inherited across delayed animation callbacks",
+    "Short expiry, hidden empty windows and a stopped idle animation timer",
+    "Dismissal invalidates delayed feedback; display geometry is checked before rebuilding planes",
+    "Passive diagnostics and scoped cursor commands across MCP, CLI and JavaScript"
+  ],
+  "validation": {
+    "automatedTestsPassed": 50,
+    "packagingAssertionsPassed": 45,
+    "strictSignaturePassed": true,
+    "offscreenPrimaryAndSecondaryOriginPixelsPassed": true,
+    "isolatedInspectorUIServicePassed": true,
+    "realDisposableWindowFeedback": {
+      "passed": true,
+      "nativeBuild": "1.3.4",
+      "distinctDisposableHelper": true,
+      "backgroundWindowVisibleWhileOwnerActive": true,
+      "partialCoverClipped": true,
+      "normalLevelAboveTargetAndBelowFocusedWindow": true,
+      "uncoverExpandsVisibleRegion": true,
+      "fullCoverRetiresFeedback": true,
+      "noResurrectionAfterUncover": true,
+      "noResurrectionAfterDismiss": true,
+      "shortExpiry": true,
+      "clickThrough": true,
+      "frontmostAppUnchanged": true,
+      "ownerInputSent": false,
+      "ownerScreenshotCaptured": false,
+      "permissionsRequested": false
+    },
+    "installedWindowFeedback": {
+      "passed": true,
+      "installedExistingNative": true,
+      "nativeProcessAndStopPreserved": true,
+      "savedCooperationPreserved": true,
+      "browserConnectionPreserved": true,
+      "nativeBuild": "1.3.4",
+      "distinctDisposableHelper": false,
+      "backgroundWindowVisibleWhileOwnerActive": true,
+      "partialCoverClipped": true,
+      "normalLevelAboveTargetAndBelowFocusedWindow": true,
+      "uncoverExpandsVisibleRegion": true,
+      "fullCoverRetiresFeedback": true,
+      "noResurrectionAfterUncover": true,
+      "noResurrectionAfterDismiss": true,
+      "shortExpiry": true,
+      "clickThrough": true,
+      "frontmostAppUnchanged": true,
+      "ownerInputSent": false,
+      "ownerScreenshotCaptured": false,
+      "permissionsRequested": false
+    },
+    "pausedMCPStatusAndDismissPassed": true,
+    "initialInstalledCheck": "Geometry, cover/uncover, dismissal and expiry checks completed; a foreground transition between owner apps made the final focus-preservation assertion inconclusive. A subsequent check passed with the foreground unchanged."
+  },
+  "installedVerificationPending": false,
+  "limits": [
+    "The renderer samples window geometry at up to 20 Hz and uses native focus/Space notifications; it is not a hard real-time guarantee.",
+    "Window bounds are rectangular; unusual translucent or custom windows may make feedback more conservative.",
+    "This is visual cooperation, not universal app input isolation.",
+    "A changed ad-hoc signature can require fresh macOS consent."
+  ],
+  "watchRemainsPaused": true,
+  "installedNativePermissions": {
+    "accessibility": false,
+    "screenRecording": false,
+    "ownerSettingsHandoffPending": true,
+    "scope": "Visual rendering does not request these permissions; native input/capture still requires macOS consent."
+  }
+}

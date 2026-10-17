@@ -55,6 +55,8 @@ Use `opensky rpc <method> '<JSON object>'` for native features without CLI short
 
 ## Pointers and recovery
 
+Native build 1.3.4 attaches feedback to the exact task window and clips it to exposed regions. Background work can remain visible while the owner types elsewhere; never render over their focused window. The renderer uses normal window stacking, brief expiry and interruption-safe dismissal. Browser pointers stay inside their task tabs. Automatic input feedback inherits its observed app/window; for explicit `cursor_choreography` or SDK cursor commands, pass `app` and the observed native `window_id`. Unscoped previews use the foreground window and can stay quiet during owner activity. Read `cursor_choreography({command:'status'})`, `opensky cursor status` or SDK `cursor_status()` for passive diagnostics. A hidden pointer does not mean input failed; verify the task outcome instead of repeating input. If a legacy helper draws an intrusive desktop-wide overlay, dismiss it and record the native upgrade needed. Do not add per-action approval questions.
+
 Named virtual cursors can show intent with labels, a curved path, click feedback, and a thinking animation. An overlay animation does not prove action success. Keep pointer animations brief and dismiss them when done. Parallel cursor overlays do not make concurrent keyboard or physical mouse control safe; serialize actions to the same app or input device.
 
 ## Speed and data handling

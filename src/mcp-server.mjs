@@ -5,7 +5,7 @@ import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.7.0-rc.1"
+  version: "1.7.0-rc.2"
 };
 
 const TOOLS = [
@@ -377,13 +377,15 @@ const TOOLS = [
   {
     name: "cursor_choreography",
     description:
-      "Control the floating OpenSky virtual AI cursor overlay directly: move a named cursor along a curved Bezier arc, trigger the playful Codex thinking wiggle, spotlight a screen region, run the multi-cursor demo, or dismiss cursors.",
+      "Control OpenSky visual feedback: move, wiggle, highlight, demo, status or dismiss. Native build 1.3.4 binds feedback to an exact target window and clips covered regions; exposed background work can stay visible while the owner types elsewhere. The focused owner window stays clear. Pass app and observed window_id for explicit background feedback; unscoped previews bind to the current foreground window and may be hidden during owner activity. Feedback is click-through and brief; its absence is not an input failure. Status is passive and dismiss cancels visual feedback, including delayed animations, without resuming control.",
     inputSchema: {
       type: "object",
       properties: {
+        app: {type:'string',description:'Exact target app name or bundle ID for window-attached feedback.'},
+        window_id: {type:'integer',minimum:1,description:'Observed native window ID; never substitute a browser tab ID.'},
         command: {
           type: "string",
-          enum: ["move", "wiggle", "highlight", "demo", "dismiss"],
+          enum: ["move", "wiggle", "highlight", "demo", "status", "dismiss"],
           description: "Cursor overlay command to run."
         },
         cursor_id: {
@@ -451,6 +453,7 @@ async function handleToolCall(name, args = {}) {
   }
   if (name === "cursor_choreography") {
     const cmd = args.command || "demo";
+    if (cmd === "status") return await computer_use.cursor_status();
     if (cmd === "move") return await callDaemon("cursor_move", args);
     if (cmd === "wiggle") return await callDaemon("cursor_wiggle", args);
     if (cmd === "highlight") return await callDaemon("cursor_highlight", args);
@@ -612,7 +615,7 @@ function rejectQueued(message, code, error) {
 }
 function enqueue(message) {
   const name = message?.method === "tools/call" ? message.params?.name : null;
-  if (name === "status") { void processRPCMessage(message); return; }
+  if (name === "status" || name === 'cursor_choreography' && ['status','dismiss'].includes(message.params?.arguments?.command)) { void processRPCMessage(message); return; }
   if (name === "stop" || name === "resume") {
     if (name === "stop") { queueGeneration++; locallyStopped = true; }
     // Order stop/resume against each other, independently of ordinary work.

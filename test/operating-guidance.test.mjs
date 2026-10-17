@@ -22,6 +22,9 @@ test('MCP and CLI expose the same auto guidance without starting an absent engin
     const available=(await client.listTools()).tools;
     assert.ok(available.find(t=>t.name==='interaction_mode').inputSchema.properties.mode.enum.includes('auto'));
     assert.equal(available.find(t=>t.name==='user_activity').annotations.readOnlyHint,true);
+    const cursor=available.find(t=>t.name==='cursor_choreography');
+    assert.ok(cursor.inputSchema.properties.command.enum.includes('status'));assert.ok(cursor.inputSchema.properties.window_id);assert.match(cursor.description,/exposed background work/);
+    const unavailable=await client.callTool({name:'cursor_choreography',arguments:{command:'status'}});assert.equal(unavailable.isError,true);
     const activity=(await client.callTool({name:'user_activity',arguments:{}})).structuredContent;
     assert.equal(activity.input_contents_recorded,false);
     for(const name of ['get_app_state','click','set_value','find_elements']) assert.match(available.find(t=>t.name===name).description,/^Preferred OpenSky native Mac\/browser UI path/);

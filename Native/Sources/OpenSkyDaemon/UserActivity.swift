@@ -32,6 +32,22 @@ final class UserActivityTracker {
     private var clock = ExternalActivityClock(now: ProcessInfo.processInfo.systemUptime)
     private var globalMonitor: Any?, localMonitor: Any?, timer: Timer?
     private var home = ""
+    private var feedbackMonitoringUntil: TimeInterval = 0
+    private var monitorReady = false
+    private var cooperationPolicy = "alongside"
+
+    func requestFeedbackMonitoring() {
+        precondition(Thread.isMainThread)
+        feedbackMonitoringUntil = ProcessInfo.processInfo.systemUptime + 2
+        if !monitorReady { sample() }
+    }
+    var pointerOwnerActive: Bool {
+        guard monitorReady else { return true }
+        let idle = clock.idle(at: ProcessInfo.processInfo.systemUptime, generalIdle: Self.generalIdle())
+        if cooperationPolicy == "auto" { return idle < 300 }
+        if cooperationPolicy == "desktop" { return idle < 1.5 }
+        return true
+    }
     private let mask: NSEvent.EventTypeMask = [.keyDown, .keyUp, .flagsChanged, .mouseMoved, .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp, .otherMouseDown, .otherMouseUp, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .scrollWheel]
 
     static func isAutoConfig(_ config: [String: Any]?) -> Bool {
@@ -59,13 +75,16 @@ final class UserActivityTracker {
     }
     private func observe(_ event: NSEvent) {
         let raw = event.cgEvent
-        clock.observe(marker: raw?.getIntegerValueField(.eventSourceUserData), now: ProcessInfo.processInfo.systemUptime)
+        let marker = raw?.getIntegerValueField(.eventSourceUserData)
+        clock.observe(marker: marker, now: ProcessInfo.processInfo.systemUptime)
+        if marker != ExternalActivityClock.ownEventMarker { CursorOverlayManager.shared.externalInputObserved() }
     }
     private func sample() {
         let now = ProcessInfo.processInfo.systemUptime
         let modeURL = URL(fileURLWithPath: home).appendingPathComponent("interaction-mode.json")
         let config = (try? Data(contentsOf: modeURL)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-        let permitted = Self.isAutoConfig(config) && AXIsProcessTrusted()
+        cooperationPolicy = Self.isAutoConfig(config) ? "auto" : (config?["mode"] as? String ?? "desktop")
+        let permitted = (Self.isAutoConfig(config) || now < feedbackMonitoringUntil) && AXIsProcessTrusted()
         if permitted && (globalMonitor == nil || localMonitor == nil) {
             if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
             if let localMonitor { NSEvent.removeMonitor(localMonitor) }
@@ -81,6 +100,7 @@ final class UserActivityTracker {
         }
         let generalIdle = permitted ? Self.generalIdle() : nil
         let ready = permitted && globalMonitor != nil && localMonitor != nil && generalIdle != nil
+        monitorReady = ready
         let record: [String: Any] = ["schema": 1, "pid": ProcessInfo.processInfo.processIdentifier,
             "sampled_uptime": now, "sampled_at_ms": Int64(Date().timeIntervalSince1970 * 1000), "external_idle_seconds": ready ? clock.idle(at: now, generalIdle: generalIdle) : 0,
             "observed_for_seconds": ready ? max(0, now - clock.startedAt) : 0,

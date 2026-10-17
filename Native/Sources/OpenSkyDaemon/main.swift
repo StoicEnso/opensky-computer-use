@@ -5,7 +5,7 @@ import Network
 import Security
 import Carbon.HIToolbox
 
-private let inspectionMethods: Set<String> = ["ping", "status", "inspector", "list_apps", "get_app_state", "screenshot_screen", "stop", "resume", "shutdown", "cursor_dismiss"]
+private let inspectionMethods: Set<String> = ["ping", "status", "inspector", "list_apps", "get_app_state", "screenshot_screen", "stop", "resume", "shutdown", "cursor_dismiss", "cursor_status"]
 
 // MARK: - JSON-RPC Request & Dispatcher
 
@@ -27,6 +27,11 @@ public final class OpenSkyRPCDispatcher {
         if inputMethods.contains(method) && !AXEngine.shared.isAXTrusted() {
             return ["ok": false, "error_code": "accessibility_permission_required", "error": "Enable OpenSky in System Settings > Privacy & Security > Accessibility, then restart OpenSky."]
         }
+        let previousFeedback = PointerFeedbackContext.current
+        let feedbackApp = params["app"] as? String
+        PointerFeedbackContext.current = PointerFeedbackRequest(app: feedbackApp,
+            windowID: asInt(params["window_id"]).map { UInt32($0) } ?? feedbackApp.flatMap { AXEngine.shared.pinnedWindowID(appIdentifier: $0) })
+        defer { PointerFeedbackContext.current = previousFeedback }
         switch method {
         case "inspector":
             let action = params["action"] as? String ?? "status"
@@ -53,7 +58,7 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
-                "build_version": "1.3.3",
+                "build_version": "1.3.4",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
@@ -343,6 +348,10 @@ public final class OpenSkyRPCDispatcher {
                 return ["ok": true]
             }
             return ["ok": false, "error": "Invalid rect [x, y, width, height]"]
+
+        case "cursor_status":
+            let read = { CursorOverlayManager.shared.feedbackStatus() }
+            return Thread.isMainThread ? read() : DispatchQueue.main.sync(execute: read)
 
         case "cursor_dismiss":
             let cursorId = params["cursor_id"] as? String

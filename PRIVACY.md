@@ -1,6 +1,6 @@
 # OpenSky data handling
 
-Updated 17 October 2026 for runtime 1.7.0-rc.1 / native API 1.3.0 and UI build 1.3.3.
+Updated 17 October 2026 for runtime 1.7.0-rc.2 / native API 1.3.0 and UI build 1.3.4.
 
 OpenSky is a local macOS control engine. The shipped engine and JavaScript runtime have no built-in telemetry, analytics, developer upload endpoint or OpenSky cloud relay. Native control uses authenticated loopback RPC; MCP communicates with the connected agent over standard input/output. Apple Vision OCR runs on the Mac.
 
@@ -12,7 +12,7 @@ The optional OpenSky Browser extension uses Chrome's debugger interface and a lo
 
 - Requested screenshots are written under `$OPENSKY_HOME/screenshots` (default `~/.local/share/opensky/screenshots`). The directory is owner-only and completed files use owner-only permissions. There is currently no automatic retention limit; captures remain until deleted.
 - A local control token, installation manifest and daemon diagnostics persist under the same runtime directory. Never share the token. Diagnostic files are not a workflow transcript, but errors may include local paths or operational details.
-- Owner-selected auto cooperation uses passive native event monitors only while auto is selected and Accessibility is available. The activity callback reads event-source metadata to ignore tagged OpenSky events; it does not read typed characters, key codes or pointer coordinates. An owner-only `user-activity.json` contains aggregate idle duration, sample time and service identity, refreshed every 250 ms. It has no remote endpoint or history of input events. Unknown/software input counts conservatively as external. Manual alongside/desktop mode removes these activity monitors; emergency pause remains independent.
+- Owner-selected auto cooperation uses passive native event monitors while auto is selected, or briefly while native pointer feedback needs activity awareness, with existing Accessibility access. The activity callback reads event-source metadata to ignore tagged OpenSky events; it does not read typed characters, key codes or pointer coordinates. An owner-only `user-activity.json` contains aggregate idle duration, sample time and service identity, refreshed every 250 ms. It has no remote endpoint or history of input events. Unknown/software input counts conservatively as external. Outside auto mode, a short feedback lease removes the activity monitors after visual feedback ends. Native feedback reads window bounds and stacking metadata to avoid covered/focused areas; it does not capture a screen to compute the mask. Emergency pause remains independent.
 - Explicit demos and tests can save their own local results. Agents may create task records, screenshots or exports outside the runtime directory.
 - Normal app/browser effects persist according to those apps: edited documents, browser history, downloads, clipboard interactions, site accounts and form submissions.
 

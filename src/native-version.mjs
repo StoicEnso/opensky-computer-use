@@ -1,7 +1,7 @@
 // Native service compatibility is independent of JavaScript/guidance patch releases.
 export const NATIVE_API_VERSION = '1.3.0';
 // UI/packaging builds can change without forcing a running compatible engine to restart.
-export const NATIVE_BUILD_VERSION = '1.3.3';
+export const NATIVE_BUILD_VERSION = '1.3.4';
 
 const ownAXMethods=new Set(['click','set_value','perform_secondary_action','select_text','manage_window']);
 export function ownAXUpgradeRequired(method,params,build) {

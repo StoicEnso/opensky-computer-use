@@ -2,11 +2,11 @@
   "date": "2026-10-17",
   "runtimeVersion": "1.7.0-rc.1",
   "nativeAPI": "1.3.0",
-  "installedNativeUIBuild": "1.3.2",
+  "installedNativeUIBuild": "1.3.3",
   "candidateNativeUIBuild": "1.3.3",
-  "status": "Cloud app installed with verified permissions; fixed native build staged for fresh macOS consent",
+  "status": "Fixed cloud app 1.3.3 independently authorized and verified; window-attached rendering follow-up recorded separately",
   "installedNewNativeApp": true,
-  "installedFixedNativeApp": false,
+  "installedFixedNativeApp": true,
   "rollbackVerified": true,
   "workingAppAccessibility": true,
   "workingAppScreenRecording": true,
@@ -37,13 +37,14 @@
     "savedPolicy": "auto",
     "thresholdSeconds": 300,
     "effectiveMode": "alongside",
-    "reason": "Filtered external-input detection requires native build 1.3.3; current installed build is 1.3.2.",
+    "reason": "The filtered monitor is live; ongoing external input keeps effective alongside mode.",
     "olderClientsRetainAlongsideFallback": true,
     "ownsNoTaskAuthority": true,
     "neverResumesEmergencyPause": true,
-    "nativeMonitorLiveVerified": false,
+    "nativeMonitorLiveVerified": true,
     "inputContentsRecorded": false,
-    "aggregateSamplingMilliseconds": 250
+    "aggregateSamplingMilliseconds": 250,
+    "physicalVersusSyntheticInputVerified": false
   },
   "findings": [
     {
@@ -54,7 +55,7 @@
     {
       "finding": "Self-directed AXPress on a SwiftUI Inspector button crashed with a main-actor assertion on opensky.actions.",
       "change": "Own AX actions and writes execute on the main thread with their captured cancellation generation; older native builds are rejected before self-input.",
-      "scope": "Crash evidence and fixture routing/cancellation verified; fixed installed-app interaction awaits consent."
+      "scope": "Fixed installed native 1.3.3 passed actual self-AX button and text actions without crashing or changing the foreground app."
     },
     {
       "finding": "The Inspector was excluded from normal-window hit testing with the click-through overlays.",
@@ -83,7 +84,7 @@
     "rolledBackToVerifiedBuild": "1.3.2",
     "bothPermissionsRecovered": true,
     "browserBrokerAndConnectionPreserved": true,
-    "ownerSettingsHandoffPending": true
+    "ownerSettingsHandoffPending": false
   },
   "realWorkflows": {
     "signedInDashboardReadOnlyRetrievalThroughOpenSky": true,
@@ -91,9 +92,8 @@
     "accountConfigurationChanged": false
   },
   "notYetVerified": [
-    "Native build 1.3.3 independent-app permissions after owner refresh",
-    "Fixed Inspector reading an independent window, filtering controls and preserving an agent target cache in the installed app",
-    "Real external mouse/keyboard activity versus tagged OpenSky input under the filtered native monitor"
+    "Real external mouse/keyboard activity versus tagged OpenSky input under the filtered native monitor",
+    "Physical SwiftUI search/selection: direct AX text changed the displayed field but did not update the filter"
   ],
   "limits": [
     "Auto cooperation checks aggregate activity before requests; it is not an in-flight physical-input interlock.",
@@ -172,5 +172,15 @@
     "browserBrokerPIDPreserved": true,
     "extensionStatusTabClosedOnReload": true,
     "businessChatsIdleAtCheckpoint": true
-  }
+  },
+  "installedInspectorFollowup": {
+    "selfAXActionsVerified": true,
+    "independentWindowInspected": true,
+    "controlsObserved": 16,
+    "cachedAgentTargetPreserved": true,
+    "frontmostAppUnchanged": true,
+    "directAXSearchBindingVerified": false,
+    "windowAttachedFeedbackFollowup": "2026-10-17-opensky-window-feedback-results-Codex.json"
+  },
+  "historicalCheckpoint": "Installed native 1.3.3 after its owner consent; current 1.3.4 installation/consent state is recorded in 2026-10-17-opensky-window-feedback-results-Codex.json."
 }

@@ -17,8 +17,8 @@ try {
   assert.equal(invalid.status,64,invalid.stderr);
   const run=spawnSync(binary,['--render-ui-preview',output],{env,encoding:'utf8',timeout:20000});
   assert.equal(run.status,0,run.stderr||run.error?.message);
-  assert.match(run.stdout,/stale-result recovery/);
-  for(const [name,width,height] of [['inspector-light',920,660],['inspector-dark',920,660],['tray-preview',800,220]]) {
+  assert.match(run.stdout,/stale-result recovery/);assert.match(run.stdout,/Window feedback checks passed/);
+  for(const [name,width,height] of [['inspector-light',920,660],['inspector-dark',920,660],['tray-preview',800,220],['window-feedback',400,300],['window-feedback-offset',400,300]]) {
     const png=readFileSync(path.join(output,`2026-10-17-opensky-${name}-Codex.png`));
     assert.equal(png.subarray(1,4).toString(),'PNG');
     // The backing scale may differ between local and CI displays.

@@ -872,6 +872,7 @@ public final class ActionExecutor {
         // the pointer overlays are click-through windows above the normal layer.
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return false }
         for window in windows {
+            if let id = window[kCGWindowNumber as String] as? UInt32, CursorOverlayManager.shared.isOverlayWindow(id) { continue }
             guard let pid = window[kCGWindowOwnerPID as String] as? Int32,
                   let layer = window[kCGWindowLayer as String] as? Int, layer == 0,
                   let bounds = window[kCGWindowBounds as String] as? [String: Any],

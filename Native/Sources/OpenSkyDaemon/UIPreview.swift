@@ -13,6 +13,7 @@ func renderUIPreview(to directory: URL) throws {
     }
     precondition(AXEngine.inspectorEngine() !== AXEngine.shared, "Inspector must own its cache")
     try checkOwnAXExecution()
+    try checkWindowFeedback(to: directory)
     precondition(UserActivityTracker.isAutoConfig(["mode": "auto"]))
     precondition(UserActivityTracker.isAutoConfig(["mode": "alongside", "cooperation_policy": "auto"]))
     precondition(!UserActivityTracker.isAutoConfig(["mode": "alongside"]))
@@ -148,4 +149,52 @@ private struct TrayPreview: View {
         }.foregroundStyle(dark ? .white : .black).padding(.horizontal, 16).frame(height: 38)
             .background(dark ? Color(white: 0.14) : Color(white: 0.91), in: RoundedRectangle(cornerRadius: 9))
     }
+}
+
+
+private func checkWindowFeedback(to directory: URL) throws {
+    let target = PointerWindow(id: 1, pid: 11, frame: CGRect(x: 40, y: 40, width: 320, height: 220), layer: 0, alpha: 1)
+    let focus = PointerWindow(id: 2, pid: 22, frame: CGRect(x: 150, y: 80, width: 180, height: 140), layer: 0, alpha: 1)
+    let scope = PointerFeedbackScope(pid: 11, windowID: 1)
+    let regions = PointerFeedbackGeometry.regions(scope: scope, windows: [focus, target], focusedPID: 22, ownerActive: true)
+    precondition(!regions.isEmpty, "Typing elsewhere must not hide exposed background work")
+    precondition(regions.allSatisfy { $0.intersection(focus.frame).isNull || $0.intersection(focus.frame).isEmpty })
+    precondition(regions.allSatisfy { target.frame.contains($0) })
+    precondition(PointerFeedbackGeometry.regions(scope: scope, windows: [target], focusedPID: 11, ownerActive: true).isEmpty, "Protect the active owner's target window")
+    precondition(!PointerFeedbackGeometry.regions(scope: scope, windows: [target], focusedPID: 11, ownerActive: false).isEmpty)
+    precondition(PointerFeedbackGeometry.regions(scope: scope, windows: [target], focusedPID: nil, ownerActive: true).isEmpty)
+    precondition(PointerFeedbackGeometry.regions(scope: scope, windows: [focus], focusedPID: 22, ownerActive: true).isEmpty)
+    let covering = PointerWindow(id: 3, pid: 33, frame: target.frame, layer: 0, alpha: 1)
+    precondition(PointerFeedbackGeometry.regions(scope: scope, windows: [focus, covering, target], focusedPID: 22, ownerActive: true).isEmpty)
+    let sameAppFocus = PointerWindow(id: 4, pid: 11, frame: focus.frame, layer: 0, alpha: 1)
+    precondition(!PointerFeedbackGeometry.regions(scope: scope, windows: [sameAppFocus, target], focusedPID: 11, ownerActive: true).isEmpty, "Same-app background windows remain independent")
+    let transparentPlane = PointerWindow(id: 8, pid: 88, frame: target.frame, layer: 1000, alpha: 1)
+    precondition(PointerFeedbackGeometry.regions(scope: scope, windows: [transparentPlane, focus, target], focusedPID: 22, ownerActive: true) == regions, "Higher layers occlude through WindowServer; transparent planes must not erase exposed work")
+    let duplicateCover = PointerWindow(id: 5, pid: 55, frame: focus.frame, layer: 1, alpha: 1)
+    let twice = PointerFeedbackGeometry.regions(scope: scope, windows: [focus, duplicateCover, target], focusedPID: 22, ownerActive: true)
+    precondition(twice == regions, "Overlapping covers must not punch visible holes")
+    for (offset, name) in [(CGPoint.zero, "window-feedback"), (CGPoint(x: 2560, y: 174), "window-feedback-offset")] {
+    let shifted = regions.map { $0.offsetBy(dx: offset.x, dy: offset.y) }
+    try CursorOverlayManager.shared.withOffscreenFeedbackFixture(regions: shifted, offset: offset) { view in
+        let window = NSWindow(contentRect: view.frame, styleMask: [], backing: .buffered, defer: false)
+        window.contentView = view; view.layoutSubtreeIfNeeded()
+        guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { throw NSError(domain: "Pointer fixture", code: 1) }
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        var painted = 0
+        let scale = CGFloat(bitmap.pixelsWide) / 400
+        for y in 0..<bitmap.pixelsHigh {
+            for x in 0..<bitmap.pixelsWide {
+                let point = CGPoint(x: (CGFloat(x) + 0.5) / scale + offset.x, y: (CGFloat(y) + 0.5) / scale + offset.y)
+                let alpha = bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0
+                if !shifted.contains(where: { $0.contains(point) }) {
+                    precondition(alpha < 0.01, "Feedback painted outside the visible target or over the focused window")
+                } else if alpha > 0.1 { painted += 1 }
+            }
+        }
+        precondition(painted > 20, "Background feedback must remain visible in exposed regions")
+        try bitmap.representation(using: .png, properties: [:])?.write(to: directory.appendingPathComponent("2026-10-17-opensky-\(name)-Codex.png"))
+        window.contentView = nil
+    }
+    }
+    print("Window feedback checks passed: exposed background pixels, covered/focused-window exclusion, independent same-app windows and overlapping occluders.")
 }

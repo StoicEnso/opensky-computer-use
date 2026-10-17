@@ -273,7 +273,13 @@ export const computer_use = {
     return callDaemon("screenshot_screen", params);
   },
 
-  /** Move a named virtual AI cursor (`cursor_id`) along a curved Bezier path with optional spotlight */
+  /** Read current native window feedback without starting the service. Needs native UI 1.3.4. */
+  async cursor_status() {
+    if(!(await daemonStatus()).running)return {ok:false,error_code:'not_running',error:'OpenSky is not running. Pointer status never starts it.'};
+    const result=await callDaemon('cursor_status', {}, {autoStart:false});
+    return !result.ok&&result.error?.startsWith('Unknown method')?{...result,error_code:'native_ui_upgrade_required',error:'Window-attached pointer status needs native UI build 1.3.4 or later. Existing input workflows remain available; dismiss intrusive legacy overlays and upgrade the native app at a quiet checkpoint.'}:result;
+  },
+  /** Move a named virtual AI cursor (`cursor_id`) along a curved Bezier path with optional spotlight. */
   async cursor_move(params = {}) {
     return callDaemon("cursor_move", params);
   },

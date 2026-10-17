@@ -61,6 +61,7 @@ Usage: opensky <command> [arguments] [--json]
   screen [--ocr]                         Capture the screen, optionally with OCR
   cursor move <x,y> [label]               Animate a virtual pointer
   cursor wiggle [seconds] [label]         Animate a thinking pointer
+  cursor status                          Read window feedback without launching OpenSky
   cursor dismiss                         Dismiss pointers
   demo [--control] [--quick]              Open a disposable window and verify real control
   demo --pointers-only                    Preview pointer effects without input
@@ -279,6 +280,7 @@ async function main() {
       const sub = args[1] || "demo";
       if (sub === "move") actionOutput(await computer_use.cursor_move({ point: point(args[2]), label: args.slice(3).join(" ") || "OpenSky" }));
       else if (sub === "wiggle") actionOutput(await computer_use.cursor_wiggle({ enabled: true, duration: number(args[2], "Duration", 2), label: args.slice(3).join(" ") || "Thinking…" }));
+      else if (sub === "status") actionOutput(await computer_use.cursor_status());
       else if (sub === "dismiss") actionOutput(await computer_use.cursor_dismiss({}));
       else if (sub === "demo") actionOutput(await computer_use.cursor_demo({}));
       else throw new Error(`Unknown cursor command: ${sub}`);

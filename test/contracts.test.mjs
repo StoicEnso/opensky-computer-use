@@ -111,6 +111,10 @@ test('native control transport and real MCP client interoperability', { skip: !a
       const started = Date.now();
       const stopped = await client.callTool({ name: 'stop', arguments: {} });
       assert.equal(stopped.structuredContent.stopped, true);
+      const feedback = await client.callTool({name:'cursor_choreography',arguments:{command:'status'}});
+      assert.equal(feedback.isError,false);assert.equal(feedback.structuredContent.visible,false);
+      assert.equal((await client.callTool({name:'cursor_choreography',arguments:{command:'dismiss'}})).isError,false);
+      assert.equal((await client.callTool({name:'status',arguments:{}})).structuredContent.stopped,true,'Reading/dismissing feedback must never resume control.');
       assert.ok(Date.now() - started < 800, 'MCP stop must not queue behind an ongoing operation');
       const guidance = await client.callTool({name:'get_operating_guidance',arguments:{}});
       assert.equal(guidance.isError,false);assert.equal(guidance.structuredContent.default_workflow_mode,'auto');

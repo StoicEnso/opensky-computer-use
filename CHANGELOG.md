@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0-rc.2 — 2026-10-17
+
+- Replace screen-saver-level, all-Spaces cursor planes with normal-level, exact-window feedback. Show exposed background work while the owner types elsewhere; clip normal occluders and protect the focused owner window. Higher system layers remain above feedback through WindowServer ordering.
+- Bind automatic feedback to its observed app/window. Add explicit app/window scope and passive pointer status through the existing MCP choreography tool, CLI and SDK. Status/dismiss remain available for recovery without launching or resuming control.
+- Shorten idle feedback, hide empty planes, stop the idle animation timer, and cancel delayed feedback after dismissal. Ignore screen-parameter notifications that do not change display geometry. Exclude known feedback windows from app inventory and input hit testing.
+- Refresh tray permission metadata when Inspector status is read. Passive pointer activity monitoring outside auto mode is limited to a short feedback lease and stores aggregate metadata only.
+- Add real disposable-window stacking/occlusion/recovery checks plus pixel-level mask tests at primary and secondary-display origins. Preserve existing native input, cooperation, stop and browser boundaries.
+
 ## 1.7.0-rc.1 — 2026-10-17
 
 - Add owner-selected `opensky mode auto` across MCP, CLI and JavaScript. It permits desktop turns after 300 seconds of external-input inactivity and returns to alongside restrictions on the next request after activity, including a recheck after native startup. Missing activity data stays alongside; emergency pause and task authority remain independent.

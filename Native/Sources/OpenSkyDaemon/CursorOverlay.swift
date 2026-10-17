@@ -22,7 +22,7 @@ public struct CursorMotionConfig {
     public var scootStretchMax: CGFloat = 1.24
     public var scootSquashMin: CGFloat = 0.84
     public var scootRotationMax: CGFloat = 18.0
-    public var idleFadeOutSeconds: TimeInterval = 10.0
+    public var idleFadeOutSeconds: TimeInterval = 1.2
 
     public static let live = CursorMotionConfig()
 }
@@ -186,6 +186,8 @@ public final class CursorCanvasView: NSView {
         // Each display gets its own window, including when Spaces are separate.
         ctx.translateBy(x: -globalFrame.minX, y: -globalFrame.minY)
 
+        guard !manager.visibleClipRects.isEmpty else { return }
+        ctx.clip(to: manager.visibleClipRects)
         let now = CACurrentMediaTime()
 
         // 1. Draw Spotlight Element Highlights
@@ -384,13 +386,13 @@ public final class CursorCanvasView: NSView {
             let pillWidth = textSize.width + 18
             let pillHeight = textSize.height + 7
 
-            let screenWidth = bounds.width > 0 ? bounds.width : 1440
+            let screenMaxX = globalFrame.maxX
             var pillX = drawPos.x + 20
             var pillY = drawPos.y + 18
-            if pillX + pillWidth > screenWidth - 12 {
+            if pillX + pillWidth > screenMaxX - 12 {
                 pillX = drawPos.x - pillWidth - 8
             }
-            if pillY + pillHeight > bounds.height - 12 {
+            if pillY + pillHeight > globalFrame.maxY - 12 {
                 pillY = drawPos.y - pillHeight - 8
             }
 
@@ -422,6 +424,11 @@ public final class CursorCanvasView: NSView {
 
 // MARK: - Overlay Window & Animation Loop Manager
 
+private final class FeedbackWindow: NSWindow {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
+
 public final class CursorOverlayManager {
     public static let shared = CursorOverlayManager()
 
@@ -430,6 +437,18 @@ public final class CursorOverlayManager {
     public private(set) var spotlights: [SpotlightRect] = []
     public private(set) var dragTrails: [DragTrail] = []
 
+    public private(set) var visibleClipRects: [CGRect] = []
+    private var activeScope: PointerFeedbackScope?
+    private var lastVisibilitySample: TimeInterval = 0
+    private var latestRequestTime: TimeInterval = 0
+    private var cachedFocusedWindowID: UInt32?
+    private var suppressionReason = "no_feedback_requested"
+    private var lastHiddenReason = ""
+    private var displayGeometry = ""
+    private let feedbackLock = NSLock()
+    private var invalidatedAt: TimeInterval = 0
+    private var overlayIDs: Set<UInt32> = []
+    private var workspaceObservers: [NSObjectProtocol] = []
     private var overlayWindows: [NSWindow] = []
     private var canvasViews: [CursorCanvasView] = []
     private var screenObserver: NSObjectProtocol?
@@ -438,29 +457,141 @@ public final class CursorOverlayManager {
 
     private init() {
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self, !self.overlayWindows.isEmpty else { return }
+            guard let self, !self.overlayWindows.isEmpty, self.screenGeometry() != self.displayGeometry else { return }
             self.overlayWindows.forEach { $0.close() }
             self.overlayWindows.removeAll(); self.canvasViews.removeAll()
-            self.ensureOverlayWindow()
+            self.feedbackLock.lock(); self.overlayIDs.removeAll(); self.feedbackLock.unlock()
+            self.retireFeedback(reason: "display_geometry_changed")
+        }
+        for name in [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification] {
+            workspaceObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.refreshVisibility(force: true)
+            })
         }
     }
 
+    public func isOverlayWindow(_ id: UInt32) -> Bool {
+        feedbackLock.lock(); defer { feedbackLock.unlock() }; return overlayIDs.contains(id)
+    }
+    private func invalidateFeedback() {
+        feedbackLock.lock(); invalidatedAt = ProcessInfo.processInfo.systemUptime; feedbackLock.unlock()
+    }
+    private func requestIsCurrent(_ request: PointerFeedbackRequest) -> Bool {
+        feedbackLock.lock(); let cutoff = invalidatedAt; feedbackLock.unlock()
+        return request.createdAt >= cutoff && request.createdAt >= latestRequestTime
+    }
+    private func clearContent() {
+        cursors.removeAll(); spotlights.removeAll(); ripples.removeAll(); dragTrails.removeAll()
+        visibleClipRects = []; canvasViews.forEach { $0.needsDisplay = true }
+        overlayWindows.forEach { $0.orderOut(nil) }
+    }
+    private func retireFeedback(reason: String = "feedback_finished") {
+        lastHiddenReason = reason
+        invalidateFeedback(); clearContent(); activeScope = nil
+        animationTimer?.invalidate(); animationTimer = nil
+    }
+    func externalInputObserved() {
+        guard let scope = activeScope else { return }
+        if cachedFocusedWindowID == scope.windowID && NSWorkspace.shared.frontmostApplication?.processIdentifier == scope.pid {
+            retireFeedback()
+        } else { refreshVisibility() } // Coalesce high-rate mouse events; keep background work visible.
+    }
+    private func accept(_ request: PointerFeedbackRequest) -> Bool {
+        guard requestIsCurrent(request) else { suppressionReason = "superseded_feedback"; return false }
+        let windows = PointerWindow.live().filter { !isOverlayWindow($0.id) }
+        let pid: Int32?
+        if let name = request.app {
+            let candidates = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == name || $0.localizedName?.caseInsensitiveCompare(name) == .orderedSame }
+            guard candidates.count == 1 else { suppressionReason = "target_app_unavailable_or_ambiguous"; return false }; pid = candidates[0].processIdentifier
+        } else { pid = NSWorkspace.shared.frontmostApplication?.processIdentifier }
+        guard let pid, let target = windows.first(where: { $0.pid == pid && $0.layer == 0 && (request.windowID == nil || $0.id == request.windowID) }) else { suppressionReason = "target_window_unavailable"; return false }
+        let scope = PointerFeedbackScope(pid: pid, windowID: target.id)
+        UserActivityTracker.shared.requestFeedbackMonitoring()
+        cachedFocusedWindowID = PointerFeedbackGeometry.focusedWindow(windows, pid: NSWorkspace.shared.frontmostApplication?.processIdentifier)?.id
+        let regions = PointerFeedbackGeometry.regions(scope: scope, windows: windows,
+            focusedPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+            ownerActive: UserActivityTracker.shared.pointerOwnerActive)
+        guard !regions.isEmpty else { suppressionReason = "target_covered_or_focused_owner_active"; return false }
+        suppressionReason = ""
+        if activeScope != scope { clearContent() }
+        activeScope = scope; latestRequestTime = request.createdAt; visibleClipRects = regions
+        lastVisibilitySample = ProcessInfo.processInfo.systemUptime
+        return true
+    }
+    private func refreshVisibility(force: Bool = false) {
+        guard let scope = activeScope else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard force || now - lastVisibilitySample >= 0.05 else { return }
+        lastVisibilitySample = now
+        let windows = PointerWindow.live().filter { !isOverlayWindow($0.id) }
+        cachedFocusedWindowID = PointerFeedbackGeometry.focusedWindow(windows, pid: NSWorkspace.shared.frontmostApplication?.processIdentifier)?.id
+        let regions = PointerFeedbackGeometry.regions(scope: scope, windows: windows,
+            focusedPID: NSWorkspace.shared.frontmostApplication?.processIdentifier,
+            ownerActive: UserActivityTracker.shared.pointerOwnerActive)
+        guard !regions.isEmpty else { retireFeedback(reason: "target_not_visible_or_focused_owner"); return }
+        visibleClipRects = regions
+        for window in overlayWindows { window.order(.above, relativeTo: Int(scope.windowID)) }
+        canvasViews.forEach { $0.needsDisplay = true }
+    }
+    func feedbackStatus() -> [String: Any] {
+        let windows = PointerWindow.live()
+        let focused = PointerFeedbackGeometry.focusedWindow(windows.filter { !isOverlayWindow($0.id) }, pid: NSWorkspace.shared.frontmostApplication?.processIdentifier)
+        let visibleOverlays = windows.filter { isOverlayWindow($0.id) }
+        let targetIndex = activeScope.flatMap { scope in windows.firstIndex { $0.id == scope.windowID } }
+        let focusedIndex = focused.flatMap { focus in windows.firstIndex { $0.id == focus.id } }
+        var result: [String: Any] = ["ok": true, "policy": "visible-target-window", "suppression_reason": suppressionReason, "last_hidden_reason": lastHiddenReason,
+            "visible": !visibleClipRects.isEmpty && (!cursors.isEmpty || !spotlights.isEmpty || !ripples.isEmpty || !dragTrails.isEmpty),
+            "scope_window_id": activeScope.map { NSNumber(value: $0.windowID) } ?? NSNull(),
+            "focused_window_id": focused.map { NSNumber(value: $0.id) } ?? NSNull(),
+            "focused_window_frame": focused.map { [$0.frame.minX, $0.frame.minY, $0.frame.width, $0.frame.height] } ?? [],
+            "overlay_window_ids": overlayWindows.map(\.windowNumber),
+            "overlay_normal_level": overlayWindows.allSatisfy { $0.level == .normal },
+            "visible_regions": visibleClipRects.map { [$0.minX, $0.minY, $0.width, $0.height] },
+            "click_through": overlayWindows.allSatisfy { $0.ignoresMouseEvents && !$0.canBecomeKey && !$0.canBecomeMain }]
+        if let targetIndex { result["ordered_above_target"] = !visibleOverlays.isEmpty && visibleOverlays.allSatisfy { value in windows.firstIndex { $0.id == value.id }! < targetIndex } }
+        if let focusedIndex, focused?.id != activeScope?.windowID { result["ordered_below_focused_window"] = visibleOverlays.allSatisfy { value in windows.firstIndex { $0.id == value.id }! > focusedIndex } }
+        return result
+    }
+
+    // Offscreen-only fixture hook; no service, app enumeration or overlay windows.
+    func withOffscreenFeedbackFixture<T>(regions: [CGRect], offset: CGPoint = .zero, body: (CursorCanvasView) throws -> T) rethrows -> T {
+        precondition(overlayWindows.isEmpty && cursors.isEmpty)
+        let cursor = VirtualCursorState(id: "fixture", label: "Background work", initialPosition: CGPoint(x: 110 + offset.x, y: 140 + offset.y), accentColor: .systemBlue)
+        cursor.opacity = 1; cursors = [cursor.id: cursor]; visibleClipRects = regions
+        spotlights = [SpotlightRect(rect: CGRect(x: 110 + offset.x, y: 100 + offset.y, width: 210, height: 80), label: "Own background window", color: .systemBlue, createdAt: CACurrentMediaTime(), duration: 5)]
+        defer { clearContent() }
+        return try body(CursorCanvasView(frame: CGRect(x: 0, y: 0, width: 400, height: 300), globalFrame: CGRect(x: offset.x, y: offset.y, width: 400, height: 300), manager: self))
+    }
+
+    private func screenGeometry() -> String {
+        NSScreen.screens.map { screen in
+            let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
+            let frame = CGDisplayBounds(id)
+            return "\(id):\(frame):\(screen.backingScaleFactor)"
+        }.sorted().joined(separator: "|")
+    }
     public func ensureOverlayWindow() {
-        if !overlayWindows.isEmpty { return }
+        if !overlayWindows.isEmpty {
+            if let scope = activeScope { overlayWindows.forEach { $0.order(.above, relativeTo: Int(scope.windowID)) } }
+            return
+        }
+        displayGeometry = screenGeometry()
         for screen in NSScreen.screens {
             let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
-            let window = NSWindow(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+            let window = FeedbackWindow(contentRect: screen.frame, styleMask: [.borderless], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             window.isOpaque = false; window.backgroundColor = .clear; window.hasShadow = false
             window.ignoresMouseEvents = true
-            window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.screenSaverWindow)))
-            window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+            window.level = .normal
+            window.isExcludedFromWindowsMenu = true
+            window.setAccessibilityElement(false)
+            window.collectionBehavior = [.fullScreenAuxiliary, .stationary, .ignoresCycle]
             let view = CursorCanvasView(frame: NSRect(origin: .zero, size: screen.frame.size), globalFrame: CGDisplayBounds(id), manager: self)
             window.contentView = view
-            window.orderFrontRegardless()
+            if let scope = activeScope { window.order(.above, relativeTo: Int(scope.windowID)) }
+            feedbackLock.lock(); overlayIDs.insert(UInt32(window.windowNumber)); feedbackLock.unlock()
             overlayWindows.append(window); canvasViews.append(view)
         }
-        startAnimationLoop()
     }
 
     private func startAnimationLoop() {
@@ -478,6 +609,7 @@ public final class CursorOverlayManager {
             if let label = label { existing.label = label }
             existing.lastInteractionTime = CACurrentMediaTime()
             existing.targetOpacity = 1.0
+            if animationTimer == nil { startAnimationLoop() }
             return existing
         }
 
@@ -485,7 +617,8 @@ public final class CursorOverlayManager {
             cursors.removeValue(forKey: oldest)
         }
         let screenFrame = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
-        let startPt = CGPoint(x: screenFrame.width * 0.5, y: screenFrame.height * 0.5)
+        let visible = visibleClipRects.max { $0.width * $0.height < $1.width * $1.height }
+        let startPt = visible.map { CGPoint(x: $0.midX, y: $0.midY) } ?? CGPoint(x: screenFrame.width * 0.5, y: screenFrame.height * 0.5)
         let sampledColor = WallpaperColorSampler.shared.sampleColor(at: startPt)
         let cursor = VirtualCursorState(
             id: id,
@@ -496,6 +629,7 @@ public final class CursorOverlayManager {
         cursor.opacity = 1.0
         cursor.targetOpacity = 1.0
         cursors[id] = cursor
+        if animationTimer == nil { startAnimationLoop() }
         return cursor
     }
 
@@ -509,8 +643,11 @@ public final class CursorOverlayManager {
         completion: (() -> Void)? = nil
     ) {
         let generation = SafetyController.shared.operationGeneration
+        let request = PointerFeedbackContext.current ?? PointerFeedbackRequest()
         DispatchQueue.main.async {
-            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped else { completion?(); return }
+            let previous = PointerFeedbackContext.current; PointerFeedbackContext.current = request
+            defer { PointerFeedbackContext.current = previous }
+            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped, self.accept(request) else { completion?(); return }
             let cursor = self.getOrCreateCursor(id: id, label: label)
             let start = cursor.position
             let dx = target.x - start.x
@@ -563,6 +700,9 @@ public final class CursorOverlayManager {
 
             if let completion = completion {
                 DispatchQueue.main.asyncAfter(deadline: .now() + actualDuration) {
+                    guard self.requestIsCurrent(request) else { return }
+                    let previous = PointerFeedbackContext.current; PointerFeedbackContext.current = request
+                    defer { PointerFeedbackContext.current = previous }
                     completion()
                 }
             }
@@ -577,8 +717,11 @@ public final class CursorOverlayManager {
         Spotlight: CGRect? = nil
     ) {
         let generation = SafetyController.shared.operationGeneration
+        let request = PointerFeedbackContext.current ?? PointerFeedbackRequest()
         DispatchQueue.main.async {
-            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped else { return }
+            let previous = PointerFeedbackContext.current; PointerFeedbackContext.current = request
+            defer { PointerFeedbackContext.current = previous }
+            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped, self.accept(request) else { return }
             let cursor = self.getOrCreateCursor(id: id, label: label)
             let clickPt = point ?? cursor.position
             cursor.lastInteractionTime = CACurrentMediaTime()
@@ -589,7 +732,7 @@ public final class CursorOverlayManager {
 
             for i in 0..<max(1, clickCount) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.12) {
-                    guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped else { return }
+                    guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped, self.accept(request) else { return }
                     self.ripples.append(
                         ClickRipple(
                             point: clickPt,
@@ -624,8 +767,11 @@ public final class CursorOverlayManager {
 
     public func setWiggle(id: String = "default", enabled: Bool, label: String? = nil) {
         let generation = SafetyController.shared.operationGeneration
+        let request = PointerFeedbackContext.current ?? PointerFeedbackRequest()
         DispatchQueue.main.async {
-            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped else { return }
+            let previous = PointerFeedbackContext.current; PointerFeedbackContext.current = request
+            defer { PointerFeedbackContext.current = previous }
+            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped, self.accept(request) else { return }
             let cursor = self.getOrCreateCursor(id: id, label: label)
             cursor.lastInteractionTime = CACurrentMediaTime()
             cursor.targetOpacity = 1.0
@@ -636,8 +782,11 @@ public final class CursorOverlayManager {
 
     public func highlightElement(rect: CGRect, label: String? = nil, duration: TimeInterval = 1.4) {
         let generation = SafetyController.shared.operationGeneration
+        let request = PointerFeedbackContext.current ?? PointerFeedbackRequest()
         DispatchQueue.main.async {
-            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped else { return }
+            let previous = PointerFeedbackContext.current; PointerFeedbackContext.current = request
+            defer { PointerFeedbackContext.current = previous }
+            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped, self.accept(request) else { return }
             self.ensureOverlayWindow()
             let color = WallpaperColorSampler.shared.sampleColor(at: CGPoint(x: rect.midX, y: rect.midY))
             self.spotlights.append(
@@ -649,13 +798,17 @@ public final class CursorOverlayManager {
                     duration: duration
                 )
             )
+            if self.animationTimer == nil { self.startAnimationLoop() }
         }
     }
 
     public func animateDrag(id: String = "default", from: CGPoint, to: CGPoint, label: String? = nil, duration: TimeInterval = 0.55) {
         let generation = SafetyController.shared.operationGeneration
+        let request = PointerFeedbackContext.current ?? PointerFeedbackRequest()
         DispatchQueue.main.async {
-            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped else { return }
+            let previous = PointerFeedbackContext.current; PointerFeedbackContext.current = request
+            defer { PointerFeedbackContext.current = previous }
+            guard SafetyController.shared.isCurrent(generation), !SafetyController.shared.isStopped, self.accept(request) else { return }
             let cursor = self.getOrCreateCursor(id: id, label: label ?? "Dragging")
             cursor.position = from
             cursor.isPressed = true
@@ -671,6 +824,7 @@ public final class CursorOverlayManager {
     }
 
     public func dismissCursor(id: String? = nil) {
+        invalidateFeedback()
         DispatchQueue.main.async {
             if let id = id {
                 self.cursors.removeValue(forKey: id)
@@ -681,10 +835,14 @@ public final class CursorOverlayManager {
                 self.dragTrails.removeAll()
             }
             self.canvasViews.forEach { $0.needsDisplay = true }
+            if self.cursors.isEmpty && self.spotlights.isEmpty && self.ripples.isEmpty && self.dragTrails.isEmpty {
+                self.retireFeedback()
+            }
         }
     }
 
     private func tick() {
+        refreshVisibility()
         let now = CACurrentMediaTime()
         var needsRedraw = false
 
@@ -704,8 +862,8 @@ public final class CursorOverlayManager {
         for (_, cursor) in cursors {
             // A disconnected agent cannot leave an unbounded thinking animation alive.
             let idleTime = now - cursor.lastInteractionTime
-            if idleTime > 30 && cursor.activityState == .thinking { cursor.activityState = .idle }
-            if idleTime > motionConfig.idleFadeOutSeconds && cursor.activityState != .thinking {
+            if idleTime > motionConfig.idleFadeOutSeconds && cursor.activityState == .thinking { cursor.activityState = .idle }
+            if idleTime > motionConfig.idleFadeOutSeconds {
                 cursor.targetOpacity = 0.0
             }
 
@@ -770,6 +928,7 @@ public final class CursorOverlayManager {
         let expired = cursors.filter { now - $0.value.lastInteractionTime > motionConfig.idleFadeOutSeconds + 2 && $0.value.targetOpacity == 0 && $0.value.opacity < 0.01 }.map { $0.key }
         for id in expired { cursors.removeValue(forKey: id) }
         if !expired.isEmpty { needsRedraw = true }
+        if cursors.isEmpty && ripples.isEmpty && spotlights.isEmpty && dragTrails.isEmpty { retireFeedback(reason: "idle_expired") }
         if needsRedraw {
             canvasViews.forEach { $0.needsDisplay = true }
         }

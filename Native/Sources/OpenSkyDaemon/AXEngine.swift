@@ -745,6 +745,7 @@ public final class AXEngine {
         for dict in infoList {
             guard let layer = dict[kCGWindowLayer as String] as? Int, layer == 0,
                   let wid = dict[kCGWindowNumber as String] as? UInt32,
+                  !CursorOverlayManager.shared.isOverlayWindow(wid),
                   let pid = dict[kCGWindowOwnerPID as String] as? Int32,
                   let boundsDict = dict[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
             let frame = CGRect(

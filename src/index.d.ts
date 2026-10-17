@@ -349,7 +349,24 @@ export interface ScreenshotScreenParams {
   include_ocr?: boolean;
 }
 
+export interface CursorFeedbackStatus extends OpenSkyActionResult {
+  policy?: 'visible-target-window';
+  visible?: boolean;
+  scope_window_id?: number | null;
+  focused_window_id?: number | null;
+  visible_regions?: Rect4D[];
+  overlay_window_ids?: number[];
+  overlay_normal_level?: boolean;
+  click_through?: boolean;
+  suppression_reason?: string;
+  last_hidden_reason?: string;
+  ordered_above_target?: boolean;
+  ordered_below_focused_window?: boolean;
+}
+
 export interface CursorMoveParams {
+  app?: string;
+  window_id?: number;
   cursor_id?: string;
   point: Point2D;
   rect?: Rect4D;
@@ -358,12 +375,16 @@ export interface CursorMoveParams {
 }
 
 export interface CursorWiggleParams {
+  app?: string;
+  window_id?: number;
   cursor_id?: string;
   enabled?: boolean;
   label?: string;
 }
 
 export interface CursorHighlightParams {
+  app?: string;
+  window_id?: number;
   rect: Rect4D;
   label?: string;
   duration?: number;
@@ -473,7 +494,9 @@ export interface OpenSkyComputerUse {
   /** Capture the entire macOS screen with full Apple Vision OCR coordinate mapping */
   screenshot_screen(params?: ScreenshotScreenParams): Promise<OpenSkyActionResult>;
 
-  /** Move a named virtual AI cursor (`cursor_id`) along a curved Bezier path with optional spotlight */
+  /** Read native window-attached feedback; never starts a missing service. */
+  cursor_status(): Promise<CursorFeedbackStatus>;
+  /** Move a named virtual AI cursor along a curved path with optional spotlight. */
   cursor_move(params: CursorMoveParams): Promise<OpenSkyActionResult>;
 
   /** Toggle the playful Codex thinking wiggle animation on a virtual cursor */
