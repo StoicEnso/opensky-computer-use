@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "runtimeVersion": "1.7.0-rc.3",
+  "installedNativeBuild": "1.3.4",
+  "candidateNativeBuild": "1.3.5",
+  "candidateInstalled": false,
+  "ownerAuthority": "Finish Inspector search/filter tests under the existing 300-second auto idle rule; preserve active owner input and update GitHub.",
+  "findings": [
+    {
+      "finding": "Physical clicking an own Inspector popup menu item outside the normal window was rejected as covered before delivery.",
+      "fix": "Recognize own menu/menu-item ancestry in the AX hit, with matching process identity and the existing expected-node check. Other own hits retain normal-window and overlay checks.",
+      "liveInstalledFixVerified": false
+    },
+    {
+      "finding": "A subsequent live attempt was interrupted by a focus change and the filtered idle monitor returned below 300 seconds.",
+      "scope": "This run did not establish a search/filter result. Shared input stopped and the task-owned Inspector was later closed without foreground input."
+    }
+  ],
+  "validation": {
+    "automatedTestsPassed": 50,
+    "packagingAssertionsPassed": 45,
+    "swiftReleaseBuildPassed": true,
+    "offscreenUIAndMenuOwnershipPolicyPassed": true,
+    "isolatedInspectorServicePassed": true,
+    "physicalSearchAndFilterVerified": false,
+    "physicalRowSelectionVerified": false,
+    "installedNativeAndPermissionsPreserved": true,
+    "browserConnectionPreserved": true
+  },
+  "cooperation": {
+    "savedPolicy": "auto",
+    "idleThresholdSeconds": 300,
+    "modeChangedForTest": false,
+    "unknownInputStillCountsAsExternal": true,
+    "emergencyStopNotResumed": true
+  },
+  "watchRemainsPaused": true,
+  "pending": [
+    "Finish physical search/filter/selection through an idle desktop turn",
+    "Install/live-verify the frozen own-menu targeting fix after any genuine new macOS consent"
+  ]
+}

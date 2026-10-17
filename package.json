@@ -1,6 +1,6 @@
 {
   "name": "opensky-computer-use",
-  "version": "1.7.0-rc.2",
+  "version": "1.7.0-rc.3",
   "description": "Fast, local-first browser and desktop control for macOS agents, with on-device OCR, animated pointers, MCP, CLI and JavaScript. No built-in telemetry or cloud relay.",
   "type": "module",
   "main": "./src/index.mjs",
@@ -29,7 +29,8 @@
     "test:ui": "node test/native-ui-preview.mjs",
     "test:ui-service": "node test/native-ui-service.mjs",
     "build:app": "node scripts/build-app.mjs",
-    "test:feedback": "node test/native-window-feedback.mjs"
+    "test:feedback": "node test/native-window-feedback.mjs",
+    "test:inspector": "node test/inspector-live.mjs"
   },
   "keywords": [
     "computer-use",
@@ -92,7 +93,8 @@
     "artifacts/2026-10-17-opensky-browser-onboarding-results-Codex.json",
     "artifacts/2026-10-17-opensky-tray-results-Codex.json",
     "artifacts/2026-10-17-opensky-native-upgrade-results-Codex.json",
-    "artifacts/2026-10-17-opensky-window-feedback-results-Codex.json"
+    "artifacts/2026-10-17-opensky-window-feedback-results-Codex.json",
+    "artifacts/2026-10-18-opensky-inspector-search-results-Codex.json"
   ],
   "repository": {
     "type": "git",

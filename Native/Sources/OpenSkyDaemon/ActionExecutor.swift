@@ -863,8 +863,11 @@ public final class ActionExecutor {
             var pid: pid_t = 0
             // An own-process AX hit can be the click-through pointer overlay.
             // Resolve it through normal-layer windows, including the Inspector.
-            if AXUIElementGetPid(element, &pid) == .success, pid != ProcessInfo.processInfo.processIdentifier {
-                return pid == target.processIdentifier
+            if AXUIElementGetPid(element, &pid) == .success {
+                if pid != ProcessInfo.processInfo.processIdentifier { return pid == target.processIdentifier }
+                // Popup menus can extend outside the Inspector's normal window.
+                // Do not reject a real own menu as if it were a pointer overlay.
+                if OwnMenuHitTesting.containsMenu(element, targetPID: target.processIdentifier) { return true }
             }
         }
         // AX hit-testing may be unavailable for custom-rendered windows. Check front-to-back

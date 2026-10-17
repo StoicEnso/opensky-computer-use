@@ -29,7 +29,7 @@ try {
   }
   sdk=await import('../src/index.mjs');
   if(!installed){await sdk.computer_use.interaction_mode({mode:'alongside'});await sdk.ensureDaemonRunning();}
-  const originalNative=await sdk.daemonStatus();assert.equal(originalNative.running,true);assert.equal(originalNative.build_version,'1.3.4');
+  const originalNative=await sdk.daemonStatus();assert.equal(originalNative.running,true);assert.ok(/^1\.3\.(?:[4-9]|[1-9]\d+)$/.test(originalNative.build_version),'Window-feedback checks need native UI 1.3.4 or later.');
   if(installed)assert.equal(execFileSync('/bin/ps',['-ww','-p',String(originalNative.pid),'-o','comm='],{encoding:'utf8'}).trim(),path.join(app,'Contents/MacOS/OpenSky'));
   const originalMode=(await sdk.computer_use.interaction_mode()).interaction_mode;
   const originalBrowser=installed?await sdk.computer_use.browser_status():null;
