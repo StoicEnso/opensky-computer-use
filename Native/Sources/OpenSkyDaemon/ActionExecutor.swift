@@ -61,7 +61,7 @@ public final class ActionExecutor {
             && (key == nil || key!.isEmpty) && holdDuration <= 0.15
         if executionMode != .takeover, isSimpleClick, let node = node, let element = node.axElement {
             guard !SafetyController.shared.isStopped else { return stopped("click") }
-            if AXUIElementPerformAction(element, kAXPressAction as CFString) == .success {
+            if OpenSkyAXActions.perform(element, kAXPressAction as CFString) == .success {
                 animateClick(at: resolvedPoint, node: node, cursorId: cursorId, label: label, clickCount: clickCount)
                 return completed("click (AXPress background)", "Pressed element #\(node.index) via Accessibility.",
                                  app: app, point: resolvedPoint, returnState: returnState)
@@ -142,7 +142,7 @@ public final class ActionExecutor {
             return failure("drag", "The drag start is outside the target app or covered by another element/app. Refresh app state.")
         }
         let flags = parseModifierFlags(from: key)
-        let source = CGEventSource(stateID: .hidSystemState)
+        let source = UserActivityTracker.eventSource()
         let types = mouseTypes(mouseButton)
         guard positionMouse(at: start, target: target) else { return focusFailure("drag") }
         guard let down = CGEvent(mouseEventSource: source, mouseType: types.down, mouseCursorPosition: start, mouseButton: types.button),
@@ -250,7 +250,7 @@ public final class ActionExecutor {
             let amount = ((chunk + 1) * total / chunks) - (chunk * total / chunks)
             let dy: Int32 = direction == "down" ? -amount : direction == "up" ? amount : 0
             let dx: Int32 = direction == "right" ? -amount : direction == "left" ? amount : 0
-            guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
+            guard let event = CGEvent(scrollWheelEvent2Source: UserActivityTracker.eventSource(), units: .pixel, wheelCount: 2,
                                       wheel1: dy, wheel2: dx, wheel3: 0) else {
                 return failure("scroll", "Could not create scroll event.")
             }
@@ -291,7 +291,7 @@ public final class ActionExecutor {
             return failure("set_value", "The field does not expose a writable Accessibility value. Background mode never falls back to foreground clicks or keyboard input.")
         }
         if let element = node.axElement,
-           AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, value as CFTypeRef) == .success {
+           OpenSkyAXActions.set(element, kAXValueAttribute as CFString, value as CFTypeRef) == .success {
             if let point = node.centerPoint {
                 CursorOverlayManager.shared.moveCursor(id: cursorId, to: point, label: "Set Value #\(elementIndex)", spotlightRect: node.frame)
             }
@@ -340,7 +340,7 @@ public final class ActionExecutor {
         let background = executionMode == .background
         guard !background || resolvedTarget != nil else { return failure("type_text", "Background typing requires an app.") }
         if !background && !prepareHardwareTarget(target) { return focusFailure("type_text") }
-        let source = CGEventSource(stateID: .hidSystemState)
+        let source = UserActivityTracker.eventSource()
         let normalized = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
         for scalar in normalized.unicodeScalars {
             guard !SafetyController.shared.isStopped, background || canContinue(target), target?.isTerminated != true else {
@@ -500,7 +500,7 @@ public final class ActionExecutor {
         }
 
         let normalized = action.hasPrefix("AX") ? action : "AX\(action)"
-        let err = AXUIElementPerformAction(axEl, normalized as CFString)
+        let err = OpenSkyAXActions.perform(axEl, normalized as CFString)
         Thread.sleep(forTimeInterval: 0.15)
         let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false, windowID: AXEngine.shared.pinnedWindowID(appIdentifier: app)) : nil
         return ActionExecutionResult(
@@ -569,7 +569,7 @@ public final class ActionExecutor {
         guard let rangeVal = AXValueCreate(.cfRange, &cfRange) else {
             return failure("select_text", "Could not create the selected text range.")
         }
-        let status = AXUIElementSetAttributeValue(axEl, kAXSelectedTextRangeAttribute as CFString, rangeVal)
+        let status = OpenSkyAXActions.set(axEl, kAXSelectedTextRangeAttribute as CFString, rangeVal)
         guard status == .success else { return failure("select_text", "Selection failed with Accessibility error \(status.rawValue).") }
 
         let snap = returnState ? AXEngine.shared.getAppState(appIdentifier: app, launchIfNeeded: false, windowID: AXEngine.shared.pinnedWindowID(appIdentifier: app)) : nil
@@ -625,7 +625,7 @@ public final class ActionExecutor {
             }
             guard prepareHardwareTarget(target) else { return focusFailure("manage_window") }
             if let window = window {
-                let result = AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+                let result = OpenSkyAXActions.perform(window, kAXRaiseAction as CFString)
                 guard result == .success else { return failure("manage_window", "App activated, but raising its window failed with Accessibility error \(result.rawValue).") }
             }
             return completed("manage_window", "Activated \(app).", app: app, returnState: true)
@@ -633,7 +633,7 @@ public final class ActionExecutor {
         guard let window = window else { return failure("manage_window", "The app has no available window.") }
         guard !SafetyController.shared.isStopped else { return stopped("manage_window") }
         if action == "minimize" {
-            let result = AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
+            let result = OpenSkyAXActions.set(window, kAXMinimizedAttribute as CFString, kCFBooleanTrue)
             guard result == .success else { return failure("manage_window", "Minimize failed with Accessibility error \(result.rawValue).") }
         } else {
             let existing = accessibilityFrame(window)
@@ -661,11 +661,11 @@ public final class ActionExecutor {
                 return failure("manage_window", "Could not create the requested window frame.")
             }
             // Move first: a display transition can otherwise restore the old size.
-            let positionResult = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+            let positionResult = OpenSkyAXActions.set(window, kAXPositionAttribute as CFString, positionValue)
             guard positionResult == .success else { return failure("manage_window", "Move failed with Accessibility error \(positionResult.rawValue).") }
             Thread.sleep(forTimeInterval: 0.25)
             guard !SafetyController.shared.isStopped else { return stopped("manage_window") }
-            let sizeResult = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+            let sizeResult = OpenSkyAXActions.set(window, kAXSizeAttribute as CFString, sizeValue)
             guard sizeResult == .success else { return failure("manage_window", "Window moved, but resizing it failed with Accessibility error \(sizeResult.rawValue).") }
             // AppKit animates AX resizing. Setting position before that animation
             // finishes can cancel it at an intermediate size. Observe the size first.
@@ -682,7 +682,7 @@ public final class ActionExecutor {
             }
             // Resizing across displays can shift the origin to keep the window on
             // its former display. Finish the frame operation by setting its origin.
-            let finalPosition = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+            let finalPosition = OpenSkyAXActions.set(window, kAXPositionAttribute as CFString, positionValue)
             guard finalPosition == .success else { return failure("manage_window", "Final window positioning failed with Accessibility error \(finalPosition.rawValue).") }
             let deadline = Date().addingTimeInterval(1.5)
             var actual = AXEngine.shared.onScreenWindowFrame(windowID: windowID)
@@ -861,16 +861,18 @@ public final class ActionExecutor {
         if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &element) == .success,
            let element = element {
             var pid: pid_t = 0
+            // An own-process AX hit can be the click-through pointer overlay.
+            // Resolve it through normal-layer windows, including the Inspector.
             if AXUIElementGetPid(element, &pid) == .success, pid != ProcessInfo.processInfo.processIdentifier {
                 return pid == target.processIdentifier
             }
         }
         // AX hit-testing may be unavailable for custom-rendered windows. Check front-to-back
-        // WindowServer ownership, excluding our own non-interactive overlays.
+        // WindowServer ownership. Layer-zero app windows include our Inspector;
+        // the pointer overlays are click-through windows above the normal layer.
         guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return false }
         for window in windows {
             guard let pid = window[kCGWindowOwnerPID as String] as? Int32,
-                  pid != ProcessInfo.processInfo.processIdentifier,
                   let layer = window[kCGWindowLayer as String] as? Int, layer == 0,
                   let bounds = window[kCGWindowBounds as String] as? [String: Any],
                   let rect = CGRect(dictionaryRepresentation: bounds as CFDictionary), rect.contains(point),
@@ -962,7 +964,7 @@ public final class ActionExecutor {
     private func performCGMouseClick(at point: CGPoint, button: String, clickCount: Int,
                                      flags: CGEventFlags, holdDuration: TimeInterval,
                                      target: NSRunningApplication?, expectedNode: IndexedAXNode?) -> Bool {
-        let source = CGEventSource(stateID: .hidSystemState)
+        let source = UserActivityTracker.eventSource()
         let types = mouseTypes(button)
         guard positionMouse(at: point, target: target) else { return false }
         for index in 1...clickCount {
@@ -988,7 +990,7 @@ public final class ActionExecutor {
     private func positionMouse(at point: CGPoint, target: NSRunningApplication?) -> Bool {
         guard canContinue(target), pointBelongsToTarget(point, target),
               CGWarpMouseCursorPosition(point) == .success,
-              let move = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else { return false }
+              let move = CGEvent(mouseEventSource: UserActivityTracker.eventSource(), mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left) else { return false }
         move.flags = []
         move.post(tap: .cghidEventTap)
         Thread.sleep(forTimeInterval: 0.03)
@@ -998,7 +1000,7 @@ public final class ActionExecutor {
     @discardableResult
     private func sendSingleKeyCode(_ code: CGKeyCode, flags: CGEventFlags, pid: Int32?) -> Bool {
         guard !SafetyController.shared.isStopped else { return false }
-        let source = CGEventSource(stateID: .hidSystemState)
+        let source = UserActivityTracker.eventSource()
         guard let down = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true),
               let up = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false) else { return false }
         down.flags = flags

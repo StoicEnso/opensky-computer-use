@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { computer_use, getOperatingGuidance, DAEMON_BINARY, DAEMON_URL, OPENSKY_HOME, TOKEN_PATH, callDaemon, daemonStatus, ensureDaemonRunning } from "./index.mjs";
+import {nativeProcessIdentity} from './native-process.mjs';
 import { configSnippet } from "../scripts/config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,7 +21,8 @@ Usage: opensky <command> [arguments] [--json]
 
   setup                                  Print permission and connection instructions
   guidance                               Read default auto workflow guidance (no launch)
-  mode [alongside|desktop]                Read/set shared desktop cooperation (no launch)
+  mode [alongside|desktop|auto]           Read/set shared desktop cooperation (no launch)
+  activity                              Read external-input idle time (aggregate only)
   web install                            Register OpenSky's Chrome native host; print extension setup
   web status                             Read the independent browser bridge status
   web shutdown                           Pause browser control and stop its local bridge
@@ -140,17 +142,21 @@ function actionOutput(result) {
 
 async function doctor() {
   const daemon = await daemonStatus();
+  const nativeProcess = await nativeProcessIdentity(daemon.running ? daemon.pid : null, DAEMON_BINARY);
+  const cooperation=await computer_use.interaction_mode();
   let tokenOwnerOnly = null;
   if (existsSync(TOKEN_PATH)) tokenOwnerOnly = (statSync(TOKEN_PATH).mode & 0o077) === 0;
   const report = {
-    ok: process.platform === "darwin" && Number(process.versions.node.split(".")[0]) >= 22 && existsSync(DAEMON_BINARY) && daemon.running === true && daemon.axTrusted === true && daemon.screenRecordingTrusted === true && tokenOwnerOnly === true,
+    ok: process.platform === "darwin" && Number(process.versions.node.split(".")[0]) >= 22 && existsSync(DAEMON_BINARY) && daemon.running === true && daemon.axTrusted === true && daemon.screenRecordingTrusted === true && tokenOwnerOnly === true && nativeProcess.binaryMatches !== false,
     version, platform: process.platform, architecture: process.arch, node: process.versions.node,
     binary: DAEMON_BINARY, binaryExists: existsSync(DAEMON_BINARY), runtime: OPENSKY_HOME,
-    endpoint: DAEMON_URL, tokenExists: existsSync(TOKEN_PATH), tokenOwnerOnly, daemon,
+    endpoint: DAEMON_URL, tokenExists: existsSync(TOKEN_PATH), tokenOwnerOnly, daemon, cooperation, ...nativeProcess,
     nextSteps: []
   };
   if (!report.binaryExists) report.nextSteps.push("Run ./install.sh from the source checkout to build and install the native app.");
   if (!daemon.running) report.nextSteps.push("Run opensky daemon, then opensky setup.");
+  if (nativeProcess.binaryMatches === false) report.nextSteps.push(`A different OpenSky copy is running at ${nativeProcess.runningBinary}. At a quiet checkpoint, quit that copy and reopen ${DAEMON_BINARY.replace(/\/Contents\/MacOS\/[^/]+$/, '')}. Verify the running path before changing macOS permission entries.`);
+  if(cooperation.interaction_mode==='auto'&&!cooperation.user_activity?.ok)report.nextSteps.push('Auto activity data is unavailable; background control remains available. Native UI build 1.3.3 or later with Accessibility access supplies the filtered monitor data. Verify opensky activity before relying on automatic desktop availability.');
   if (daemon.running && !daemon.axTrusted) report.nextSteps.push("Allow OpenSky in System Settings > Privacy & Security > Accessibility.");
   if (daemon.running && !daemon.screenRecordingTrusted) report.nextSteps.push("Allow OpenSky in System Settings > Privacy & Security > Screen & System Audio Recording, then restart OpenSky.");
   if (tokenOwnerOnly === false) report.nextSteps.push("Restrict the local token file to your user before controlling the daemon.");
@@ -165,6 +171,7 @@ async function main() {
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
     case "mode": {actionOutput(await computer_use.interaction_mode({mode:args[1]}));break;}
+    case 'activity': {actionOutput(await computer_use.user_activity());break;}
     case "inspector": {
       const action=args[1]??'status';
       if(!['status','show','close'].includes(action))throw new Error('Use inspector status, show or close.');

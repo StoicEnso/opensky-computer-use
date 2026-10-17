@@ -1,11 +1,11 @@
-let state,refreshing,messageSource,closed=false;
+let state,refreshing,messageSource,closed=false,recheckRequested=false;
 const $=id=>document.getElementById(id);
 const text=(id,value)=>{if($(id).textContent!==value)$(id).textContent=value;};
 function message(value,error=false,source='action'){text('message',value);$('message').classList.toggle('error',error);messageSource=source;}
 function updateConfig(){if(state?.configs)text('config',typeof state.configs[$('client').value]==='string'?state.configs[$('client').value]:JSON.stringify(state.configs[$('client').value],null,2));}
-function refresh(){
+function refresh({recheck=false}={}){
   if(closed)return Promise.resolve();
-  if(refreshing)return refreshing;
+  if(refreshing){if(recheck)recheckRequested=true;return refreshing;}
   refreshing=(async()=>{
     try{
       const response=await fetch('state');if(!response.ok)throw new Error(response.status>=500?'Could not check readiness. Choose Check again.':'Setup is no longer available. Run opensky onboard again.');
@@ -34,7 +34,10 @@ function refresh(){
     }catch(error){
       state=undefined;$('demo').disabled=true;text('ready-badge','READINESS NOT VERIFIED');text('browser-state','Connection could not be checked. Choose Check again.');message(error.message,true,'readiness');
     }
-  })().finally(()=>{refreshing=undefined;});
+  })().finally(()=>{
+    refreshing=undefined;
+    if(recheckRequested&&!closed){recheckRequested=false;return refresh();}
+  });
   return refreshing;
 }
 for(const button of document.querySelectorAll('[data-action]')) button.addEventListener('click',async()=>{
@@ -42,10 +45,10 @@ for(const button of document.querySelectorAll('[data-action]')) button.addEventL
   try{
     const response=await fetch('action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:button.dataset.action})});
     const result=await response.json();if(!result.ok)throw new Error(result.error||'The action could not be completed.');message(result.message||'Done.');
-    if(button.dataset.action==='close'){closed=true;clearInterval(poll);}else await refresh();
+    if(button.dataset.action==='close'){closed=true;clearInterval(poll);}else await refresh({recheck:true});
   }catch(error){message(error.message,true);}finally{button.disabled=false;if(button.id==='demo')$('demo').disabled=!(state?.running&&!state.stopped&&state.accessibility&&state.screenRecording);}
 });
-$('refresh').addEventListener('click',refresh);$('client').addEventListener('change',updateConfig);
+$('refresh').addEventListener('click',()=>refresh({recheck:true}));$('client').addEventListener('change',updateConfig);
 async function copy(id,success,failure){try{await navigator.clipboard.writeText($(id).textContent);message(success);}catch{message(failure,true);}}
 $('copy').addEventListener('click',()=>copy('config','Configuration copied. Add it in your agent’s MCP settings.','Select the configuration text to copy it.'));
 $('copy-browser-path').addEventListener('click',()=>copy('browser-path','Folder path copied. In Chrome’s folder picker, press Command+Shift+G and paste it.','Select the folder path above to copy it.'));

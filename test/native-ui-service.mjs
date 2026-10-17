@@ -6,6 +6,7 @@ import net from 'node:net';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {nativeProcessIdentity} from '../src/native-process.mjs';
 
 const source=path.resolve(process.argv[2]??'.build/OpenSky.app');
 assert.ok(fs.existsSync(path.join(source,'Contents/MacOS/OpenSky')),'Build an app bundle first, then pass its path.');
@@ -27,6 +28,14 @@ try {
   const sdk=await import('../src/index.mjs');sky=sdk.computer_use;daemonStatus=sdk.daemonStatus;
   const before=front();await sky.interaction_mode({mode:'alongside'});await sdk.ensureDaemonRunning();
   const native=await daemonStatus();
+  const identity=await nativeProcessIdentity(native.pid,path.join(candidate,'Contents/MacOS/OpenSky'));
+  assert.equal(identity.binaryMatches,true,'LaunchServices started a different app copy.');
+  const activityPath=path.join(process.env.OPENSKY_HOME,'user-activity.json');
+  for(let i=0;i<30&&!fs.existsSync(activityPath);i++)await new Promise(r=>setTimeout(r,50));
+  const activity=JSON.parse(fs.readFileSync(activityPath,'utf8'));
+  assert.equal(activity.monitor_ready,false,'Alongside fixtures must not enable activity monitoring.');
+  assert.equal(activity.input_contents_recorded,false);assert.equal(activity.own_input_filtered,true);
+  assert.equal(fs.statSync(activityPath).mode&0o777,0o600);
   const control=params=>sdk.callDaemon('inspector',params,{autoStart:false});
   const initial=await control({action:'status'});
   assert.equal(initial.ok,true);assert.equal(initial.visible,false);assert.equal(initial.tray_image_template,true);assert.equal(initial.tray_title,'');

@@ -53,7 +53,7 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
-                "build_version": "1.3.2",
+                "build_version": "1.3.3",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
@@ -774,6 +774,7 @@ DispatchQueue.main.async {
         try server.start()
         residentServer = server
         residentMenu = OpenSkyMenu()
+        UserActivityTracker.shared.start(home: ProcessInfo.processInfo.environment["OPENSKY_HOME"] ?? NSHomeDirectory() + "/.local/share/opensky")
         stopMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
             let required: NSEvent.ModifierFlags = [.control, .option, .command]
             if event.keyCode == 53 && event.modifierFlags.intersection(required) == required { residentMenu?.stopControl() }

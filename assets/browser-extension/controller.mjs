@@ -177,7 +177,18 @@ export function createBrowserController(chrome,{canAct=()=>true}={}) {
     if(method==='press_key'){
       const codes={Enter:13,Tab:9,Escape:27,Backspace:8,Delete:46,ArrowLeft:37,ArrowUp:38,ArrowRight:39,ArrowDown:40};if(!codes[params.key])fail('unsupported_key','Use Enter, Tab, Escape, Backspace, Delete or an arrow key.');
       return withPageFocus(tabId,element.ctx,async()=>{
-        check(turn);await send(tabId,'DOM.focus',{objectId:element.objectId},element.ctx.sessionId);check(turn);await send(tabId,'Input.dispatchKeyEvent',{type:'keyDown',key:params.key,windowsVirtualKeyCode:codes[params.key]},element.ctx.sessionId);await send(tabId,'Input.dispatchKeyEvent',{type:'keyUp',key:params.key,windowsVirtualKeyCode:codes[params.key]},element.ctx.sessionId);return{ok:true,tab_id:String(tabId),verification_required:true};
+        check(turn);await send(tabId,'DOM.focus',{objectId:element.objectId},element.ctx.sessionId);
+        // Initial inactive-widget focus can lag the CDP acknowledgement. Yield
+        // one renderer task, then verify the exact field before sending any key.
+        // MessageChannel avoids background-tab timer throttling and sends no input.
+        const focused=await onElement(tabId,element,function(){return new Promise(resolve=>{
+          const channel=new MessageChannel();channel.port1.onmessage=()=>{
+            channel.port1.close();channel.port2.close();
+            resolve(this.isConnected&&this.getRootNode().activeElement===this&&this.ownerDocument.hasFocus());
+          };channel.port2.postMessage(null);
+        });});
+        check(turn);if(focused!==true)fail('browser_focus_unavailable','The exact observed control did not acquire renderer focus; no key was sent. Inspect this tab before continuing.');
+        await send(tabId,'Input.dispatchKeyEvent',{type:'keyDown',key:params.key,windowsVirtualKeyCode:codes[params.key]},element.ctx.sessionId);await send(tabId,'Input.dispatchKeyEvent',{type:'keyUp',key:params.key,windowsVirtualKeyCode:codes[params.key]},element.ctx.sessionId);return{ok:true,tab_id:String(tabId),verification_required:true};
       });
     }
     fail('unknown_browser_method','Unsupported browser method.');

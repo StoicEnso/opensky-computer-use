@@ -5,7 +5,7 @@ import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.6.1"
+  version: "1.7.0-rc.1"
 };
 
 const TOOLS = [
@@ -25,9 +25,13 @@ const TOOLS = [
     annotations:{readOnlyHint:['snapshot','frames','screenshot'].includes(action),destructiveHint:!['snapshot','frames','screenshot'].includes(action),openWorldHint:true}
   })),
   {
+    name:'user_activity',description:'Read filtered external-input idle seconds without starting OpenSky, recording keys/mouse contents or requesting permissions. When the owner has chosen auto cooperation, 300 idle seconds make the desktop available; activity or an unavailable signal restores alongside restrictions on the next native request. Requires the opted-in native 1.3.3 monitor with Accessibility access. It ignores tagged OpenSky input, treats unknown/software input as external, and rejects expired/dead-process samples. Do not infer new task authority or resume an emergency pause.',
+    inputSchema:{type:'object',additionalProperties:false,properties:{}},annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
+  },
+  {
     name: 'interaction_mode',
-    description: 'Read or set persistent desktop cooperation mode. When the owner is using the Mac, use alongside: exact-window background AX actions continue; foreground, clipboard, scripts and process-focused key input are deferred without sending input. Save deferred checkpoints and continue independent work without repeated permission questions. Desktop mode permits shared-input methods only when the owner makes the desktop available. This setting affects current-runtime MCP, CLI and SDK clients; old connections must reconnect or use the updated CLI. It does not pause/resume the engine or grant task authority.',
-    inputSchema: {type:'object',additionalProperties:false,properties:{mode:{type:'string',enum:['alongside','desktop']}}},
+    description: 'Read or set persistent desktop cooperation mode. Alongside permits exact-window background AX controls and defers shared input while the owner works. Owner-selected auto uses filtered external-input idle time: desktop becomes available after 300 idle seconds, and activity or an unreadable signal returns to alongside restrictions on the next native request. Inspect effective_mode; keep short serialized UI turns because already-delivered input can finish. Explicit desktop is for an available desktop. Preserve this saved owner choice; do not replace auto with a permanent desktop setting. Defer checkpoints without repeated permission questions. Current-runtime MCP/CLI/SDK recheck before requests; old clients must reconnect. This neither grants task authority nor resumes an emergency pause.',
+    inputSchema: {type:'object',additionalProperties:false,properties:{mode:{type:'string',enum:['alongside','desktop','auto']}}},
     annotations: {readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },
   {
@@ -435,6 +439,7 @@ async function handleToolCall(name, args = {}) {
   if (name === "get_operating_guidance") return getOperatingGuidance();
   if (name.startsWith('browser_')) return computer_use[name](args);
   if (name === 'interaction_mode') return computer_use.interaction_mode(args);
+  if (name === 'user_activity') return computer_use.user_activity();
   if (name === 'chrome_tabs') return computer_use.chrome_tabs(args);
   if (name === "find_elements") {
     return computer_use.find_elements(args);
@@ -601,7 +606,7 @@ let priorityQueue = Promise.resolve();
 let queueGeneration = 0;
 let pendingRequests = 0;
 let locallyStopped = false;
-const readTools = new Set(["browser_status","browser_snapshot","browser_frames","browser_screenshot","interaction_mode", "get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
+const readTools = new Set(["browser_status","browser_snapshot","browser_frames","browser_screenshot","user_activity","interaction_mode", "get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
 function rejectQueued(message, code, error) {
   if (message.id !== undefined) sendMessage({ jsonrpc: "2.0", id: message.id, result: formatToolResult({ ok: false, error_code: code, error }) });
 }

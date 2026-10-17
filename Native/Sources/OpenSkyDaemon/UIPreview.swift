@@ -12,6 +12,22 @@ func renderUIPreview(to directory: URL) throws {
         try data.write(to: directory.appendingPathComponent(name))
     }
     precondition(AXEngine.inspectorEngine() !== AXEngine.shared, "Inspector must own its cache")
+    try checkOwnAXExecution()
+    precondition(UserActivityTracker.isAutoConfig(["mode": "auto"]))
+    precondition(UserActivityTracker.isAutoConfig(["mode": "alongside", "cooperation_policy": "auto"]))
+    precondition(!UserActivityTracker.isAutoConfig(["mode": "alongside"]))
+    precondition(!UserActivityTracker.isAutoConfig(["mode": "desktop", "cooperation_policy": "auto"]))
+    var activity = ExternalActivityClock(now: 100)
+    activity.observe(marker: ExternalActivityClock.ownEventMarker, now: 400)
+    activity.observe(marker: ExternalActivityClock.ownEventMarker, now: 401)
+    precondition(activity.idle(at: 401) == 301, "Own synthetic input must not restart external idle time")
+    precondition(activity.idle(at: 402, generalIdle: 0) == 0, "An OS event without a callback must count conservatively")
+    activity.observe(marker: ExternalActivityClock.ownEventMarker, now: 402)
+    precondition(activity.idle(at: 402, generalIdle: 0) == 302, "A delayed own callback must restore idle continuity")
+    activity.observe(marker: nil, now: 402)
+    precondition(activity.idle(at: 402) == 0, "External input must end idle time")
+    activity.observe(marker: nil, now: 410)
+    precondition(activity.idle(at: 410) == 0, "Unknown input must count conservatively as external")
     let model = InspectorModel()
     let target = InspectorTarget(app: "dev.opensky.disposable-fixture", windowID: 4242, label: "OpenSky Fixture · Project Notes · #4242")
     model.targets = [target]; model.selectedTarget = target.id
@@ -49,7 +65,35 @@ func renderUIPreview(to directory: URL) throws {
     try checkInspectorRecovery()
     precondition(NSWorkspace.shared.frontmostApplication?.processIdentifier != ProcessInfo.processInfo.processIdentifier,
                  "Offscreen rendering must not activate the preview process")
-    print("UI fixtures rendered offscreen; independent cache, search, clear-on-close, stale-result recovery and template checks passed.")
+    print("UI fixtures rendered offscreen; independent cache, search, clear-on-close, stale-result recovery, own-action main-thread/cancellation, external-activity clock and template checks passed.")
+}
+
+private func checkOwnAXExecution() throws {
+    let own = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
+    func background(generation: UInt64, expectAction: Bool) throws {
+        let lock = NSLock(); var finished = false; var success = false
+        DispatchQueue.global().async {
+            var called = false
+            let result = SafetyController.shared.withGeneration(generation) {
+                OpenSkyAXActions.run(own) {
+                    called = true
+                    return Thread.isMainThread && SafetyController.shared.operationGeneration == generation ? .success : .failure
+                }
+            }
+            lock.lock(); success = expectAction ? called && result == .success : !called && result == .cannotComplete; finished = true; lock.unlock()
+        }
+        let end = Date().addingTimeInterval(3)
+        while Date() < end {
+            lock.lock(); let done = finished; lock.unlock(); if done { break }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
+        lock.lock(); let passed = finished && success; lock.unlock()
+        if !passed { throw NSError(domain: "Own AX main-thread/cancellation regression", code: 1) }
+    }
+    let original = SafetyController.shared.operationGeneration
+    try background(generation: original, expectAction: true)
+    SafetyController.shared.setStopped(true); SafetyController.shared.setStopped(false)
+    try background(generation: original, expectAction: false)
 }
 
 private func checkInspectorRecovery() throws {

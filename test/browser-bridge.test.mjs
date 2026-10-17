@@ -101,6 +101,28 @@ test('interrupted background keys restore renderer focus emulation without deliv
   }
 });
 
+test('background keys wait for exact renderer focus and reject an unconfirmed field before input',async()=>{
+  for(const focusAvailable of [true,false]) {
+    const fixture=chromeFixture();let release,ready,inputs=0,emulated=false;
+    const entered=new Promise(r=>ready=r),hold=new Promise(r=>release=r);
+    fixture.debugger.sendCommand=async(target,method,params)=>{
+      if(method==='Page.getFrameTree')return{frameTree:{frame:{id:'root',url:'https://example.test'}}};
+      if(method==='Page.createIsolatedWorld')return{executionContextId:1};
+      if(method==='Runtime.evaluate')return{result:params.returnByValue?{value:{elements:[{element_id:'field',name:'Task field'}]}}:{objectId:'observed-field'}};
+      if(method==='Emulation.setFocusEmulationEnabled')emulated=params.enabled;
+      if(method==='Runtime.callFunctionOn'){ready();await hold;return{result:{value:focusAvailable}};}
+      if(method.startsWith('Input.'))inputs++;
+      return{};
+    };
+    const controller=createBrowserController({...fixture,tabs:fixture.tabsApi}),task={tab_id:'1',workflow_id:'focus-test'};
+    await controller.run('tab_claim',task);const snapshot=await controller.run('snapshot',task);
+    const input=controller.run('press_key',{...task,snapshot_id:snapshot.snapshot_id,element_id:'field',key:'Enter'});
+    await entered;assert.equal(inputs,0,'A key was sent before focus verification completed.');release();
+    const result=await input;assert.equal(result.ok,focusAvailable);assert.equal(inputs,focusAvailable?2:0);assert.equal(emulated,false);
+    if(!focusAvailable)assert.equal(result.error_code,'browser_focus_unavailable');
+  }
+});
+
 test('extension startup and installation events create only one native connection',async()=>{
   const event=()=>({handlers:[],addListener(fn){this.handlers.push(fn);}});
   let resolveLocal,connections=0;

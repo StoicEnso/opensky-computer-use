@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.0-rc.1 — 2026-10-17
+
+- Add owner-selected `opensky mode auto` across MCP, CLI and JavaScript. It permits desktop turns after 300 seconds of external-input inactivity and returns to alongside restrictions on the next request after activity, including a recheck after native startup. Missing activity data stays alongside; emergency pause and task authority remain independent.
+- Add `user_activity` / `opensky activity`. Native build 1.3.3 uses opt-in passive monitors and owner-only aggregate metadata, filters tagged OpenSky input, and treats unknown/software input conservatively as external. No typed characters or pointer coordinates are retained. Update initialization guidance and the bundled skill to preserve the owner's saved auto policy and avoid repeated availability questions after its threshold.
+- Add actual native executable-path diagnostics to `opensky doctor` and the UI-service test. This catches macOS reopening a registered staging copy despite a matching app version.
+- Keep a deliberate setup readiness recheck queued behind an in-flight passive read, so an earlier success cannot swallow the user's fresh check.
+- Add a loaded-worker version and explicit Reload extension control to OpenSky Browser status. Reads never reload; maintenance preserves Chrome and requires fresh tab observation afterward.
+- Browser extension 1.5.3 verifies exact field focus after a renderer task before sending a key. It rejects unconfirmed focus before input and retains focus-emulation cleanup; key delivery still requires outcome verification.
+- Verify the installed cloud tray/Inspector build 1.3.2 under its own macOS permissions, then fix the real self-control crash it exposed: own AX actions/writes move to the main thread with their original stop generation. Runtime clients reject self-directed AX input on older builds.
+- Include the Inspector in normal-window hit testing and isolate offscreen preview execution from production app registration. Build 1.3.3 is staged for a full native upgrade; exact installation/live-test scope is recorded in the dated results.
+
 ## 1.6.1 — 2026-10-17
 
 - Add `opensky inspector status|show|close`. Show opens the app-owned Inspector behind other apps and returns its exact native window ID. Status and close never launch a missing engine.

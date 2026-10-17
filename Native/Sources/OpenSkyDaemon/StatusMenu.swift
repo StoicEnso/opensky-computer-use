@@ -78,7 +78,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     }
     @objc private func about() {
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "OpenSky", .applicationVersion: "Native UI 1.3.2 · API 1.3.0",
+            .applicationName: "OpenSky", .applicationVersion: "Native UI 1.3.3 · API 1.3.0",
             .credits: NSAttributedString(string: "Your agent. Your Mac.\nOpen source · MIT\nLocal MCP, CLI and JavaScript computer use.")
         ])
         NSApp.activate(ignoringOtherApps: true)

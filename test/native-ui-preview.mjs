@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync,execFileSync} from 'node:child_process';
-import {mkdtempSync,readFileSync,existsSync,rmSync} from 'node:fs';
+import {mkdtempSync,readFileSync,existsSync,rmSync,copyFileSync,chmodSync} from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
@@ -8,7 +8,10 @@ const root=path.resolve(import.meta.dirname,'..');
 const temporary=mkdtempSync(path.join(os.tmpdir(),'2026-10-17-opensky-ui-Codex-'));
 const output=process.argv[3]?path.resolve(process.argv[3]):path.join(temporary,'previews');
 try {
-  const binary=process.argv[2]?path.resolve(process.argv[2]):path.join(execFileSync('swift',['build','-c','release','--package-path',path.join(root,'Native'),'--show-bin-path'],{encoding:'utf8'}).trim(),'opensky-daemon');
+  const source=process.argv[2]?path.resolve(process.argv[2]):path.join(execFileSync('swift',['build','-c','release','--package-path',path.join(root,'Native'),'--show-bin-path'],{encoding:'utf8'}).trim(),'opensky-daemon');
+  // Run outside a production bundle so a fixture cannot register a staging app
+  // under the installed bundle ID and redirect a later macOS Quit & Reopen.
+  const binary=path.join(temporary,'opensky-ui-preview');copyFileSync(source,binary);chmodSync(binary,0o755);
   const env={...process.env,OPENSKY_HOME:path.join(temporary,'never-started'),OPENSKY_PORT:'53793'};
   const invalid=spawnSync(binary,['--render-ui-preview'],{env,encoding:'utf8',timeout:5000});
   assert.equal(invalid.status,64,invalid.stderr);

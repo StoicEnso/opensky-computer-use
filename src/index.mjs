@@ -6,10 +6,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSessionWithComputer, findElementsWithComputer } from "./session.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
-import { NATIVE_API_VERSION } from "./native-version.mjs";
+import { NATIVE_API_VERSION,ownAXUpgradeRequired } from "./native-version.mjs";
 import { performChromeTabs } from "./chrome.mjs";
 import { readInteractionMode, writeInteractionMode, prepareInteraction } from "./interaction-mode.mjs";
 import { browserRequest, setBrowserPaused } from "./browser/client.mjs";
+import {readUserActivity} from './user-activity.mjs';
 export { OpenSkyError, matchElements } from "./session.mjs";
 export { getOperatingGuidance } from "./operator-guidance.mjs";
 export { NATIVE_API_VERSION } from "./native-version.mjs";
@@ -117,6 +118,14 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
   if (prepared.result) return prepared.result;
   params = prepared.params;
   if (autoStart) await ensureDaemonRunning();
+  if(ownAXUpgradeRequired(method,params,undefined)) {
+    const native=await daemonStatus();
+    if(ownAXUpgradeRequired(method,params,native.build_version))return {ok:false,error_code:'native_ui_upgrade_required',error:'Automating OpenSky’s own SwiftUI controls requires native build 1.3.3 or later. Older builds can crash on self-directed AX actions. The Inspector can still be opened and used normally; upgrade the native app at a quiet checkpoint and complete any real macOS consent. No input was sent.'};
+  }
+  // Recheck after startup/status waits: the owner may have returned meanwhile.
+  const latest=prepareInteraction(OPENSKY_HOME,method,params);
+  if(latest.result)return latest.result;
+  params=latest.params;
   const token = controlToken(autoStart);
   if (!token) throw new Error("OpenSky is not running.");
     const res = await fetch(`${DAEMON_URL}/rpc`, {
@@ -144,6 +153,7 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
  * Can be imported directly in Node.js, Codex REPL, Claude scripts, or Antigravity tools.
  */
 export const computer_use = {
+  async user_activity() {return readUserActivity();},
   async browser_status() { return browserRequest('status'); },
   async browser_tabs(params = {}) {
     const action=params.action??'list';

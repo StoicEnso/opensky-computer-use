@@ -1,62 +1,144 @@
 {
   "date": "2026-10-17",
-  "runtimeVersion": "1.6.1",
+  "runtimeVersion": "1.7.0-rc.1",
   "nativeAPI": "1.3.0",
-  "candidateNativeUIBuild": "1.3.2",
-  "status": "native upgrade awaiting macOS consent; working helper restored",
-  "installedNewNativeApp": false,
+  "installedNativeUIBuild": "1.3.2",
+  "candidateNativeUIBuild": "1.3.3",
+  "status": "Cloud app installed with verified permissions; fixed native build staged for fresh macOS consent",
+  "installedNewNativeApp": true,
+  "installedFixedNativeApp": false,
   "rollbackVerified": true,
   "workingAppAccessibility": true,
   "workingAppScreenRecording": true,
-  "originalNativeBinaryRestored": true,
+  "expectedInstalledAppPathVerified": true,
   "browserConnectionPreserved": true,
-  "browserWorkerVersion": "1.5.2",
-  "alongsideModePreserved": true,
-  "runtimeOnlyUpdateInstalled": true,
+  "browserWorkerVersion": "1.5.3",
   "watchRemainsPaused": true,
   "validation": {
-    "automatedTestsPassed": 41,
+    "automatedTestsPassed": 50,
     "packagingAssertionsPassed": 45,
     "swiftReleaseBuildPassed": true,
-    "strictSignaturePassedOutsideICloud": true,
-    "offscreenLightDarkAndRecoveryChecksPassed": true,
-    "liveUIService": {
-      "passed": true,
-      "distinctDisposableBundleIdentity": true,
-      "temporaryRuntimeOutsideDocuments": true,
-      "isolatedPorts": true,
-      "trayTemplateAndEmptyTitle": true,
-      "pausedAccessibleLabel": true,
-      "backgroundInspectorOpened": true,
-      "closedWhilePaused": true,
-      "invalidRequestsRejected": true,
-      "foregroundActivationDeferred": true,
-      "frontmostAppUnchanged": true,
-      "permissionsRequested": false
-    },
-    "missingNativeAccessTrayStateVerified": true
+    "strictCandidateSignaturePassed": true,
+    "offscreenLightDarkRecoveryAndSearchPassed": true,
+    "ownAXMainThreadAndCancelledGenerationFixturePassed": true,
+    "backwardCompatibleAutoConfigurationFixturePassed": true,
+    "isolatedUIServicePassed": true,
+    "privateAggregateActivityRecordVerified": true,
+    "realInstalledBackgroundUnicodeAndCounterPassed": true,
+    "installedMCPTools": 33,
+    "installedOlderNativeSelfAXRejectionVerified": true,
+    "installedRuntimePreservedNativeAndBrokerDuringUpdate": true,
+    "externalTaggedActivityAndUnobservedOSClockFixturePassed": true,
+    "explicitBrowserReloadAndHandshakeVerified": true,
+    "manualReadinessRecheckRegressionPassed": true,
+    "finalHeadlessBrowserAndRenderedOnboardingPassed": true
   },
-  "installationFinding": "Replacing the previously approved ad-hoc binary caused both independent-app permission checks to return false. The verified backup was restored, recovering both permissions; browser PID/connection/worker stayed intact.",
-  "newBehavior": [
-    "CLI inspector status/show/close with exact app-owned window ID",
-    "Background presentation by default",
-    "Readiness/no-launch behavior and actionable message for older native helpers",
-    "Missing native permissions are reported in the tray rather than announcing readiness"
+  "cooperation": {
+    "savedPolicy": "auto",
+    "thresholdSeconds": 300,
+    "effectiveMode": "alongside",
+    "reason": "Filtered external-input detection requires native build 1.3.3; current installed build is 1.3.2.",
+    "olderClientsRetainAlongsideFallback": true,
+    "ownsNoTaskAuthority": true,
+    "neverResumesEmergencyPause": true,
+    "nativeMonitorLiveVerified": false,
+    "inputContentsRecorded": false,
+    "aggregateSamplingMilliseconds": 250
+  },
+  "findings": [
+    {
+      "finding": "macOS reopened a registered staging copy after an app restart.",
+      "change": "Doctor and the UI service verify the actual executable path; offscreen UI preview runs outside the production bundle identity.",
+      "scope": "Actual installed path verified; no permission database edits."
+    },
+    {
+      "finding": "Self-directed AXPress on a SwiftUI Inspector button crashed with a main-actor assertion on opensky.actions.",
+      "change": "Own AX actions and writes execute on the main thread with their captured cancellation generation; older native builds are rejected before self-input.",
+      "scope": "Crash evidence and fixture routing/cancellation verified; fixed installed-app interaction awaits consent."
+    },
+    {
+      "finding": "The Inspector was excluded from normal-window hit testing with the click-through overlays.",
+      "change": "Normal-layer hit testing includes the Inspector; own AX overlay hits retain the WindowServer fallback.",
+      "scope": "Source fix built; owner-profile native input retest pending."
+    },
+    {
+      "finding": "The general HID idle counter reset for OpenSky synthetic mouse input.",
+      "change": "Opt-in native monitors filter only tagged OpenSky events, retain aggregate metadata only, and count unknown/software input conservatively as external. Missing/stale data keeps alongside restrictions.",
+      "scope": "Clock/configuration/private-record fixtures passed; real physical-versus-agent event delivery still pending."
+    },
+    {
+      "finding": "New inactive Chrome tabs sometimes acknowledged the first Enter without a page receipt, including serial trials.",
+      "change": "Extension 1.5.3 waits a renderer task and verifies focus on the exact field before sending any key.",
+      "scope": "Unit, disposable headless and existing-profile verification passed with worker 1.5.3. First-key behavior is fixture-verified; agents must still check outcomes."
+    },
+    {
+      "finding": "A deliberate setup recheck could be coalesced into an earlier passive readiness read.",
+      "change": "Queue one fresh readiness read for a manual recheck or completed setup action; passive polls remain coalesced.",
+      "scope": "A controlled in-flight response regression failed before the fix and passed afterward; no unsolicited setup action is added."
+    }
   ],
+  "fixedNativeUpgradeAttempt": {
+    "newSignatureAccessibility": false,
+    "newSignatureScreenRecording": false,
+    "rolledBackToVerifiedBuild": "1.3.2",
+    "bothPermissionsRecovered": true,
+    "browserBrokerAndConnectionPreserved": true,
+    "ownerSettingsHandoffPending": true
+  },
+  "realWorkflows": {
+    "signedInDashboardReadOnlyRetrievalThroughOpenSky": true,
+    "sharedClipboardUsed": false,
+    "accountConfigurationChanged": false
+  },
   "notYetVerified": [
-    "New installed-app Accessibility/Screen Recording after owner consent",
-    "New Inspector reading third-party windows under its independent permission identity"
+    "Native build 1.3.3 independent-app permissions after owner refresh",
+    "Fixed Inspector reading an independent window, filtering controls and preserving an agent target cache in the installed app",
+    "Real external mouse/keyboard activity versus tagged OpenSky input under the filtered native monitor"
   ],
   "limits": [
-    "The disposable UI-service test is not independent-app permission validation.",
-    "Native signature changes can require fresh macOS consent. No permission database was edited or permission gate bypassed.",
-    "The working app is intentionally still the original native binary while the system-setting handoff is pending.",
-    "A Documents/iCloud runtime/log path caused isolated LaunchServices error -10810; the isolated UI test passed with its runtime in a temporary unprotected directory. This isolates the path-related condition but does not prove the complete internal macOS failure cause."
+    "Auto cooperation checks aggregate activity before requests; it is not an in-flight physical-input interlock.",
+    "Unknown or other-software input is treated conservatively as external.",
+    "Ad-hoc native signature changes can require fresh macOS consent. The working build is retained until that handoff.",
+    "Disposable headless/fixture evidence does not establish universal provider or background control."
   ],
-  "postRollbackBrowserVerification": {
+  "previousRuntimeOnlyVerification": {
+    "runtimeVersion": "1.6.1",
+    "automatedTestsPassed": 41,
+    "packagingAssertionsPassed": 45,
+    "postRollbackBrowserVerification": {
+      "verified": true,
+      "existingOwnerProfile": true,
+      "driver": "OpenSky 1.6.1",
+      "codexBrowserToolsUsed": false,
+      "inactiveTabs": 2,
+      "independentValuesVerified": true,
+      "rootAndCrossOriginFrameUploadsVerifiedAtServer": true,
+      "unicodeFilename": true,
+      "trustedBackgroundEnter": true,
+      "concurrentTabKeysVerified": true,
+      "foreignWorkflowUploadRejectedBeforeInput": true,
+      "staleDocumentUploadRejectedBeforeInput": true,
+      "duplicateUploadReceipts": 0,
+      "inactivePageRemainedHidden": true,
+      "selectedTabsUnchanged": true,
+      "frontmostAppUnchanged": true,
+      "nativePermissionsPreserved": true,
+      "nativeProcessPreserved": true,
+      "clipboardInputUsed": false,
+      "cleanup": [
+        {
+          "taskTabClosed": true
+        },
+        {
+          "taskTabClosed": true
+        }
+      ]
+    }
+  },
+  "existingProfileBrowserVerification": {
     "verified": true,
     "existingOwnerProfile": true,
-    "driver": "OpenSky 1.6.1",
+    "driver": "OpenSky 1.7.0-rc.1",
     "codexBrowserToolsUsed": false,
     "inactiveTabs": 2,
     "independentValuesVerified": true,
@@ -82,5 +164,13 @@
       }
     ]
   },
-  "olderHelperMessageVerified": "native_ui_upgrade_required"
+  "browserExtensionMaintenance": {
+    "reloadRequestedOnceThroughInactiveStatusTab": true,
+    "requestReportedDisconnect": true,
+    "handshakeConfirmedNewWorker": true,
+    "nativeHelperRestarted": false,
+    "browserBrokerPIDPreserved": true,
+    "extensionStatusTabClosedOnReload": true,
+    "businessChatsIdleAtCheckpoint": true
+  }
 }

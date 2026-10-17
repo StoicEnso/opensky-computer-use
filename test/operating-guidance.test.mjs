@@ -18,8 +18,12 @@ test('MCP and CLI expose the same auto guidance without starting an absent engin
   await client.connect(new StdioClientTransport({command:process.execPath,args:[path.resolve(import.meta.dirname,'../src/mcp-server.mjs')],env:environment,stderr:'pipe'}));
   try{
     assert.equal(client.getInstructions(),getOperatingGuidance().instructions);
-    assert.match(client.getInstructions().slice(0,512),/use alongside; defer shared input\./);
+    assert.match(client.getInstructions().slice(0,650),/preserve an owner-selected auto idle policy/);
     const available=(await client.listTools()).tools;
+    assert.ok(available.find(t=>t.name==='interaction_mode').inputSchema.properties.mode.enum.includes('auto'));
+    assert.equal(available.find(t=>t.name==='user_activity').annotations.readOnlyHint,true);
+    const activity=(await client.callTool({name:'user_activity',arguments:{}})).structuredContent;
+    assert.equal(activity.input_contents_recorded,false);
     for(const name of ['get_app_state','click','set_value','find_elements']) assert.match(available.find(t=>t.name===name).description,/^Preferred OpenSky native Mac\/browser UI path/);
     const tool=(await client.listTools()).tools.find(t=>t.name==='get_operating_guidance');
     assert.equal(tool.annotations.readOnlyHint,true);

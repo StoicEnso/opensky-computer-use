@@ -7,7 +7,8 @@ export declare const DEFAULT_PORT: number;
 export declare const DAEMON_URL: string;
 
 export type ExecutionMode = "hybrid" | "background" | "takeover";
-export type InteractionMode = "alongside" | "desktop";
+export type InteractionMode = "alongside" | "desktop" | "auto";
+export interface UserActivityResult {ok:boolean;idle_seconds:number|null;source:string;input_contents_recorded:false;error_code?:string;required_native_build?:string;own_input_filtered?:boolean;sample_age_seconds?:number;}
 export interface BrowserParams {
   tab_id: string;
   workflow_id: string;
@@ -67,6 +68,9 @@ export interface BrowserTabsParams {
 export interface InteractionModeResult {
   ok: boolean;
   interaction_mode?: InteractionMode;
+  effective_mode?: 'alongside'|'desktop';
+  idle_threshold_seconds?: number;
+  user_activity?: UserActivityResult;
   message?: string;
   error_code?: string;
   error?: string;
@@ -165,6 +169,9 @@ export interface OpenSkyActionResult {
   ok: boolean;
   deferred?: boolean;
   interaction_mode?: InteractionMode;
+  effective_mode?: 'alongside'|'desktop';
+  idle_threshold_seconds?: number;
+  user_activity?: UserActivityResult;
   next_step?: string;
   message?: string;
   text?: string;
@@ -402,6 +409,8 @@ export interface OpenSkyComputerUse {
   browser_screenshot(params: BrowserParams): Promise<BrowserResult>;
   /** Persistent cooperation preference shared by current-runtime clients. No engine launch. */
   interaction_mode(params?: {mode?: InteractionMode}): Promise<InteractionModeResult>;
+  /** Passive filtered external-input idle metadata. No key contents, mouse coordinates or native startup. */
+  user_activity(): Promise<UserActivityResult>;
   /** Optional one-time opt-in Chrome Apple Events tab integration. Native AX works without it. */
   chrome_tabs(params?: ChromeTabsParams): Promise<ChromeTabsResult>;
   /** Read local agent guidance without starting or resuming the native engine. */

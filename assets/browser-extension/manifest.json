@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "OpenSky Browser",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Local browser control for your AI agent: background task tabs, page controls and uploads through OpenSky.",
   "minimum_chrome_version": "125",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyZUYPK82DHMTD5y5ftwlvuq91+MFirD8GnjilSp4LkjkzVKZ9r1tTpV7Ef/1TksEGTENkcKhHS7Q7ZWtieDl24k8c5Lb+fDPs6ou9cwSKOBN+NpvpaFv1AqIBCfe8sbMc3Ac+FwaVjwKn/cyI/8xfGT1RPdTN5psxEfNWW0lAxF1HTf+DLBVO5MMLazqLFRc4uEbIahwsB76UrWGW8vi0zhe0wZRNuH2Yrji2WRGO1pl3gEHE+fywzLrDsr/H3q8pdc1lcZ4IBzHXk18EcqUoW2lXpvFJVloYlJgQ0ezw9eckXTrAJXgC52MmAtOSOQTAm8LNRSXVSk0VofSeVZd8QIDAQAB",
