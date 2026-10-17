@@ -4,6 +4,7 @@
 
 - Add `opensky inspector status|show|close`. Show opens the app-owned Inspector behind other apps and returns its exact native window ID. Status and close never launch a missing engine.
 - Keep explicit activation deferred in alongside mode. Validate Inspector actions and boolean arguments, and report a clear native upgrade requirement for older helpers.
+- Show “Desktop permissions needed” in the tray when native access is missing, instead of announcing readiness during a consent handoff.
 - Add a live UI-service check using a disposable app identity and temporary local runtime: tray template, paused accessibility label, background Inspector opening, validation and closing while paused. It requests no permissions and does not establish the installed app's consent or third-party-window inspection.
 - Validate a real native upgrade and recovery: macOS required fresh Accessibility/Screen Recording consent for the changed ad-hoc signature, so the working app was restored with its original permissions, private settings and browser connection. Completing that machine's upgrade awaits the owner's system-setting handoff.
 

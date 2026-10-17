@@ -33,13 +33,15 @@
       "foregroundActivationDeferred": true,
       "frontmostAppUnchanged": true,
       "permissionsRequested": false
-    }
+    },
+    "missingNativeAccessTrayStateVerified": true
   },
   "installationFinding": "Replacing the previously approved ad-hoc binary caused both independent-app permission checks to return false. The verified backup was restored, recovering both permissions; browser PID/connection/worker stayed intact.",
   "newBehavior": [
     "CLI inspector status/show/close with exact app-owned window ID",
     "Background presentation by default",
-    "Readiness/no-launch behavior and actionable message for older native helpers"
+    "Readiness/no-launch behavior and actionable message for older native helpers",
+    "Missing native permissions are reported in the tray rather than announcing readiness"
   ],
   "notYetVerified": [
     "New installed-app Accessibility/Screen Recording after owner consent",

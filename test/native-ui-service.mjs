@@ -30,6 +30,7 @@ try {
   const control=params=>sdk.callDaemon('inspector',params,{autoStart:false});
   const initial=await control({action:'status'});
   assert.equal(initial.ok,true);assert.equal(initial.visible,false);assert.equal(initial.tray_image_template,true);assert.equal(initial.tray_title,'');
+  if(!native.axTrusted||!native.screenRecordingTrusted)assert.match(initial.tray_accessibility_label,/permissions needed/);
   assert.equal((await control({action:'show',activate:'wrong'})).error_code,'invalid_arguments');
   assert.equal((await control({action:'unknown'})).error_code,'invalid_arguments');
   const shown=await control({action:'show'});assert.equal(shown.visible,true);assert.ok(shown.window_id>0);

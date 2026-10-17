@@ -35,11 +35,12 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) { refresh() }
     private func refresh() {
         let stopped = SafetyController.shared.isStopped
-        item.button?.image = CloudMark.image(stopped: stopped)
-        item.button?.toolTip = stopped ? "OpenSky · Control paused" : "OpenSky · Ready for your agent"
-        item.button?.setAccessibilityLabel(stopped ? "OpenSky, control paused" : "OpenSky, ready for your agent")
-        status.title = stopped ? "OpenSky · Control Paused" : "OpenSky · Ready for Your Agent"
         let ax = AXEngine.shared.isAXTrusted(), screen = CGPreflightScreenCaptureAccess()
+        let state = stopped ? "Control paused" : (ax && screen ? "Ready for your agent" : "Desktop permissions needed")
+        item.button?.image = CloudMark.image(stopped: stopped)
+        item.button?.toolTip = "OpenSky · \(state)"
+        item.button?.setAccessibilityLabel("OpenSky, \(state.lowercased())")
+        status.title = "OpenSky · \(state)"
         permissions.title = "Accessibility \(ax ? "✓" : "—")   Screen Capture \(screen ? "✓" : "—")"
         stopItem.isEnabled = !stopped; resumeItem.isEnabled = stopped
     }
