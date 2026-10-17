@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1 — 17 October 2026
+
+- Announce default auto workflow guidance in MCP initialization and expose it through a read-only MCP tool, CLI command and SDK helper.
+- Carry task authority and user constraints forward without adding OpenSky-specific per-action prompts; preserve applicable host/tool rules according to their actual scope.
+- Verify guidance can be read without launching or resuming the native engine.
+- Complete one public reCAPTCHA v2 checkbox flow and verify server-side success through OpenSky in Chrome; no image puzzle was presented.
+- Keep compatibility with the existing 1.3.0 native engine; this is a JavaScript/guidance patch.
+- Add a transactional `--runtime-only` update that checks native compatibility and signature while preserving the helper's files, running state and permissions.
+- Prefer fast, local-first native control in agent guidance, document on-device OCR and the absence of built-in telemetry/cloud relay, and disclose local capture retention and the connected agent's data boundary.
+
 ## 1.3.0 — 17 October 2026
 
 - Add exact `window_id` inspection and pinned semantic sessions. A missing or ambiguous window fails explicitly; background action observations retain the selected window.

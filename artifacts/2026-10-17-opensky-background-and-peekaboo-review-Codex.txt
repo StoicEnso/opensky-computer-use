@@ -42,3 +42,6 @@ https://github.com/openclaw/Peekaboo/tree/260fc35320d6c350af503338b944d68311e2be
 https://cursor.com/docs/mcp
 https://code.claude.com/docs/en/mcp
 https://antigravity.google/docs/mcp
+
+Same-day follow-up — 17 October 2026
+After the owner explicitly requested the OpenSky CAPTCHA test, OpenSky completed the public Google reCAPTCHA v2 checkbox demo in the existing Chrome session and submitted its example form. The server returned Success! with success true and no error codes. No image puzzle was presented. Peekaboo CAPTCHA completion was not tested. See 2026-10-17-opensky-auto-mode-and-captcha-Codex.json for this later result; the earlier untested status above describes the initial comparison run.

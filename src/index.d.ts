@@ -16,6 +16,16 @@ export type ScriptLanguage = "applescript" | "jxa";
 export type Point2D = [number, number];
 export type Rect4D = [number, number, number, number];
 
+export interface OperatingGuidance {
+  ok: true;
+  default_workflow_mode: 'auto';
+  adds_per_action_approval_gate: false;
+  user_constraints_applied_by: 'connected_agent';
+  instructions: string;
+}
+export declare function getOperatingGuidance(): OperatingGuidance;
+export declare const NATIVE_API_VERSION: string;
+
 export interface OpenSkyWindowInfo {
   id: number;
   app: string;
@@ -270,6 +280,8 @@ export declare function callDaemon<T = OpenSkyActionResult>(
  * OpenSky computer-use SDK using public macOS APIs.
  */
 export interface OpenSkyComputerUse {
+  /** Read local agent guidance without starting or resuming the native engine. */
+  get_operating_guidance(): Promise<OperatingGuidance>;
   stop(): Promise<OpenSkyActionResult>;
   resume(): Promise<OpenSkyActionResult>;
   shutdown(): Promise<OpenSkyActionResult>;

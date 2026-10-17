@@ -3,7 +3,7 @@ import { readFileSync, existsSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { computer_use, matchElements, DAEMON_BINARY, DAEMON_URL, OPENSKY_HOME, TOKEN_PATH, callDaemon, daemonStatus, ensureDaemonRunning } from "./index.mjs";
+import { computer_use, getOperatingGuidance, matchElements, DAEMON_BINARY, DAEMON_URL, OPENSKY_HOME, TOKEN_PATH, callDaemon, daemonStatus, ensureDaemonRunning } from "./index.mjs";
 import { configSnippet } from "../scripts/config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,6 +19,7 @@ function help() {
 Usage: opensky <command> [arguments] [--json]
 
   setup                                  Print permission and connection instructions
+  guidance                               Read default auto workflow guidance (no launch)
   doctor                                 Check installation, daemon, and permissions (no launch)
   status                                 Query an existing daemon (no launch)
   daemon [start|stop]                     Start daemon, or shut it down
@@ -123,6 +124,7 @@ async function main() {
   switch (command) {
     case "help": case "--help": case "-h": help(); break;
     case "version": case "--version": case "-v": output(version); break;
+    case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
     case "setup":
       output(`OpenSky setup\n\n1. Run opensky daemon.\n2. Run opensky rpc status '{"promptAX":true,"promptScreen":true}' to request Accessibility access.\n3. Enable OpenSky in System Settings > Privacy & Security > Accessibility.\n4. Enable OpenSky in Screen & System Audio Recording (called Screen Recording on some macOS versions). Restart OpenSky after granting access. Use opensky rpc status with promptScreen:true for the initial screen-capture request.\n5. Run opensky doctor to check permissions and the local connection.\n6. Run opensky config all and add the chosen entry to your agent's MCP configuration. Restart that client.\n\nNo client configuration was changed. macOS may require permission to be granted again after rebuilding an ad-hoc signed app.\nEmergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
     case "config": output(configSnippet(args[1] || "all")); break;

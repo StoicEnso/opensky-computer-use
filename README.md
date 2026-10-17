@@ -1,6 +1,6 @@
 # OpenSky
 
-**Open-source computer use for your Mac.** Give your agent native app controls, screenshots, on-device OCR and a visible animated pointer. Connect through MCP, the command line or JavaScript.
+**Fast, local-first browser and desktop control for your Mac.** Give your agent native app controls, on-device OCR and a visible animated pointer through MCP, the command line or JavaScript. Open source, with no built-in telemetry or OpenSky cloud relay.
 
 [![macOS checks](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/StoicEnso/opensky-computer-use)](https://github.com/StoicEnso/opensky-computer-use/releases/latest)
@@ -8,7 +8,7 @@
 
 **macOS 14+ · Apple silicon & Intel source builds · Node.js 22+ · Local engine · MIT**
 
-[Install](#install-from-source) · [Connect your agent](#connect-an-agent) · [Work in the background](#work-while-you-use-the-mac) · [See test results](#tested-scope) · [Releases](https://github.com/StoicEnso/opensky-computer-use/releases)
+[Install](#install-from-source) · [Connect your agent](#connect-an-agent) · [Work in the background](#work-while-you-use-the-mac) · [Privacy](PRIVACY.md) · [See test results](#tested-scope) · [Releases](https://github.com/StoicEnso/opensky-computer-use/releases)
 
 ![OpenSky's native animated pointer](artifacts/2026-10-17-opensky-pointer-demo-Codex.gif)
 
@@ -51,7 +51,7 @@ cd opensky-computer-use
 ./install.sh
 ```
 
-The installer always invokes a release build of current Swift source. It creates and verifies an ad-hoc signed `~/Applications/OpenSky.app` with the stable bundle identifier `dev.opensky.computeruse`, copies the JavaScript runtime to `~/.local/share/opensky`, and writes launchers to `~/.local/bin`.
+A full installation invokes a release build of current Swift source. It creates and verifies an ad-hoc signed `~/Applications/OpenSky.app` with the stable bundle identifier `dev.opensky.computeruse`, copies the JavaScript runtime to `~/.local/share/opensky`, and writes launchers to `~/.local/bin`.
 
 Updates stop the existing helper before replacing its files. App, runtime, launcher and optional skill replacements are rolled back together if a replacement fails. Your token, captures and client configuration stay in place.
 
@@ -163,9 +163,17 @@ Background is app dependent. An AXPress may open UI, background keys follow the 
 
 ## Delegated auto operation
 
+**Auto is the default workflow preference within the user's authorized task.** MCP clients receive this guidance when connecting, even without loading the optional skill. Read it later with the `get_operating_guidance` MCP tool, `opensky guidance --json`, `computer_use.get_operating_guidance()` or `getOperatingGuidance()` from the SDK. Reading guidance never starts or resumes the native engine.
+
+The guidance prefers OpenSky for authorized native computer use and browser UI that needs desktop control, while respecting the user's chosen tools. Use the existing Chrome session. Work promptly with targeted Accessibility queries, direct field values and brief pointer feedback; request screenshots/OCR when needed and wait for actual state changes. Dedicated browser DOM/API tools remain useful for supported web-only steps. This is an operating preference, not a claim of benchmark superiority or a universal speed guarantee.
+
 Your agent can use the same MCP, CLI or SDK tools continuously under a task such as "create the benchmark accounts and complete free trials; spend no money." OpenSky has no content blacklist for sites, sign-ins, agreements or CAPTCHAs and no per-click approval dialog. Its bundled skill carries existing task authority forward, verifies outcomes, records checkpoints and continues independent work when a provider is blocked.
 
-The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. macOS permissions, protected dialogs and the connected agent's own rules still apply. Authentication, stale-target checks and emergency pause protect control of the Mac.
+The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. Applicable system, developer, harness and tool rules retain their authority whether or not they mention OpenSky. Restrictions exclusive to a different tool are not automatically imported. macOS permissions, protected dialogs, authentication, stale-target checks and emergency pause remain effective. Auto adds no authority for unrelated work and does not resume stopped control.
+
+The 1.3.1 JavaScript/guidance patch works with the existing 1.3.0 native engine; this patch does not require a new native build.
+
+For an existing managed 1.3.0 native installation, update JavaScript and optional skills with `./install.sh --runtime-only --skill codex` (use `--skill claude` for Claude). This validates the existing helper and preserves its files, running state and macOS permissions. Reconnect MCP clients to load new connection instructions. Use a full install when the required native version changes.
 
 MCP bounds in-flight work to 64 requests and forwards it promptly to the single native action queue. The native queue accepts up to 64 pending requests and expires work after five seconds of waiting. Emergency stop invalidates their current generation. Resuming does not revive old queued actions. Physical desktop input remains serialized across clients.
 
@@ -225,6 +233,8 @@ Inside a source checkout, import `./src/index.mjs`; after a local install, use t
 
 ## Architecture and local access
 
+OpenSky's engine runs locally and performs OCR on-device, with no built-in telemetry or cloud relay. **Screenshots are stored locally until deleted**, and observations are returned to your connected agent. That agent may transmit them to its model provider. Browser actions also communicate normally with the sites you use. See [data handling and retention](PRIVACY.md) for the exact boundaries; this is not a zero-storage or blanket GDPR-compliance claim.
+
 ```text
 MCP client / CLI / JavaScript SDK
               │
@@ -258,6 +268,8 @@ Native builds use the `Native/` directory. Source changes require a rebuild; rei
 ## Tested scope
 
 The 1.3 check run passed **21 automated tests, 20 live native checks and 39 packaging assertions**. A real TextEdit background edit also passed: Chrome stayed active, the selected document received the exact Unicode content, and the other TextEdit document remained unchanged. See [the 1.3 results](artifacts/2026-10-17-opensky-1-3-results-Codex.json).
+
+A later 17 October follow-up completed Google's public reCAPTCHA v2 checkbox demo using OpenSky in the existing Chrome session. The checkbox became checked, the form was submitted, and the server returned `Success!` with `success => true`. No image puzzle was presented. The 1.3.1 runtime patch passed **23 automated tests and 39 packaging assertions**. See [the auto-mode and CAPTCHA result](artifacts/2026-10-17-opensky-auto-mode-and-captcha-Codex.json); this single flow does not establish support for every CAPTCHA or provider.
 
 The 17 October [real-app verification](artifacts/2026-10-17-opensky-real-app-review-Codex.txt) covers Chrome, Finder and TextEdit, including a UTF-8 file saved and reopened through their actual interfaces. The updated live suite also checks open menu commands, quitting without accidental relaunch, and complete window geometry across displays. Read [the results](artifacts/2026-10-17-opensky-real-app-results-Codex.json) for the tested scope and remaining limits. A successful input with `observation_ok: false` needs a fresh observation before dependent input; external app launch and web navigation can remain asynchronous.
 

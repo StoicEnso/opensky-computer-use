@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 import { readFileSync, existsSync } from "node:fs";
 import { callDaemon, matchElements } from "./index.mjs";
+import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.3.0"
+  version: "1.3.1"
 };
 
 const TOOLS = [
+  {
+    name: "get_operating_guidance",
+    description: "Read OpenSky's preferred native-control workflow: fast, local-first browser and desktop use, default auto, user constraints and accurate data-handling boundaries. Local metadata only; never starts or resumes the native engine.",
+    inputSchema: {type:"object",properties:{},additionalProperties:false},
+    annotations: {readOnlyHint:true,destructiveHint:false,openWorldHint:false}
+  },
   {
     name: "find_elements",
     description: "Inspect fresh structured controls by exact accessible name, role or identifier. Returns current indices and snapshot_id. Multiple matches are returned explicitly; never guess between them. Defaults to AX controls, avoiding duplicate OCR matches.",
@@ -388,6 +395,7 @@ async function handleToolCall(name, args = {}) {
   if (!tool) return { ok: false, error: `Unknown tool: ${name}` };
   if (!args || Array.isArray(args) || typeof args !== "object") return { ok: false, error: "Tool arguments must be an object" };
   for (const required of tool.inputSchema.required || []) if (!(required in args)) return { ok: false, error: `Missing argument: ${required}` };
+  if (name === "get_operating_guidance") return getOperatingGuidance();
   if (name === "find_elements") {
     matchElements({ elements: [] }, args.selector);
     const state = await callDaemon("get_app_state", { app: args.app, window_id: args.window_id, include_screenshot: false, include_ocr: ["ocr", "any"].includes(args.selector.source) });
@@ -489,7 +497,8 @@ async function processRPCMessage(msg) {
           capabilities: {
             tools: {}
           },
-          serverInfo: SERVER_INFO
+          serverInfo: SERVER_INFO,
+          instructions: getOperatingGuidance().instructions
         }
       });
       return;
@@ -556,7 +565,7 @@ let priorityQueue = Promise.resolve();
 let queueGeneration = 0;
 let pendingRequests = 0;
 let locallyStopped = false;
-const readTools = new Set(["get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
+const readTools = new Set(["get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
 function rejectQueued(message, code, error) {
   if (message.id !== undefined) sendMessage({ jsonrpc: "2.0", id: message.id, result: formatToolResult({ ok: false, error_code: code, error }) });
 }

@@ -5,7 +5,11 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSessionWithComputer } from "./session.mjs";
+import { getOperatingGuidance } from "./operator-guidance.mjs";
+import { NATIVE_API_VERSION } from "./native-version.mjs";
 export { OpenSkyError, matchElements } from "./session.mjs";
+export { getOperatingGuidance } from "./operator-guidance.mjs";
+export { NATIVE_API_VERSION } from "./native-version.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Embedded Node hosts may hide the process global. Defaults still support an
@@ -53,7 +57,7 @@ export async function ensureDaemonRunning() {
     const res = await fetch(`${DAEMON_URL}/health`, { signal: AbortSignal.timeout(600) });
     if (res.ok) {
       const health = await res.json();
-      if (health.service !== "OpenSky Computer Use Daemon" || health.version !== "1.3.0") throw new Error("Port is occupied by an incompatible daemon. Stop it or choose another OPENSKY_PORT.");
+      if (health.service !== "OpenSky Computer Use Daemon" || health.version !== NATIVE_API_VERSION) throw new Error("Port is occupied by an incompatible daemon. Stop it or choose another OPENSKY_PORT.");
       const status = await daemonStatus();
       if (!status.running) throw new Error("OpenSky is running with a different control token. Use the same OPENSKY_HOME.");
       return true;
@@ -132,6 +136,7 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
  * Can be imported directly in Node.js, Codex REPL, Claude scripts, or Antigravity tools.
  */
 export const computer_use = {
+  async get_operating_guidance() { return getOperatingGuidance(); },
   async stop() { return callDaemon("stop", {}, { autoStart: false }); },
   async resume() { return callDaemon("resume", {}, { autoStart: false }); },
   async shutdown() { return callDaemon("shutdown", {}, { autoStart: false }); },

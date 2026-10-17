@@ -1,14 +1,15 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, copyFileSync, writeFileSync, chmodSync, readFileSync } from "node:fs";
+import { mkdirSync, copyFileSync, writeFileSync, chmodSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { NATIVE_API_VERSION } from "../src/native-version.mjs";
 
 export const BUNDLE_ID = "dev.opensky.computeruse";
 export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export function buildApp(destination, { root = projectRoot } = {}) {
   if (process.platform !== "darwin") throw new Error("OpenSky's native app requires macOS 14 or later.");
-  const version = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version;
+  const version = NATIVE_API_VERSION;
   // Always invoke SwiftPM: it incrementally rebuilds changed source instead of trusting an old binary.
   execFileSync("swift", ["build", "-c", "release", "--package-path", path.join(root, "Native")], { stdio: "inherit" });
   const binDirectory = execFileSync("swift", ["build", "-c", "release", "--package-path", path.join(root, "Native"), "--show-bin-path"], { encoding: "utf8" }).trim();

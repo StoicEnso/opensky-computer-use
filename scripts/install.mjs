@@ -6,18 +6,20 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { buildApp, BUNDLE_ID, projectRoot } from "./build-app.mjs";
 import { replaceManagedFiles } from "./install-transaction.mjs";
+import { NATIVE_API_VERSION } from "../src/native-version.mjs";
 
 const markerName = ".opensky-install.json";
 const wrapperMarker = "# OpenSky managed launcher v1";
 const shellQuote = (value) => `'${value.replaceAll("'", `'\\''`)}'`;
 
 export function parseOptions(args) {
-  const options = { prefix: path.join(os.homedir(), ".local"), appDir: path.join(os.homedir(), "Applications"), skills: [], dryRun: false, uninstall: false };
+  const options = { prefix: path.join(os.homedir(), ".local"), appDir: path.join(os.homedir(), "Applications"), skills: [], dryRun: false, uninstall: false, runtimeOnly: false };
   for (let i = 0; i < args.length; i++) {
     const argument = args[i];
     if (argument === "--help" || argument === "-h") { options.help = true; continue; }
     if (argument === "--dry-run") { options.dryRun = true; continue; }
     if (argument === "--uninstall") { options.uninstall = true; continue; }
+    if (argument === "--runtime-only") { options.runtimeOnly = true; continue; }
     if (["--prefix", "--app-dir", "--skill"].includes(argument)) {
       const value = args[++i];
       if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value.`);
@@ -31,6 +33,7 @@ export function parseOptions(args) {
     }
     throw new Error(`Unknown option: ${argument}`);
   }
+  if (options.runtimeOnly && options.uninstall) throw new Error("--runtime-only cannot be combined with --uninstall.");
   options.runtime = path.resolve(process.env.OPENSKY_HOME || path.join(options.prefix, "share", "opensky"));
   options.app = path.join(options.appDir, "OpenSky.app");
   options.binDir = path.join(options.prefix, "bin");
@@ -98,7 +101,7 @@ function uninstall(options) {
     if (identity === BUNDLE_ID) rmSync(manifest.app, { recursive: true });
   }
   for (const name of manifest.installedFiles) {
-    if (!["src", "scripts", "package.json", "README.md", "LICENSE"].includes(name)) continue;
+    if (!["src", "scripts", "package.json", "README.md", "PRIVACY.md", "SECURITY.md", "LICENSE"].includes(name)) continue;
     rmSync(path.join(options.runtime, name), { recursive: true, force: true });
   }
   rmSync(path.join(options.runtime, markerName), { force: true });
@@ -110,20 +113,29 @@ export function install(options) {
   if (Number(process.versions.node.split(".")[0]) < 22) throw new Error("Node.js 22 or later is required.");
   if (process.platform !== "darwin") throw new Error("OpenSky requires macOS 14 or later.");
   const previous = validateDestinations(options);
+  if (options.runtimeOnly) {
+    if (!previous || !existsSync(path.join(options.app,"Contents/MacOS/OpenSky"))) throw new Error("A managed OpenSky native installation is required for --runtime-only. Run a full install first.");
+    if (previous.app !== options.app) throw new Error("--runtime-only must use the existing installation's --app-dir.");
+    const nativeVersion=execFileSync("/usr/libexec/PlistBuddy",["-c","Print :CFBundleShortVersionString",path.join(options.app,"Contents/Info.plist")],{encoding:"utf8"}).trim();
+    if (nativeVersion !== NATIVE_API_VERSION) throw new Error(`Runtime needs native engine ${NATIVE_API_VERSION}; found ${nativeVersion}. Run a full install.`);
+    execFileSync("/usr/bin/codesign",["--verify","--strict",options.app],{stdio:"ignore"});
+  }
   const manifest = { schema: 1, product: "opensky-computer-use", runtime: options.runtime, app: options.app,
+    nativeApiVersion: NATIVE_API_VERSION,
     launchers: [path.join(options.binDir, "opensky"), path.join(options.binDir, "opensky-mcp")],
-    installedFiles: ["src", "scripts", "package.json", "README.md", "LICENSE"],
+    installedFiles: ["src", "scripts", "package.json", "README.md", "PRIVACY.md", "SECURITY.md", "LICENSE"],
     installedAt: new Date().toISOString(), version: JSON.parse(readFileSync(path.join(projectRoot, "package.json"), "utf8")).version,
     skillFiles: previous?.skillFiles || [] };
-  if (options.dryRun) { console.log(JSON.stringify({ action: "install", ...manifest, skills: [...new Set(options.skills)], clientRegistration: "manual only", build: "Swift release, fresh bundle, verified ad-hoc signature" }, null, 2)); return; }
+  if (options.dryRun) { console.log(JSON.stringify({ action: options.runtimeOnly ? "runtime-update" : "install", ...manifest, skills: [...new Set(options.skills)], clientRegistration: "manual only", build: options.runtimeOnly ? "preserve existing native app and running service" : "Swift release, fresh bundle, verified ad-hoc signature" }, null, 2)); return; }
   const osVersion = execFileSync("/usr/bin/sw_vers", ["-productVersion"], { encoding: "utf8" }).trim();
   if (Number(osVersion.split(".")[0]) < 14) throw new Error(`macOS 14 or later is required (found ${osVersion}).`);
-  execFileSync("xcrun", ["--find", "swift"], { stdio: "ignore" });
-  mkdirSync(options.appDir, { recursive: true });
-  const stage = mkdtempSync(path.join(options.appDir, ".opensky-install-"));
+  if (!options.runtimeOnly) execFileSync("xcrun", ["--find", "swift"], { stdio: "ignore" });
+  const stagingParent=options.runtimeOnly ? path.dirname(options.runtime) : options.appDir;
+  mkdirSync(stagingParent, { recursive: true });
+  const stage = mkdtempSync(path.join(stagingParent, ".opensky-install-"));
   try {
-    const stagedApp = buildApp(path.join(stage, "OpenSky.app"));
-    const replacements = [{ source: stagedApp, destination: options.app }];
+    const replacements = [];
+    if (!options.runtimeOnly) replacements.push({source:buildApp(path.join(stage,"OpenSky.app")),destination:options.app});
     for (const name of manifest.installedFiles) replacements.push({ source: path.join(projectRoot, name), destination: path.join(options.runtime, name) });
     for (const [i, script] of ["cli.mjs", "mcp-server.mjs"].entries()) {
       const launcher = path.join(stage, `launcher-${i}`);
@@ -139,7 +151,7 @@ export function install(options) {
     writeFileSync(stagedManifest, `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
     replacements.push({ source: stagedManifest, destination: path.join(options.runtime, markerName) });
     // Stop the existing helper before changing the app or its JavaScript runtime.
-    if (previous && existsSync(path.join(options.runtime, "src/cli.mjs"))) {
+    if (!options.runtimeOnly && previous && existsSync(path.join(options.runtime, "src/cli.mjs"))) {
       try { execFileSync(process.execPath, [path.join(options.runtime, "src/cli.mjs"), "shutdown"], { env: { ...process.env, OPENSKY_HOME: options.runtime }, timeout: 6000, stdio: "ignore" }); }
       catch {
         let status;
@@ -151,14 +163,14 @@ export function install(options) {
     mkdirSync(options.runtime, { recursive: true, mode: 0o700 });
     chmodSync(options.runtime, 0o700);
     replaceManagedFiles(replacements);
-    console.log(`Installed OpenSky ${manifest.version}\nApp: ${options.app}\nRuntime: ${options.runtime}\nCLI: ${manifest.launchers[0]}\n\nAdd ${options.binDir} to PATH if needed.\nNext: opensky setup, opensky doctor, opensky config all\nNo MCP client configuration was changed.`);
+    console.log(`Installed OpenSky runtime ${manifest.version}\nNative engine: ${NATIVE_API_VERSION}${options.runtimeOnly ? " (preserved; no restart)" : ""}\nApp: ${options.app}\nRuntime: ${options.runtime}\nCLI: ${manifest.launchers[0]}\n\nAdd ${options.binDir} to PATH if needed.\nNext: opensky doctor; reconnect MCP clients to load updated instructions.\nNo MCP client configuration was changed.`);
   } finally { rmSync(stage, { recursive: true, force: true }); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const options = parseOptions(process.argv.slice(2));
-    if (options.help) console.log(`Usage: ./install.sh [--prefix PATH] [--app-dir PATH] [--skill codex|claude|all] [--dry-run]\n       ./install.sh --uninstall [--prefix PATH] [--app-dir PATH] [--dry-run]\n\nInstalls user-local app, runtime, and CLI launchers. Rebuilds native source on every install.\nSkills are opt-in; MCP client registration is always manual.\nUninstall preserves local credentials, captures, skills, and client configurations.`);
+    if (options.help) console.log(`Usage: ./install.sh [--prefix PATH] [--app-dir PATH] [--skill codex|claude|all] [--dry-run]\n       ./install.sh --runtime-only [--prefix PATH] [--app-dir PATH] [--skill codex|claude|all] [--dry-run]\n       ./install.sh --uninstall [--prefix PATH] [--app-dir PATH] [--dry-run]\n\nFull installs rebuild the native app. --runtime-only requires a compatible managed native app and preserves its files, permissions and running service.\nSkills are opt-in; MCP client registration is always manual.\nUninstall preserves local credentials, captures, skills, and client configurations.`);
     else install(options);
   } catch (error) { console.error(`OpenSky installer: ${error.message}`); process.exitCode = 1; }
 }
