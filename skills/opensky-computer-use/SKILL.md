@@ -101,7 +101,7 @@ After setup, use MCP `browser_tabs` or SDK `computer_use.browser_tabs` to list e
 
 1. Open or claim the task tab, then inspect `browser_snapshot({tab_id,workflow_id})`.
 2. Match observed `elements` by name/role. Supply fresh `snapshot_id` and `element_id` to `browser_click`, `browser_fill`, `browser_select_option` or `browser_press_key`.
-3. Use `browser_frames` and its exact `frame_id` for a child-frame snapshot/action. Root clicks use tab-targeted trusted input; child clicks currently report DOM activation, which some sites may reject.
+3. Use `browser_frames` and its exact `frame_id` for a child-frame snapshot/action. Root and child-frame clicks use trusted input scoped to the renderer target, with hit verification before input. A covered or unmappable control returns browser_target_obscured; inspect before any retry.
 4. For uploads, use `browser_upload({...target,files:[absolutePath]})` on a file input (including hidden inputs) or observed upload button. The chooser is intercepted; no Finder dialog or physical input is needed. Selection can immediately send files to the site. Verify filenames, page state and the final upload receipt before continuing.
 5. Re-observe after meaningful changes. A snapshot expires after 60 seconds and navigation invalidates it. Never repeat uncertain input automatically. `browser_screenshot` captures the exact tab and saves a local PNG.
 

@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.5.1",
+  "nativeVersion": "1.3.0",
+  "learningSession": 1,
+  "trigger": "A disposable embedded upload control requiring isTrusted and transient user activation rejected the synthetic frame click and timed out before a chooser was observed.",
+  "fix": {
+    "trustedRendererScopedFrameInput": true,
+    "contentQuadsAndHitVerification": true,
+    "scrollAdjustedHitTest": true,
+    "coveredControlRefusedBeforeInput": true,
+    "automaticInputRetry": false
+  },
+  "tests": {
+    "automatedPassed": 39,
+    "packagingAssertions": 39,
+    "passed": true,
+    "transport": "OpenSky MV3 extension + native messaging + local broker",
+    "codexBrowserToolsUsed": false,
+    "headlessTestProfile": true,
+    "backgroundTabs": 2,
+    "overlappingLoads": true,
+    "independentFieldValues": true,
+    "chooserUploadVerifiedAtLocalServer": true,
+    "directMultipleFiles": true,
+    "crossOriginFrameFill": true,
+    "trustedFrameChooserUploads": 4,
+    "sameProcessAndNestedFrameUploads": true,
+    "scaledIframeUpload": true,
+    "coveredControlRejectedBeforeInput": true,
+    "selectOptionsObservedAndSelected": true,
+    "tabScreenshot": true,
+    "mcpUploadVerified": true,
+    "mcpBrowserTools": 10,
+    "stopRejectsInput": true,
+    "trustedRootClick": true,
+    "unicodeFilename": true,
+    "ownershipConflictRejected": true,
+    "staleDocumentRejected": true,
+    "activeTabPreserved": true,
+    "uploadBytes": 358
+  },
+  "limits": [
+    "Tests used disposable headless Chrome for Testing 155.0.8059.84, not the signed-in owner profile.",
+    "The owner-profile extension load remains pending; no repeat prompt or hidden install was performed.",
+    "Chrome policies, native dialogs, closed shadow roots, canvas semantics and site-specific behavior remain limits.",
+    "Hit verification is a point-in-time check; a site can change its layout or open UI afterward.",
+    "Native emergency stop and actual authority rules retain their scope; no provider hold was bypassed."
+  ],
+  "installed": {
+    "runtime": "1.5.1",
+    "native": "1.3.0",
+    "nativeProcessPermissionsStopStatePreserved": true,
+    "nativeBinarySha256Unchanged": true,
+    "alongsideModePreserved": true,
+    "ownerExtensionConnected": false
+  }
+}

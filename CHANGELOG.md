@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1 — 2026-10-17
+
+- Reproduce an embedded upload button refusing the previous synthetic child-frame click.
+- Route trusted clicks to the exact renderer target using content quads and verified hit testing; account for document scroll offsets and refuse covered controls before input.
+- Verify file bytes from four activation-gated uploads across cross-origin, same-process, nested and scaled iframe fixtures. Preserve the selected tab, native permissions and no-retry behavior.
+
 ## 1.5.0 — 2026-10-17
 
 - Add OpenSky’s own MV3 Chrome extension, native host and authenticated local broker, independent of Codex browser tools and Apple Events.

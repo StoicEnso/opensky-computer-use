@@ -78,13 +78,31 @@ export function createBrowserController(chrome,{canAct=()=>true}={}) {
   async function click(tabId,params,turn) {
     const element=await target(tabId,params);
     const box=await onElement(tabId,element,function(){if(this.disabled)throw Error('Control is disabled');this.scrollIntoView({block:'center',inline:'center'});const r=this.getBoundingClientRect();if(!r.width||!r.height)throw Error('Control is not visible');return{x:r.x+r.width/2,y:r.y+r.height/2};});
-    // Root-frame input is a trusted, tab-targeted CDP event. Child-frame DOM
-    // activation is explicit until root-coordinate mapping has been verified.
+    // CDP quads use this renderer target's viewport, including same-process
+    // descendant frames. Verify the hit before delivering one trusted click.
+    const {quads=[]}=await send(tabId,'DOM.getContentQuads',{objectId:element.objectId},element.ctx.sessionId);
+    // Hit testing takes document coordinates; mouse input takes viewport coordinates.
+    const metrics=await send(tabId,'Page.getLayoutMetrics',{},element.ctx.sessionId),viewport=metrics.cssVisualViewport??metrics.cssLayoutViewport;
+    let point;
+    for(const quad of quads.slice(0,20)){
+      if(quad.length!==8)continue;
+      const x=(quad[0]+quad[2]+quad[4]+quad[6])/4,y=(quad[1]+quad[3]+quad[5]+quad[7])/4;
+      let hitObjectId;
+      try{
+        const hit=await send(tabId,'DOM.getNodeForLocation',{x:Math.round(x+(viewport?.pageX??0)),y:Math.round(y+(viewport?.pageY??0))},element.ctx.sessionId);
+        const node=await send(tabId,'DOM.resolveNode',{backendNodeId:hit.backendNodeId,executionContextId:element.ctx.contextId},element.ctx.sessionId);
+        hitObjectId=node.object.objectId;
+        const matches=await send(tabId,'Runtime.callFunctionOn',{objectId:element.objectId,functionDeclaration:'function(node){return this===node||this.contains(node);}',arguments:[{objectId:hitObjectId}],returnByValue:true},element.ctx.sessionId);
+        if(matches.result?.value===true){point={x,y};break;}
+      }catch{/* Only a proven hit on the observed control can receive input. */}
+      finally{if(hitObjectId)await send(tabId,'Runtime.releaseObject',{objectId:hitObjectId},element.ctx.sessionId).catch(()=>{});}
+    }
+    if(!point)fail('browser_target_obscured','The observed control has no verified clickable point in this frame. Inspect its layout before input.');
     check(turn);
     await evaluate(tabId,element.ctx,`(${animatePagePointer})(${box.x},${box.y},${JSON.stringify(params.workflow_id)})`);
-    if(element.ctx.parent_id){await onElement(tabId,element,function(){this.click();});return {ok:true,tab_id:String(tabId),activation:'frame_dom',verification_required:true};}
-    await send(tabId,'Input.dispatchMouseEvent',{type:'mousePressed',x:box.x,y:box.y,button:'left',clickCount:1});
-    await send(tabId,'Input.dispatchMouseEvent',{type:'mouseReleased',x:box.x,y:box.y,button:'left',clickCount:1});
+    check(turn);
+    await send(tabId,'Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1},element.ctx.sessionId);
+    await send(tabId,'Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1},element.ctx.sessionId);
     return {ok:true,tab_id:String(tabId),activation:'tab_input',verification_required:true};
   }
   async function upload(tabId,params,turn) {

@@ -187,7 +187,7 @@ await computer_use.browser_upload({
 
 The page pointer animates inside the task tab. It never moves your physical pointer. Existing task authorization carries across frames and tools; OpenSky adds no per-click question. The extension popup can Pause/Resume; `opensky stop` pauses browser work, and `opensky web shutdown` closes the local bridge. Native emergency pause is checked before mutations and polled during in-flight requests. Stop cannot undo delivered input.
 
-Protected Chrome pages, native dialogs, closed shadow roots, canvases and some site-specific activation requirements remain outside the verified page workflow. Child-frame clicks currently report DOM activation. A site may itself open UI. This release passed disposable headless Chrome tests; your signed-in profile still needs the one-time extension load and a live workflow check. See [the browser verification](artifacts/2026-10-17-opensky-browser-results-Codex.json).
+Protected Chrome pages, native dialogs, closed shadow roots, canvases and some site-specific activation requirements remain outside the verified page workflow. Root and child-frame clicks use trusted tab-scoped input after verifying the observed control at the input point. A site may itself open UI. This release passed disposable headless Chrome tests; your signed-in profile still needs the one-time extension load and a live workflow check. See [the browser verification](artifacts/2026-10-17-opensky-browser-results-Codex.json).
 
 ## Work while you use the Mac
 
@@ -348,6 +348,8 @@ node src/cli.mjs help
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
 ## Tested scope
+
+The 1.5.1 learning-session fix verified **four activation-gated iframe uploads**, covering cross-origin, same-process, nested and scaled frames. File contents reached the local server; a covered control was rejected before input. See [the frame upload results](artifacts/2026-10-17-opensky-frame-upload-results-Codex.json).
 
 The 1.5 browser transport passed **39 automated tests and 39 packaging assertions**, plus a real headless Chrome for Testing workflow with two inactive tabs, overlapping loads, independent field values, a cross-origin frame, trusted root clicks, screenshots, direct multiple-file selection and a chooser upload verified at the receiving server. Ownership conflicts, stale document handles and paused input were rejected. The owner’s selected tab and profile were not changed. This does not yet establish success on every benchmark provider or the owner’s signed-in profile.
 
