@@ -79,6 +79,28 @@ test('cancelling a browser turn prevents a queued input action',async()=>{
   assert.equal((await queued).error_code,'cancelled');assert.equal(writes,1);
 });
 
+test('interrupted background keys restore renderer focus emulation without delivering input',async()=>{
+  for(const interruption of ['cancel','target-disappeared']){
+    const fixture=chromeFixture();let emulated=false,inputs=0,controller;
+    fixture.debugger.sendCommand=async(target,method,params)=>{
+      if(method==='Page.getFrameTree')return{frameTree:{frame:{id:'root',url:'https://example.test'}}};
+      if(method==='Page.createIsolatedWorld')return{executionContextId:1};
+      if(method==='Runtime.evaluate')return{result:params.returnByValue?{value:{elements:[{element_id:'field',name:'Task field'}]}}:{objectId:'observed-field'}};
+      if(method==='Emulation.setFocusEmulationEnabled'){
+        emulated=params.enabled;if(emulated&&interruption==='cancel')controller.cancel();
+      }
+      if(method==='DOM.focus'&&interruption==='target-disappeared')throw Error('Observed field was removed');
+      if(method.startsWith('Input.'))inputs++;
+      return{};
+    };
+    controller=createBrowserController({...fixture,tabs:fixture.tabsApi});
+    const task={tab_id:'1',workflow_id:'a'};await controller.run('tab_claim',task);
+    const snapshot=await controller.run('snapshot',task);assert.equal(snapshot.ok,true);
+    const result=await controller.run('press_key',{...task,snapshot_id:snapshot.snapshot_id,element_id:'field',key:'Enter'});
+    assert.equal(result.ok,false);assert.equal(inputs,0);assert.equal(emulated,false,'Failed input left focus emulation enabled.');
+  }
+});
+
 test('extension startup and installation events create only one native connection',async()=>{
   const event=()=>({handlers:[],addListener(fn){this.handlers.push(fn);}});
   let resolveLocal,connections=0;

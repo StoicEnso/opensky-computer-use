@@ -187,7 +187,7 @@ await computer_use.browser_upload({
 
 The page pointer animates inside the task tab. It never moves your physical pointer. Existing task authorization carries across frames and tools; OpenSky adds no per-click question. The extension popup can Pause/Resume; `opensky stop` pauses browser work, and `opensky web shutdown` closes the local bridge. Native emergency pause is checked before mutations and polled during in-flight requests. Stop cannot undo delivered input.
 
-Protected Chrome pages, native dialogs, closed shadow roots, canvases and some site-specific activation requirements remain outside the verified page workflow. Root and child-frame clicks use trusted tab-scoped input after verifying the observed control at the input point. A site may itself open UI. This release passed disposable headless Chrome tests; your signed-in profile still needs the one-time extension load and a live workflow check. See [the browser verification](artifacts/2026-10-17-opensky-browser-results-Codex.json).
+Protected Chrome pages, native dialogs, closed shadow roots, canvases and some site-specific activation requirements remain outside the verified page workflow. Root and child-frame clicks use trusted tab-scoped input after verifying the observed control at the input point. Clicks and keys temporarily emulate focus in that renderer without selecting the tab; page focus handlers can run. A site may itself open UI. In 1.5.2, independent inactive tabs, trusted Enter and root/embedded uploads also passed in the owner's existing Chrome profile, with file bytes verified at a local server. See [the owner-profile verification](artifacts/2026-10-17-opensky-owner-browser-results-Codex.json).
 
 ## Work while you use the Mac
 
@@ -204,7 +204,7 @@ await session.setValue({ identifier: observedFieldIdentifier }, 'New text');
 
 Window inspection never substitutes another window when an explicit ID is unavailable or ambiguous. Background session field writes remain AX-only. Low-level `set_value` also defaults to background in 1.3; `hybrid` or `takeover` explicitly allows click-and-type fallback. This is a behavior change from 1.2, whose automatic field fallback could take focus.
 
-Background is app dependent. An AXPress may open UI, background keys follow the app's own keyboard focus, and foreground keyboard/mouse actions share your desktop. Clipboard paste also takes focus. Avoid simultaneous editing of the same app. For web workflows alongside your own work, use a compatible browser DOM/API tool where available and OpenSky for native dialogs and other Mac apps; OpenSky does not yet include a browser DOM connection.
+Background is app dependent. An AXPress may open UI, native background keys follow the app's own keyboard focus, and foreground keyboard/mouse actions share your desktop. Clipboard paste also takes focus. Avoid simultaneous editing of the same native document. For web workflows alongside your own work, prefer OpenSky's extension page tools with owned inactive tabs; use exact-window AX actions for supported native controls and defer shared-input steps.
 
 ## Several workflows at once
 
@@ -348,6 +348,8 @@ node src/cli.mjs help
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
 ## Tested scope
+
+The 1.5.2 follow-up verified **two inactive tabs, trusted Enter and two activation-gated uploads in the owner's existing Chrome profile**. A root page and cross-origin frame submitted generated Unicode-named files to a local fixture, where their contents were checked. Selected tabs and the frontmost app stayed unchanged during this background test; native process/permissions and the clipboard were preserved. Chrome extension setup was a separate explicit UI step. This establishes the local fixture workflow, not every provider's behavior. See [the owner-profile results](artifacts/2026-10-17-opensky-owner-browser-results-Codex.json).
 
 The 1.5.1 learning-session fix verified **four activation-gated iframe uploads**, covering cross-origin, same-process, nested and scaled frames. File contents reached the local server; a covered control was rejected before input. See [the frame upload results](artifacts/2026-10-17-opensky-frame-upload-results-Codex.json).
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.2 — 2026-10-17
+
+- Reproduce regular Chrome acknowledging inactive-tab mouse and keyboard events without delivering them, despite successful headless checks.
+- Temporarily emulate focus in the exact renderer for trusted clicks and keys, then disable it in a cleanup scope, including cancellation and target errors. Keep Chrome's selected tabs, the physical pointer and clipboard unchanged.
+- Verify real uploads from a root page and cross-origin frame in the owner's existing Chrome profile, with local server byte checks, independent inactive tabs and a trusted Enter key. Preserve the native app, process, permissions, stop state and alongside mode.
+- Wait for disposable test documents and descendant frames to finish loading before binding action snapshots; retain navigation invalidation and no automatic input retries.
+
 ## 1.5.1 — 2026-10-17
 
 - Reproduce an embedded upload button refusing the previous synthetic child-frame click.

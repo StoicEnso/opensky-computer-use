@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.5.2",
+  "nativeVersion": "1.3.0",
+  "verificationScope": "Interactive owner-profile verification; not an additional scheduled learning session",
+  "trigger": "Regular Chrome acknowledged inactive-tab mouse and key events without delivering them. Field updates worked; chooser uploads timed out. The earlier headless checks had passed.",
+  "fix": {
+    "temporaryRendererFocusEmulation": true,
+    "cleanupOnCancellationAndTargetError": true,
+    "explicitMouseButtonState": true,
+    "automaticInputRetry": false,
+    "foregroundFallback": false
+  },
+  "ownerProfile": {
+    "verified": true,
+    "existingOwnerProfile": true,
+    "driver": "OpenSky 1.5.2",
+    "codexBrowserToolsUsed": false,
+    "inactiveTabs": 2,
+    "independentValuesVerified": true,
+    "rootAndCrossOriginFrameUploadsVerifiedAtServer": true,
+    "unicodeFilename": true,
+    "trustedBackgroundEnter": true,
+    "inactivePageRemainedHidden": true,
+    "selectedTabsUnchanged": true,
+    "frontmostAppUnchanged": true,
+    "nativePermissionsPreserved": true,
+    "nativeProcessPreserved": true,
+    "clipboardInputUsed": false,
+    "cleanup": [
+      {
+        "taskTabClosed": true
+      },
+      {
+        "taskTabClosed": true
+      }
+    ]
+  },
+  "disposableHeadlessProfile": {
+    "passed": true,
+    "transport": "OpenSky MV3 extension + native messaging + local broker",
+    "codexBrowserToolsUsed": false,
+    "headlessTestProfile": true,
+    "backgroundTabs": 2,
+    "overlappingLoads": true,
+    "independentFieldValues": true,
+    "chooserUploadVerifiedAtLocalServer": true,
+    "directMultipleFiles": true,
+    "crossOriginFrameFill": true,
+    "trustedFrameChooserUploads": 4,
+    "sameProcessAndNestedFrameUploads": true,
+    "scaledIframeUpload": true,
+    "coveredControlRejectedBeforeInput": true,
+    "selectOptionsObservedAndSelected": true,
+    "tabScreenshot": true,
+    "mcpUploadVerified": true,
+    "mcpBrowserTools": 10,
+    "stopRejectsInput": true,
+    "trustedRootClick": true,
+    "trustedBackgroundEnter": true,
+    "unicodeFilename": true,
+    "ownershipConflictRejected": true,
+    "staleDocumentRejected": true,
+    "activeTabPreserved": true,
+    "uploadBytes": 358
+  },
+  "automatedTestsPassed": 40,
+  "packagingAssertions": 39,
+  "nativeBinarySha256Preserved": "17ed6bbf7fa30ded1d8f6c448f635889d5016aad6bef379385e95abc5a02c5e3",
+  "limits": [
+    "Verification used only generated local fixture data; no benchmark attempt or provider submission was restarted.",
+    "Page focus/blur handlers can run; disabling focus emulation restores normal Chrome behavior, not a guarantee that document.hasFocus() is false after DOM.focus.",
+    "Extension setup was an explicit Chrome UI flow through OpenSky; its AX controls can change app UI/focus. Focus preservation measurements cover the later background fixture test.",
+    "A successful CDP acknowledgement alone does not prove delivery; inspect page outcomes before repeating input.",
+    "Native dialogs, protected Chrome pages, closed shadow roots, canvases and site-specific restrictions remain limits.",
+    "Extension reload interrupts attached OpenSky page sessions; coordinate a quiet point, preserve checkpoints and never reload merely to test an active business workflow."
+  ]
+}

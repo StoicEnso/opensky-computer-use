@@ -5,7 +5,7 @@ import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.5.1"
+  version: "1.5.2"
 };
 
 const TOOLS = [
