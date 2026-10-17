@@ -16,6 +16,9 @@ async function refresh(){
     $('ready-badge').textContent=ready?'READY FOR COMPUTER USE':'SETUP IN PROGRESS';$('demo').disabled=!ready;
     $('chrome-state').textContent=state.chromeEnabled?'Enabled after successful setup':'Off until you choose to enable it.';
     $('chrome').hidden=state.chromeEnabled;updateConfig();
+    $('browser-state').textContent=state.browserConnected?'Connected to Chrome':'One-time extension setup needed';
+    $('browser-path').textContent=state.browserExtensionPath;
+    $('browser').hidden=state.browserConnected;
   }catch(error){message(error.message,true);}
 }
 for(const button of document.querySelectorAll('[data-action]')) button.addEventListener('click',async()=>{

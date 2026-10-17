@@ -28,6 +28,7 @@ After installation and permission setup, run `opensky demo`. A new disposable Ma
 
 ## What is included
 
+- Background Chrome tabs, page/frame snapshots, direct field entry and file uploads through OpenSky’s own extension/native-messaging bridge.
 - App and window discovery; Accessibility trees with snapshot-scoped element indices.
 - Window or desktop screenshots, with on-device Apple Vision text recognition.
 - Clicks, typing, keys, scrolling, drags, clipboard paste, window actions, and requested AppleScript/JXA execution.
@@ -152,6 +153,42 @@ await session.click({ role: 'button', name: 'Save' });
 
 Use actual labels/identifiers from your app's current observation. `find` defaults to exact, case-insensitive AX names; OCR is opt-in. Ambiguous/disabled targets fail explicitly. `setValue(selector, text)` requires a writable control. `waitFor(selector, { timeoutMs: 5000 })` polls observations; it does not repeat input. Abort signals are checked between observations. A timed-out input request has an unknown delivery outcome and must be verified before submitting it again.
 
+## Background Chrome tabs and uploads
+
+OpenSky 1.5 adds its **own Chrome extension and local native-messaging bridge**. It works in your existing profile through MCP, CLI or JavaScript; it does not call Codex browser tools. Task tabs remain inactive while you use the Mac. Each workflow owns exact tab IDs, actions are serialized per tab, and separate tabs can load together. File inputs and intercepted upload buttons accept explicit local files without opening a native file picker.
+
+After installing, run:
+
+```sh
+opensky web install
+```
+
+This registers the local host and prints the extension folder. In your existing Chrome profile, open **chrome://extensions**, enable **Developer mode**, choose **Load unpacked** and select the printed folder. Review Chrome's debugger, tabs and native-messaging access. This is a one-time owner setup; OpenSky does not silently load extensions or restart Chrome. Chrome displays a debugger notice while a task is attached. No Chrome Apple Events consent is needed for this path.
+
+```sh
+opensky web status
+opensky web tabs '{"action":"open","workflow_id":"my-task","url":"https://example.com"}'
+# Use the returned tab_id:
+opensky web snapshot '{"tab_id":"OBSERVED_ID","workflow_id":"my-task"}'
+```
+
+MCP exposes `browser_tabs`, `browser_snapshot`, `browser_frames`, `browser_click`, `browser_fill`, `browser_upload`, `browser_select_option`, `browser_press_key` and `browser_screenshot`, plus passive `browser_status`. Actions use fresh `snapshot_id` and `element_id` from the exact task tab/frame. For an existing task tab, explicitly claim its observed ID. Never interchange extension, Apple Events and native AX IDs.
+
+```js
+const task = {tab_id: 'OBSERVED_ID', workflow_id: 'my-task'};
+const state = await computer_use.browser_snapshot(task);
+const upload = state.elements.find(e => e.type === 'file');
+await computer_use.browser_upload({
+  ...task, snapshot_id: state.snapshot_id, element_id: upload.element_id,
+  files: ['/absolute/path/to/approved-upload.png']
+});
+// Reinspect and verify the site's upload result before proceeding.
+```
+
+The page pointer animates inside the task tab. It never moves your physical pointer. Existing task authorization carries across frames and tools; OpenSky adds no per-click question. The extension popup can Pause/Resume; `opensky stop` pauses browser work, and `opensky web shutdown` closes the local bridge. Native emergency pause is checked before mutations and polled during in-flight requests. Stop cannot undo delivered input.
+
+Protected Chrome pages, native dialogs, closed shadow roots, canvases and some site-specific activation requirements remain outside the verified page workflow. Child-frame clicks currently report DOM activation. A site may itself open UI. This release passed disposable headless Chrome tests; your signed-in profile still needs the one-time extension load and a live workflow check. See [the browser verification](artifacts/2026-10-17-opensky-browser-results-Codex.json).
+
 ## Work while you use the Mac
 
 Use an explicit background session for supported AX actions, pinned to an on-screen window from `list_apps`:
@@ -207,13 +244,13 @@ Fresh-agent testing completed a real native workflow with no extra questions; a 
 
 **Auto is the default workflow preference within the user's authorized task.** MCP clients receive this guidance when connecting, even without loading the optional skill. Read it later with the `get_operating_guidance` MCP tool, `opensky guidance --json`, `computer_use.get_operating_guidance()` or `getOperatingGuidance()` from the SDK. Reading guidance never starts or resumes the native engine.
 
-The guidance prefers OpenSky for authorized native computer use and browser UI that needs desktop control, while respecting the user's chosen tools. Use the existing Chrome session. Work promptly with targeted Accessibility queries, direct field values and brief pointer feedback; request screenshots/OCR when needed and wait for actual state changes. Dedicated browser DOM/API tools remain useful for supported web-only steps. This is an operating preference, not a claim of benchmark superiority or a universal speed guarantee.
+The guidance prefers OpenSky for authorized native computer use and browser UI that needs desktop control, while respecting the user's chosen tools. Use the existing Chrome session. Work promptly with targeted Accessibility queries, direct field values and brief pointer feedback; request screenshots/OCR when needed and wait for actual state changes. Prefer the OpenSky browser_* page tools for background Chrome work after extension setup; native AX remains available for desktop apps. This is an operating preference, not a claim of benchmark superiority or a universal speed guarantee.
 
 Your agent can use the same MCP, CLI or SDK tools continuously under a task such as "create the benchmark accounts and complete free trials; spend no money." OpenSky has no content blacklist for sites, sign-ins, agreements or CAPTCHAs and no per-click approval dialog. Its bundled skill carries existing task authority forward, verifies outcomes, records checkpoints and continues independent work when a provider is blocked.
 
 The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. Applicable system, developer, harness and tool rules retain their authority whether or not they mention OpenSky. Restrictions exclusive to a different tool are not automatically imported. macOS permissions, protected dialogs, authentication, stale-target checks and emergency pause remain effective. Auto adds no authority for unrelated work and does not resume stopped control.
 
-The 1.4 JavaScript/onboarding release works with the existing 1.3.0 native engine; an existing installation does not need a native rebuild for these workflow features. New full builds include the branded app icon.
+The 1.5 JavaScript/browser release works with the existing 1.3.0 native engine; an existing installation does not need a native rebuild for these workflow features. New full builds include the branded app icon.
 
 For an existing managed 1.3.0 native installation, update JavaScript and optional skills with `./install.sh --runtime-only --skill codex` (use `--skill claude` for Claude). This validates the existing helper and preserves its files, running state and macOS permissions. Reconnect MCP clients to load new connection instructions. Use a full install when the required native version changes.
 
@@ -302,6 +339,7 @@ npm run build:native
 node scripts/build-app.mjs .build/OpenSky.app
 npm test
 npm run test:packaging
+OPENSKY_TEST_CHROME="/absolute/path/to/Chrome for Testing" npm run test:browser
 npm run test:live  # After permissions are enabled; uses only a disposable test window.
 npm run test:live -- --ax-only  # Optional: check input before granting Screen Recording.
 node src/cli.mjs help
@@ -310,6 +348,8 @@ node src/cli.mjs help
 Native builds use the `Native/` directory. Source changes require a rebuild; reinstalling rebuilds and replaces the app. Diagnostic and automated checks do not establish reliability across every app. A live check needs the relevant macOS permissions and a disposable target document or test app.
 
 ## Tested scope
+
+The 1.5 browser transport passed **39 automated tests and 39 packaging assertions**, plus a real headless Chrome for Testing workflow with two inactive tabs, overlapping loads, independent field values, a cross-origin frame, trusted root clicks, screenshots, direct multiple-file selection and a chooser upload verified at the receiving server. Ownership conflicts, stale document handles and paused input were rejected. The owner’s selected tab and profile were not changed. This does not yet establish success on every benchmark provider or the owner’s signed-in profile.
 
 The 1.4 follow-up passed **28 automated tests and 39 packaging assertions**, a real two-tab Chrome AX workflow, a fresh-agent live trial with **zero extra permission questions**, and an independent five-scenario authorization review. The local setup screen was inspected at desktop and narrow widths. The installed MCP connection exposes 21 tools; runtime-only update preserved the native process, binary and permissions. See [the 1.4 results and remaining limits](artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json).
 
@@ -325,7 +365,7 @@ The 17 October [real-app verification](artifacts/2026-10-17-opensky-real-app-rev
 
 Peekaboo 4.9.5 was also installed and exercised on the same Mac. It completed several background actions; exact-window focus and combined Chrome capture failed in this run. [Read the comparison and design review](artifacts/2026-10-17-opensky-background-and-peekaboo-review-Codex.txt). This is a bounded comparison, not a claim of universal superiority.
 
-Current limits: app-dependent AX support, shared foreground input, no bundled browser DOM connection, no standalone autonomous agent and no driver-enforced spending cap. Source builds are ad-hoc signed; macOS can require permissions again after an update. The source build path requires Xcode Command Line Tools.
+Current limits: app-dependent AX support, shared foreground input, one-time browser extension setup, page-specific activation limits, no standalone autonomous agent and no driver-enforced spending cap. Source builds are ad-hoc signed; macOS can require permissions again after an update. The source build path requires Xcode Command Line Tools.
 
 ## Uninstall
 

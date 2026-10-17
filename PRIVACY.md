@@ -1,10 +1,12 @@
 # OpenSky data handling
 
-Updated 17 October 2026 for runtime 1.4.0 / native engine 1.3.0.
+Updated 17 October 2026 for runtime 1.5.0 / native engine 1.3.0.
 
 OpenSky is a local macOS control engine. The shipped engine and JavaScript runtime have no built-in telemetry, analytics, developer upload endpoint or OpenSky cloud relay. Native control uses authenticated loopback RPC; MCP communicates with the connected agent over standard input/output. Apple Vision OCR runs on the Mac.
 
 Guided onboarding uses a short-lived loopback web page with an unpredictable setup path, same-origin action checks and a fixed list of setup actions. It exposes readiness and agent configuration, never the desktop-control token. Optional Chrome integration saves a local enabled/verified timestamp and returns tab metadata to the connected agent when requested; it is off until explicit setup.
+
+The optional OpenSky Browser extension uses Chrome's debugger interface and a local native-messaging host. Its broker binds authenticated IPv4 loopback (43822 by default) and an owner-only Unix socket. It has no OpenSky remote relay. The extension stores a random profile ID and pause preference locally, and workflow tab ownership in Chrome session storage. Requested tab metadata, page text/control values (password field values are redacted), upload filenames and screenshots are returned to the connected agent. Upload bytes go to the selected website through normal Chrome requests. This is broad browser access; install it only in a profile you authorize the agent to use. Uninstalling the native host does not remove the extension from Chrome.
 
 ## What persists on your Mac
 

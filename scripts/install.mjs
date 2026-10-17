@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { buildApp, BUNDLE_ID, projectRoot } from "./build-app.mjs";
 import { replaceManagedFiles } from "./install-transaction.mjs";
 import { NATIVE_API_VERSION } from "../src/native-version.mjs";
+import { removeBrowserHosts } from './browser-install.mjs';
 
 const markerName = ".opensky-install.json";
 const wrapperMarker = "# OpenSky managed launcher v1";
@@ -55,7 +56,7 @@ function loadManifest(runtime) {
 
 function validateDestinations(options) {
   const manifest = loadManifest(options.runtime);
-  if (existsSync(options.runtime) && !manifest && readdirSync(options.runtime).some((name) => !["control-token", "daemon.log", "screenshots", "demos", "chrome-automation.json", "interaction-mode.json"].includes(name))) {
+  if (existsSync(options.runtime) && !manifest && readdirSync(options.runtime).some((name) => !["control-token", "daemon.log", "screenshots", "demos", "chrome-automation.json", "interaction-mode.json", "browser-host", "browser-hosts.json", "browser-paused.json", "browser-bridge.log"].includes(name))) {
     throw new Error(`Refusing to overwrite an unrecognized directory: ${options.runtime}`);
   }
   for (const name of ["opensky", "opensky-mcp"]) {
@@ -87,8 +88,10 @@ function validateDestinations(options) {
 function uninstall(options) {
   const manifest = loadManifest(options.runtime);
   if (!manifest) throw new Error(`No managed OpenSky installation found in ${options.runtime}.`);
-  const planned = [...manifest.launchers, manifest.app, ...manifest.installedFiles.map((name) => path.join(options.runtime, name)), path.join(options.runtime, markerName)];
+  const planned = [...removeBrowserHosts(options.runtime,{dryRun:true}),...manifest.launchers, manifest.app, ...manifest.installedFiles.map((name) => path.join(options.runtime, name)), path.join(options.runtime, markerName)];
   if (options.dryRun) { console.log(JSON.stringify({ action: "uninstall", remove: planned, preserve: ["runtime credentials and captures", "client MCP configurations", "installed skill files"] }, null, 2)); return; }
+  removeBrowserHosts(options.runtime);
+  try{execFileSync(process.execPath,[path.join(options.runtime,'src/cli.mjs'),'web','shutdown'],{env:{...process.env,OPENSKY_HOME:options.runtime},stdio:'ignore',timeout:3000});}catch{}
   // Contact only the instance using this installation's local credentials.
   try {
     execFileSync(process.execPath, [path.join(options.runtime, "src", "cli.mjs"), "shutdown"], { env: { ...process.env, OPENSKY_HOME: options.runtime }, stdio: "ignore", timeout: 5000 });

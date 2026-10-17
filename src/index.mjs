@@ -9,6 +9,7 @@ import { getOperatingGuidance } from "./operator-guidance.mjs";
 import { NATIVE_API_VERSION } from "./native-version.mjs";
 import { performChromeTabs } from "./chrome.mjs";
 import { readInteractionMode, writeInteractionMode, prepareInteraction } from "./interaction-mode.mjs";
+import { browserRequest, setBrowserPaused } from "./browser/client.mjs";
 export { OpenSkyError, matchElements } from "./session.mjs";
 export { getOperatingGuidance } from "./operator-guidance.mjs";
 export { NATIVE_API_VERSION } from "./native-version.mjs";
@@ -111,6 +112,7 @@ export async function ensureDaemonRunning() {
  * Automatically starts the resident daemon if not already running, with authenticated local transport.
  */
 export async function callDaemon(method, params = {}, { autoStart = true } = {}) {
+  if (['stop','shutdown'].includes(method)) await setBrowserPaused(true);
   const prepared = prepareInteraction(OPENSKY_HOME, method, params);
   if (prepared.result) return prepared.result;
   params = prepared.params;
@@ -125,6 +127,7 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || `OpenSky HTTP ${res.status}`);
+    if (method === 'resume' && result.ok) await setBrowserPaused(false);
     if (method === "shutdown" && result.ok) {
       const deadline = Date.now() + 3000;
       while (Date.now() < deadline) {
@@ -141,6 +144,27 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
  * Can be imported directly in Node.js, Codex REPL, Claude scripts, or Antigravity tools.
  */
 export const computer_use = {
+  async browser_status() { return browserRequest('status'); },
+  async browser_tabs(params = {}) {
+    const action=params.action??'list';
+    const method={list:'tabs_list',open:'tab_open',claim:'tab_claim',navigate:'tab_navigate',close:'tab_close',release:'tab_release'}[action];
+    if(!method)return {ok:false,error_code:'invalid_browser_action',error:'Use list, open, claim, navigate, close or release.'};
+    return browserRequest(method,params);
+  },
+  async browser_snapshot(params = {}) { return browserRequest('snapshot',params); },
+  async browser_frames(params = {}) { return browserRequest('frames',params); },
+  async browser_click(params = {}) { return browserRequest('click',params); },
+  async browser_fill(params = {}) { return browserRequest('fill',params); },
+  async browser_upload(params = {}) { return browserRequest('upload',params); },
+  async browser_press_key(params = {}) { return browserRequest('press_key',params); },
+  async browser_select_option(params = {}) { return browserRequest('select_option',params); },
+  async browser_screenshot(params = {}) {
+    const result=await browserRequest('screenshot',params);if(!result.ok)return result;
+    const directory=path.join(OPENSKY_HOME,'screenshots');mkdirSync(directory,{recursive:true,mode:0o700});
+    const now=new Date(),date=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+    const filename=path.join(directory,`${date}-browser-${params.tab_id}-${randomBytes(5).toString('hex')}-Codex.png`);
+    writeFileSync(filename,Buffer.from(result.image_base64,'base64'),{mode:0o600});return {ok:true,tab_id:result.tab_id,screenshot:{path:filename}};
+  },
   async interaction_mode(params = {}) {
     return params.mode === undefined ? readInteractionMode(OPENSKY_HOME) : writeInteractionMode(OPENSKY_HOME, params.mode);
   },

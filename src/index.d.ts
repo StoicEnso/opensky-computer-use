@@ -8,6 +8,62 @@ export declare const DAEMON_URL: string;
 
 export type ExecutionMode = "hybrid" | "background" | "takeover";
 export type InteractionMode = "alongside" | "desktop";
+export interface BrowserParams {
+  tab_id: string;
+  workflow_id: string;
+  profile_id?: string;
+  frame_id?: string;
+}
+export interface BrowserElement {
+  element_id: string;
+  role: string;
+  name: string;
+  tag: string;
+  type?: string;
+  value?: string;
+  visible: boolean;
+  disabled: boolean;
+  read_only: boolean;
+  checked?: boolean;
+  options?: Array<{value:string;label:string;disabled:boolean;selected:boolean}>;
+  accept?: string;
+  multiple?: boolean;
+  frame: Rect4D;
+}
+export interface BrowserResult {
+  ok: boolean;
+  error_code?: string;
+  error?: string;
+  outcome?: string;
+  tab_id?: string;
+  window_id?: string;
+  snapshot_id?: string;
+  frame_id?: string;
+  elements?: BrowserElement[];
+  text?: string;
+  title?: string;
+  url?: string;
+  active?: boolean;
+  files?: Array<{name:string;size:number;type:string}>;
+  file_count?: number;
+  screenshot?: OpenSkyScreenshotInfo;
+  verification_required?: boolean;
+  tabs?: Array<{tab_id:string;window_id:string;url:string;pending_url?:string;title:string;active:boolean;workflow_id?:string;status?:string;control_paused?:boolean}>;
+  frames?: Array<{frame_id:string;parent_id?:string;url:string;name?:string;loader_id?:string}>;
+  connected?: boolean;
+  paused?: boolean;
+  profiles?: Array<{profile_id:string;extension_version:string}>;
+}
+export interface BrowserTargetParams extends BrowserParams {snapshot_id:string;element_id:string;}
+export interface BrowserTabsParams {
+  action?: 'list'|'open'|'claim'|'navigate'|'close'|'release';
+  workflow_id?: string;
+  profile_id?: string;
+  tab_id?: string;
+  /** Chrome extension window ID; distinct from native AX window_id. */
+  window_id?: string;
+  url?: string;
+}
 export interface InteractionModeResult {
   ok: boolean;
   interaction_mode?: InteractionMode;
@@ -334,6 +390,16 @@ export declare function callDaemon<T = OpenSkyActionResult>(
  * OpenSky computer-use SDK using public macOS APIs.
  */
 export interface OpenSkyComputerUse {
+  browser_status(): Promise<BrowserResult>;
+  browser_tabs(params?: BrowserTabsParams): Promise<BrowserResult>;
+  browser_snapshot(params: BrowserParams & {limit?:number}): Promise<BrowserResult>;
+  browser_frames(params: BrowserParams): Promise<BrowserResult>;
+  browser_click(params: BrowserTargetParams): Promise<BrowserResult>;
+  browser_fill(params: BrowserTargetParams & {value:string}): Promise<BrowserResult>;
+  browser_upload(params: BrowserTargetParams & {files:string[]}): Promise<BrowserResult>;
+  browser_press_key(params: BrowserTargetParams & {key:string}): Promise<BrowserResult>;
+  browser_select_option(params: BrowserTargetParams & {value:string}): Promise<BrowserResult>;
+  browser_screenshot(params: BrowserParams): Promise<BrowserResult>;
   /** Persistent cooperation preference shared by current-runtime clients. No engine launch. */
   interaction_mode(params?: {mode?: InteractionMode}): Promise<InteractionModeResult>;
   /** Optional one-time opt-in Chrome Apple Events tab integration. Native AX works without it. */

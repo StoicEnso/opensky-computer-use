@@ -13,3 +13,9 @@ Named pointer animations are visual feedback. They do not establish that an app 
 Local builds are ad-hoc signed. Rebuilding can invalidate macOS permission records. This repository does not bypass macOS consent, require code-signing impersonation, or connect to a private vendor's restricted helper.
 
 For a suspected vulnerability, avoid placing secrets or a working exploit against someone else's Mac in a public issue. Use GitHub's private vulnerability reporting when enabled on this repository. Include a minimal reproduction using disposable data and the affected release.
+
+## Browser extension transport
+
+The optional MV3 extension requires Chrome debugger/tabs/native-messaging access. The registered native host accepts only the fixed OpenSky extension origin, reads the local token itself and connects to an owner-only Unix socket. The extension never receives the bearer token. HTTP requests require the token and exact loopback Host; browser Origin requests are rejected. Multiple connected profiles require an explicit observed profile ID. Task ownership and snapshot handles prevent accidental cross-workflow input; they are not an isolation boundary against other same-user code.
+
+Uploads require explicit existing absolute regular-file paths (up to 20); selecting them may immediately send data to the target site. Page observations remain untrusted content. The public browser tools do not expose arbitrary JavaScript evaluation. Chrome can detach debugger control, and OpenSky requires explicit resume before reattaching a revoked task. Browser pause cancels queued generations and cooperatively checks ongoing turns. Native emergency pause is checked before mutations and polled during pending work; latency and already-delivered input remain limits. Do not represent this as an instantaneous cross-process kill switch.

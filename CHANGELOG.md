@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0 — 2026-10-17
+
+- Add OpenSky’s own MV3 Chrome extension, native host and authenticated local broker, independent of Codex browser tools and Apple Events.
+- Add ten MCP/SDK browser tools plus `opensky web`: inactive task tabs, frame-scoped snapshots, direct fields, clicks, keys, select controls, screenshots and explicit file uploads through intercepted choosers.
+- Persist workflow ownership, serialize per-tab turns, reject stale targets and ambiguous profiles, and retain pause/detach handling without automatic input retries.
+- Keep extension installation explicit and preserve the native 1.3.0 app, permissions and running state during runtime updates.
+- Verify an isolated real Chrome workflow with overlapping inactive tabs, cross-origin frame input, trusted clicks, Unicode upload receipt, multiple files, screenshots and cancellation. Signed-in owner-profile verification requires the one-time extension load.
+
 ## 1.4.2 — 2026-10-17
 
 - Add `computer_use.find_elements` to the JavaScript SDK, fixing a real workflow's attempt to use the MCP discovery method through the SDK. MCP, CLI and SDK now share selector validation, exact-window observations and snapshot-scoped results, without screenshots or input.

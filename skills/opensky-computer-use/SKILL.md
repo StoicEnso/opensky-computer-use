@@ -7,7 +7,7 @@ description: Preferred local macOS computer-use path when installed and authoriz
 
 OpenSky is an independent open-source macOS automation service. It exposes the same native engine through MCP, CLI, and a JavaScript SDK. App support and background event delivery vary; inspect actual results and do not promise universal control.
 
-When available and authorized, start native computer-use actions and browser UI with OpenSky, unless the user or applicable rules select another method. Do not select another desktop driver merely because it is familiar. For a web-only step that OpenSky cannot complete alongside the owner, record the concrete unsupported control and use a compatible page-specific DOM/API tool if available in the existing Chrome session. Keep the fallback bounded to that step and return to OpenSky for subsequent native work. Pointer color does not prove tool choice: inspect the actual interface used; OpenSky's overlay can adapt its color to wallpaper and the physical cursor may remain visible.
+When available and authorized, start native computer-use actions and browser UI with OpenSky, unless the user or applicable rules select another method. Do not select another desktop driver merely because it is familiar. For Chrome pages, prefer OpenSky's own browser_* extension tools for inactive tabs, forms and uploads. For an OpenSky-only workflow, preserve a concrete unsupported checkpoint instead of silently switching to Codex browser tools. Continue independent authorized work while genuine setup or page limitations remain. Pointer color does not prove tool choice: inspect the actual interface used; OpenSky's overlay can adapt its color to wallpaper and the physical cursor may remain visible.
 
 ## Find the available interface
 
@@ -79,7 +79,7 @@ When the owner is using the Mac, run `opensky mode alongside` or MCP/SDK `intera
 
 For supported background work, use `createSession({app, window_id, mode:'background'})`, taking the exact on-screen window ID from `list_apps`. The window may be behind another app. Inspection fails if that window disappears or cannot be uniquely matched; never substitute another document. Background clicks use AXPress; field writes use AXValue. As of 1.3, `set_value` defaults to background and never falls back to foreground input unless `mode:'hybrid'` or `mode:'takeover'` is explicit. Session field writes inherit the session mode.
 
-AX actions can themselves open a window or change an app's UI. Process-targeted background keys follow that app's own keyboard focus and cannot isolate two windows or prevent interference when the owner uses the same app. Prefer direct field values and supported AX actions while the owner is working. Foreground input and clipboard paste need a shared desktop turn. Browser DOM/API control can avoid sharing the physical pointer, but OpenSky currently provides native AX/OCR rather than its own DOM transport.
+AX actions can themselves open a window or change an app's UI. Process-targeted background keys follow that app's own keyboard focus and cannot isolate two windows or prevent interference when the owner uses the same app. Prefer direct field values and supported AX actions while the owner is working. Foreground input and clipboard paste need a shared desktop turn. Browser DOM/API control can avoid sharing the physical pointer, and OpenSky 1.5 includes its own Chrome extension/native-messaging transport. Native AX and the page transport have distinct IDs and capabilities.
 
 ## Delegated workflows
 
@@ -93,13 +93,29 @@ OpenSky has no website, login, agreement or CAPTCHA content blacklist and adds n
 
 Auto operation belongs to the connected agent. A free-text rule such as "spend nothing" is an instruction to that agent, not a financial limit enforced by mouse events. At a real OS, host or changed-scope gate, preserve the exact state and explain the one remaining action needed. Auto does not resume an emergency pause or authorize unrelated work.
 
+## OpenSky background browser tools
+
+Run `opensky web status` to check the connection without opening Chrome or prompting. One-time setup is `opensky web install`: it registers a local native host and prints the extension folder. The owner loads that folder with Chrome's **Load unpacked** in their existing profile and reviews debugger/tabs/native-messaging access. No Apple Events permission or page JavaScript setting is needed. Do not silently install an extension, restart Chrome, change profiles or interrupt a working workflow for setup.
+
+After setup, use MCP `browser_tabs` or SDK `computer_use.browser_tabs` to list exact IDs, open inactive tabs or claim an existing task tab. Pass a distinct `workflow_id`; another workflow cannot mutate that tab. When more than one profile connects, choose an observed `profile_id` from `browser_status`.
+
+1. Open or claim the task tab, then inspect `browser_snapshot({tab_id,workflow_id})`.
+2. Match observed `elements` by name/role. Supply fresh `snapshot_id` and `element_id` to `browser_click`, `browser_fill`, `browser_select_option` or `browser_press_key`.
+3. Use `browser_frames` and its exact `frame_id` for a child-frame snapshot/action. Root clicks use tab-targeted trusted input; child clicks currently report DOM activation, which some sites may reject.
+4. For uploads, use `browser_upload({...target,files:[absolutePath]})` on a file input (including hidden inputs) or observed upload button. The chooser is intercepted; no Finder dialog or physical input is needed. Selection can immediately send files to the site. Verify filenames, page state and the final upload receipt before continuing.
+5. Re-observe after meaningful changes. A snapshot expires after 60 seconds and navigation invalidates it. Never repeat uncertain input automatically. `browser_screenshot` captures the exact tab and saves a local PNG.
+
+`opensky web <tabs|snapshot|frames|click|fill|upload|press_key|select_option|screenshot> '<JSON>'` exposes the same methods; use `-` for stdin. `opensky web shutdown` stops this bridge. The extension popup offers Pause/Resume; `opensky stop` also pauses browser work. Native emergency stop is checked before browser mutations and while requests are in flight, with polling latency. No stop can undo delivered input.
+
+Independent task tabs overlap loads and waits, with per-tab serialized actions. They do not change Chrome's selected tab, the Mac pointer or clipboard. Chrome displays its debugger notice; cancelling it or opening DevTools can detach control and requires explicit resume. Sites can open their own tabs/dialogs, and Chrome internal pages, closed shadow roots, canvases, native dialogs and provider restrictions may still limit control. Preserve these real limitations instead of claiming universal background operation.
+
 ## Parallel workflows and Chrome tabs
 
 Independent authorized workflows may be in progress together. Assign each its own window/tab, task record and `cursor_id` label. Overlap page loading, generation waits and analysis; use short serialized UI turns. Delegate only when the user or harness permits delegation.
 
 For native Chrome AX work, prefer separate windows. Serialize the entire select-tab → inspect → act → verify sequence across Chrome: its AX snapshot cache is per app, so another window's observation invalidates earlier indices. Always rediscover the exact native `window_id`, and never share element indices between workflows. Keyboard, mouse, clipboard and foreground focus are shared resources. The native service serializes requests, but a multi-request workflow still needs agent coordination. Multiple cursor overlays are feedback, not independent physical inputs.
 
-Optional `chrome_tabs` manages stable Chrome scripting IDs using the public Apple Events interface. Native AX does not need it. It is off until the owner explicitly enables it during onboarding or runs `opensky browser enable`; normal discovery fails with `chrome_setup_required` without requesting permission. Do not interrupt a functioning remote task to enable it. macOS may still request real consent during setup or after a permission change.
+Legacy optional `chrome_tabs` manages stable Chrome scripting IDs using the public Apple Events interface. Native AX does not need it. It is off until the owner explicitly enables it during onboarding or runs `opensky browser enable`; normal discovery fails with `chrome_setup_required` without requesting permission. Do not interrupt a functioning remote task to enable it. macOS may still request real consent during setup or after a permission change.
 
 After setup, use the MCP `chrome_tabs` tool, SDK `computer_use.chrome_tabs(params)`, or CLI:
 

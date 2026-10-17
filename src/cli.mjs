@@ -21,6 +21,11 @@ Usage: opensky <command> [arguments] [--json]
   setup                                  Print permission and connection instructions
   guidance                               Read default auto workflow guidance (no launch)
   mode [alongside|desktop]                Read/set shared desktop cooperation (no launch)
+  web install                            Register OpenSky's Chrome native host; print extension setup
+  web status                             Read the independent browser bridge status
+  web shutdown                           Pause browser control and stop its local bridge
+  web <tabs|snapshot|frames|click|fill|upload|press_key|select_option|screenshot> JSON
+                                         Background page control through the OpenSky extension
   onboard                                Open local guided setup and permission checks in Chrome
   browser list                           List exact Chrome tab/window IDs (after optional setup)
   browser enable                         Explicit one-time Chrome Automation setup
@@ -159,6 +164,15 @@ async function main() {
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
     case "mode": {actionOutput(await computer_use.interaction_mode({mode:args[1]}));break;}
+    case 'web': {
+      const action=args[1]??'status';
+      if(action==='shutdown'){const {shutdownBrowserBridge}=await import('./browser/client.mjs');output(await shutdownBrowserBridge());break;}
+      if(action==='install'){const {installBrowserHost}=await import('../scripts/browser-install.mjs');output(installBrowserHost({runtime:root,home:OPENSKY_HOME}));break;}
+      const method='browser_'+action;if(typeof computer_use[method]!=='function')throw new Error('Unknown web action. Run opensky web --help.');
+      const source=args[2]==='-'?readFileSync(0,'utf8'):args.slice(2).join(' ')||'{}';let params;try{params=JSON.parse(source);}catch{throw new Error('Web parameters must be a JSON object.');}
+      if(!params||typeof params!=='object'||Array.isArray(params))throw new Error('Web parameters must be an object.');
+      actionOutput(await computer_use[method](params));break;
+    }
     case 'onboard': {const {runOnboarding}=await import('../scripts/onboarding.mjs');await runOnboarding({openBrowser:!args.includes('--no-open')});break;}
     case 'browser': {
       const action=args[1]||'list';
@@ -173,7 +187,7 @@ async function main() {
       actionOutput(await computer_use.chrome_tabs(params));break;
     }
     case "setup":
-      output(`OpenSky setup\n\nRun opensky onboard for guided local setup in Chrome. It checks actual readiness, opens only the settings you choose, shows agent configuration, and offers a verified disposable demo. Normal readiness checks request no permissions.\n\nText path: opensky daemon; allow OpenSky Accessibility and Screen Recording in System Settings > Privacy & Security; opensky doctor; opensky config all. Restart OpenSky after granting screen capture.\n\nChrome tab Automation is optional and off until explicitly enabled in onboarding or with opensky browser enable. Native Accessibility control works without it. macOS owns OS consent; OpenSky adds no chat approval cards or per-click approval gate. Existing agent rules still apply.\n\nNo client configuration was changed. Rebuilding an ad-hoc signed app can require Mac permission again. Emergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
+      output(`OpenSky setup\n\nRun opensky onboard for guided local setup in Chrome. It checks actual readiness, opens only the settings you choose, shows agent configuration, and offers a verified disposable demo. Normal readiness checks request no permissions.\n\nText path: opensky daemon; allow OpenSky Accessibility and Screen Recording in System Settings > Privacy & Security; opensky doctor; opensky config all. Restart OpenSky after granting screen capture.\n\nFor inactive Chrome tabs and uploads, use opensky web install for the one-time OpenSky extension setup; then opensky web status. Chrome tab Automation is a separate legacy option and off until explicitly enabled in onboarding or with opensky browser enable. Native Accessibility control works without it. macOS owns OS consent; OpenSky adds no chat approval cards or per-click approval gate. Existing agent rules still apply.\n\nNo client configuration was changed. Rebuilding an ad-hoc signed app can require Mac permission again. Emergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
     case "config": output(configSnippet(args[1] || "all")); break;
     case "doctor": await doctor(); break;
     case "status": case "ping": {
