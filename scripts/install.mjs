@@ -55,7 +55,7 @@ function loadManifest(runtime) {
 
 function validateDestinations(options) {
   const manifest = loadManifest(options.runtime);
-  if (existsSync(options.runtime) && !manifest && readdirSync(options.runtime).some((name) => !["control-token", "daemon.log", "screenshots", "demos", "chrome-automation.json"].includes(name))) {
+  if (existsSync(options.runtime) && !manifest && readdirSync(options.runtime).some((name) => !["control-token", "daemon.log", "screenshots", "demos", "chrome-automation.json", "interaction-mode.json"].includes(name))) {
     throw new Error(`Refusing to overwrite an unrecognized directory: ${options.runtime}`);
   }
   for (const name of ["opensky", "opensky-mcp"]) {

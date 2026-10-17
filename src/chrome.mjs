@@ -91,6 +91,7 @@ export async function performChromeTabs(computer, params, {home}) {
     error:'Optional Chrome tab automation is not enabled. Native Accessibility control remains available. Enable it once from opensky onboard, or explicitly run opensky browser enable; macOS may ask for Automation access.'
   };
   const result = await computer.run_applescript({language:'jxa',script:buildChromeScript(request)});
+  if (result.deferred) return result;
   if (!result.ok) return {ok:false,error_code:'chrome_automation_failed',error:result.output || result.error || 'Chrome automation failed.',outcome:'unknown; inspect the target before repeating a mutation'};
   let output;
   try { output = JSON.parse(result.output); } catch { return {ok:false,error_code:'chrome_response_invalid',error:'Chrome returned an unreadable response. Inspect the target before repeating any mutation.'}; }

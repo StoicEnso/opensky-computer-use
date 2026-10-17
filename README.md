@@ -173,6 +173,15 @@ Background is app dependent. An AXPress may open UI, background keys follow the 
 
 Keep independent tasks in separate windows/tabs, overlap page loads and generation waits, and take short serialized UI turns. MCP's connection instructions and bundled skill describe ownership, task records, cursor labels, exact targets and shared input. Native requests remain serialized; multiple overlays do not create multiple physical keyboards or pointers.
 
+When you are using the Mac, enable **alongside mode**:
+
+```sh
+opensky mode alongside
+opensky mode                       # Read the current choice without starting the engine
+```
+
+Current-runtime MCP, CLI and SDK clients share this persisted choice and reread it for each call. It keeps exact-window background AX actions available and defers foreground fallback, process-focused keys/text, shared clipboard, window management and arbitrary scripts before input. Agents should save a deferred checkpoint and continue independent work without asking for every step. Use `opensky mode desktop` only when you make the desktop available. Old MCP connections need reconnecting or the updated CLI/SDK. Direct native callers are outside this cooperation setting; it is not an input sandbox. AX actions can still open app UI, and inactive browser tabs do not become independent desktops.
+
 For native Chrome AX, prefer a window per workflow and serialize each select-tab → inspect → act → verify sequence across Chrome. Its current AX snapshot cache is per app. This prevents one workflow from using another's indices. A live two-tab test verified overlapping loads and separate field values after switching; it does not establish independent inactive-tab DOM interaction.
 
 Optional Chrome tab lifecycle tools use Chrome's public scripting interface. Enable them once from onboarding or explicitly with `opensky browser enable`; macOS may request Automation access. Routine `chrome_tabs` discovery before setup returns a setup status without opening an OS prompt. Native AX continues to work without this integration.
@@ -301,6 +310,8 @@ Native builds use the `Native/` directory. Source changes require a rebuild; rei
 ## Tested scope
 
 The 1.4 follow-up passed **28 automated tests and 39 packaging assertions**, a real two-tab Chrome AX workflow, a fresh-agent live trial with **zero extra permission questions**, and an independent five-scenario authorization review. The local setup screen was inspected at desktop and narrow widths. The installed MCP connection exposes 21 tools; runtime-only update preserved the native process, binary and permissions. See [the 1.4 results and remaining limits](artifacts/2026-10-17-opensky-parallel-and-onboarding-Codex.json).
+
+The 1.4.1 follow-up reviewed a real workflow's focus interruptions, added alongside mode, and passed **30 automated tests and 39 packaging assertions**. A live disposable-app check clicked and wrote Unicode in the background with **zero app activations and zero clipboard changes**; a foreground key request was deferred before input. Current MCP exposes 22 tools. The real Chrome native file picker remained unsupported in background mode; a bounded existing-browser DOM fallback completed that upload. See [the cooperation results and limits](artifacts/2026-10-17-opensky-alongside-results-Codex.json).
 
 The 1.3 check run passed **21 automated tests, 20 live native checks and 39 packaging assertions**. A real TextEdit background edit also passed: Chrome stayed active, the selected document received the exact Unicode content, and the other TextEdit document remained unchanged. See [the 1.3 results](artifacts/2026-10-17-opensky-1-3-results-Codex.json).
 

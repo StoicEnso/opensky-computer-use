@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-17",
+  "runtimeVersion": "1.4.1",
+  "nativeVersion": "1.3.0",
+  "trigger": "Live workflow progressed but explicit takeover actions competed for desktop focus.",
+  "benchmarkObservation": {
+    "sampledOpenSkyCalls": 97,
+    "extraApprovalQuestions": 0,
+    "savedCompletedAttemptsAtReview": 20,
+    "backgroundClicks": 18,
+    "takeoverClicks": 5,
+    "takeoverKeyCalls": 4,
+    "unsupportedBackgroundNativeFilePicker": true,
+    "boundedExistingChromeDOMFallbackCompletedUpload": true
+  },
+  "changes": {
+    "persistentAlongsideMode": true,
+    "checkedBeforeDaemonStartupOrInput": true,
+    "exactWindowBackgroundAXContinues": true,
+    "sharedInputStepsDeferredWithoutQuestions": true,
+    "driverPreferenceReinforced": true,
+    "nativeAppProcessSignatureAndPermissionsPreserved": true
+  },
+  "automatedTests": {
+    "passed": 30,
+    "packagingAssertions": 39
+  },
+  "liveVerification": {
+    "passed": true,
+    "backgroundClick": true,
+    "backgroundUnicodeFieldWrite": true,
+    "foregroundKeyDeferred": true,
+    "observations": {
+      "clipboardChangeCountDelta": 0,
+      "initialFixtureActive": false,
+      "finalFixtureActive": false,
+      "fixtureActivations": 0
+    },
+    "limits": [
+      "Clipboard changes can come from the owner; no clipboard contents were read.",
+      "This check covers a disposable native fixture, not every Chrome control."
+    ]
+  },
+  "limits": [
+    "A driver cooperation setting; raw native clients and already-loaded old MCP/SDK code are outside its scope.",
+    "Older clients must reconnect or use the updated CLI/SDK.",
+    "AX actions can trigger app UI; browser focus is not independently isolated.",
+    "File-picker support and a portable page-specific browser transport remain improvement areas.",
+    "No new OS, CAPTCHA, account or policy approvals were inferred from changing drivers."
+  ]
+}

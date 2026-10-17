@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 — 2026-10-17
+
+- Add persistent alongside/desktop cooperation mode shared by current-runtime MCP, CLI and SDK calls, checked before daemon startup or input. Alongside keeps exact-window background AX actions available and defers shared-input methods with actionable checkpoint guidance instead of permission questions.
+- Live benchmark review found repeated foreground/takeover input and focus interruptions, with no new approval questions. Tighten guidance to continue independent work while shared-input steps wait; process-targeted keys do not isolate Chrome's keyboard focus.
+- Preserve the native app, permissions and process through a runtime-only update. Existing MCP processes need reconnecting or the updated CLI/SDK to use the new mode; direct native callers are outside its scope.
+
 ## 1.4.0 — 17 October 2026
 
 - Add local guided onboarding with passive readiness checks, owner-chosen OS settings, agent configuration and a verified demo. Add a double-click source installer, app icon and original repository cover.

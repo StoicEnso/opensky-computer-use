@@ -7,6 +7,14 @@ export declare const DEFAULT_PORT: number;
 export declare const DAEMON_URL: string;
 
 export type ExecutionMode = "hybrid" | "background" | "takeover";
+export type InteractionMode = "alongside" | "desktop";
+export interface InteractionModeResult {
+  ok: boolean;
+  interaction_mode?: InteractionMode;
+  message?: string;
+  error_code?: string;
+  error?: string;
+}
 export type MouseButton = "left" | "right" | "middle";
 export type ScrollDirection = "up" | "down" | "left" | "right";
 export type PasteFormat = "text" | "md" | "html";
@@ -99,6 +107,9 @@ export interface OpenSkyElementNode {
 
 export interface OpenSkyActionResult {
   ok: boolean;
+  deferred?: boolean;
+  interaction_mode?: InteractionMode;
+  next_step?: string;
   message?: string;
   text?: string;
   app?: string;
@@ -313,6 +324,8 @@ export declare function callDaemon<T = OpenSkyActionResult>(
  * OpenSky computer-use SDK using public macOS APIs.
  */
 export interface OpenSkyComputerUse {
+  /** Persistent cooperation preference shared by current-runtime clients. No engine launch. */
+  interaction_mode(params?: {mode?: InteractionMode}): Promise<InteractionModeResult>;
   /** Optional one-time opt-in Chrome Apple Events tab integration. Native AX works without it. */
   chrome_tabs(params?: ChromeTabsParams): Promise<ChromeTabsResult>;
   /** Read local agent guidance without starting or resuming the native engine. */

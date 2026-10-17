@@ -20,6 +20,7 @@ Usage: opensky <command> [arguments] [--json]
 
   setup                                  Print permission and connection instructions
   guidance                               Read default auto workflow guidance (no launch)
+  mode [alongside|desktop]                Read/set shared desktop cooperation (no launch)
   onboard                                Open local guided setup and permission checks in Chrome
   browser list                           List exact Chrome tab/window IDs (after optional setup)
   browser enable                         Explicit one-time Chrome Automation setup
@@ -37,8 +38,8 @@ Usage: opensky <command> [arguments] [--json]
                                          Print MCP configuration; does not write client files
   rpc <method> [JSON|-]                   Call any native method; '-' reads JSON from stdin
   apps [--running]                       List macOS apps and windows
-  state <App> [--ocr] [--full]            Inspect app tree and capture its window
-  find <App> <exact name>                 Find structured AX controls by name
+  state <App> [--window ID] [--ocr]       Inspect an exact window and capture it
+  find <App> <exact name> [--window ID]   Find structured AX controls by name
   click <App> <index|x,y> [--background|--takeover] [--double|--right]
   set-value <App> <index> <text> [--takeover]
                                          Set an AX value; foreground fallback is opt-in
@@ -60,6 +61,8 @@ Usage: opensky <command> [arguments] [--json]
 
 App and text arguments containing spaces should be quoted. Coordinates use global
 macOS screen points. Use a fresh state before selecting an element index.
+Native state/find support --window ID; click/set-value support --snapshot ID.
+Alongside mode requires exact-window observations and fresh snapshot targets.
 Actions can start the daemon automatically. status, doctor, stop, resume, and
 shutdown never start it. The local endpoint requires its owner-only access token.`);
 }
@@ -86,9 +89,31 @@ function point(value) {
   if (components.length !== 2 || components.some((part) => part.trim() === "")) throw new Error("Coordinates must have the form x,y.");
   return components.map((part) => number(part, "Coordinate"));
 }
-function mode(fallback = "hybrid") {
+function mode(fallback) {
   if (args.includes("--takeover") && args.includes("--background")) throw new Error("Choose either --takeover or --background.");
   return args.includes("--takeover") ? "takeover" : args.includes("--background") ? "background" : fallback;
+}
+function nativeMetadata() {
+  const result = {};
+  for (const [flag, key] of [['--window', 'window_id'], ['--snapshot', 'snapshot_id']]) {
+    const at = args.indexOf(flag);
+    if (at === -1) continue;
+    const value = required(args[at + 1], flag);
+    if (key === 'window_id') {
+      const id = number(value, 'Window ID');
+      if (!Number.isInteger(id) || id < 1 || id > 4294967295) throw new Error('Window ID must be a positive 32-bit integer.');
+      result[key] = id;
+    } else result[key] = value;
+  }
+  return result;
+}
+function nativeText(start) {
+  const words = [];
+  for (let i = start; i < args.length; i++) {
+    if (['--window', '--snapshot'].includes(args[i])) { required(args[++i], 'option value'); continue; }
+    if (!['--background', '--takeover'].includes(args[i])) words.push(args[i]);
+  }
+  return words.join(' ');
 }
 function checkResult(result) {
   if (result && typeof result === "object" && (result.ok === false || (result.ok === undefined && result.error))) {
@@ -132,6 +157,7 @@ async function main() {
     case "help": case "--help": case "-h": help(); break;
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
+    case "mode": {actionOutput(await computer_use.interaction_mode({mode:args[1]}));break;}
     case 'onboard': {const {runOnboarding}=await import('../scripts/onboarding.mjs');await runOnboarding({openBrowser:!args.includes('--no-open')});break;}
     case 'browser': {
       const action=args[1]||'list';
@@ -179,25 +205,25 @@ async function main() {
       break;
     }
     case "state": case "get_app_state": {
-      const result = await computer_use.get_app_state({ app: args[1] || "Finder", include_ocr: args.includes("--ocr"), disable_diff: args.includes("--full") || args.includes("--no-diff"), show_cursor: true });
+      const result = await computer_use.get_app_state({ app: args[1] || "Finder", ...nativeMetadata(), include_ocr: args.includes("--ocr"), disable_diff: args.includes("--full") || args.includes("--no-diff"), show_cursor: true });
       if (!checkResult(result)) break;
       if (wantsJSON) output(result); else { output(result.text); if (result.screenshot?.path) output(`Screenshot: ${result.screenshot.path}`); }
       break;
     }
     case "find": {
-      const state = await computer_use.get_app_state({ app: required(args[1], "app"), include_screenshot: false });
+      const state = await computer_use.get_app_state({ app: required(args[1], "app"), ...nativeMetadata(), include_screenshot: false });
       if (!checkResult(state)) break;
-      const matches = matchElements(state, { name: required(args.slice(2).join(" "), "exact accessible name") });
+      const matches = matchElements(state, { name: required(nativeText(2), "exact accessible name") });
       output({ ok: true, snapshot_id: state.snapshot_id, matches, match_count: matches.length });break;
     }
     case "click": {
       const target = required(args[2], "element index or x,y coordinates");
-      const params = { app: required(args[1], "app"), mode: mode(), click_count: args.includes("--triple") ? 3 : args.includes("--double") ? 2 : 1, mouse_button: args.includes("--right") ? "right" : "left" };
+      const params = { app: required(args[1], "app"), ...nativeMetadata(), mode: mode(), click_count: args.includes("--triple") ? 3 : args.includes("--double") ? 2 : 1, mouse_button: args.includes("--right") ? "right" : "left" };
       if (target.includes(",")) params.point = point(target); else params.element_index = index(target);
       actionOutput(await computer_use.click(params)); break;
     }
     case "set-value": case "set_value":
-      actionOutput(await computer_use.set_value({ app: required(args[1], "app"), element_index: index(args[2]), value: required(args.slice(3).filter(item => !["--background", "--takeover"].includes(item)).join(" "), "text"), mode: mode("background") })); break;
+      actionOutput(await computer_use.set_value({ app: required(args[1], "app"), ...nativeMetadata(), element_index: index(args[2]), value: required(nativeText(3), "text"), mode: mode("background") })); break;
     case "type": case "type_text":
       actionOutput(await computer_use.type_text({ app: required(args[1], "app"), text: required(args.slice(2).filter((item) => !["--background", "--takeover"].includes(item)).join(" "), "text"), mode: mode("takeover") })); break;
     case "key": case "press_key":

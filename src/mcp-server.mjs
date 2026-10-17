@@ -5,10 +5,16 @@ import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.4.0"
+  version: "1.4.1"
 };
 
 const TOOLS = [
+  {
+    name: 'interaction_mode',
+    description: 'Read or set persistent desktop cooperation mode. When the owner is using the Mac, use alongside: exact-window background AX actions continue; foreground, clipboard, scripts and process-focused key input are deferred without sending input. Save deferred checkpoints and continue independent work without repeated permission questions. Desktop mode permits shared-input methods only when the owner makes the desktop available. This setting affects current-runtime MCP, CLI and SDK clients; old connections must reconnect or use the updated CLI. It does not pause/resume the engine or grant task authority.',
+    inputSchema: {type:'object',additionalProperties:false,properties:{mode:{type:'string',enum:['alongside','desktop']}}},
+    annotations: {readOnlyHint:false,destructiveHint:false,openWorldHint:false}
+  },
   {
     name:'chrome_tabs',
     description:'Optional preview: manage exact tabs in the owner\'s existing Google Chrome session: discover IDs, open a dedicated window or a tab in an exact Chrome window, navigate without selecting, select, or close. Requires explicit one-time onboarding Automation setup; native AX works without it and remains the working default. Chrome IDs are not native window_id values. Navigation returns before page loading completes. Select/new windows can change Chrome UI. Serialize AX inspect-act-verify turns across Chrome workflows; page loads may overlap. enable is an explicit setup action that may show macOS consent; do not run it as ordinary discovery.',
@@ -394,6 +400,9 @@ const TOOLS = [
 ];
 
 for (const tool of TOOLS) {
+  if (['get_app_state', 'click', 'set_value', 'find_elements'].includes(tool.name)) {
+    tool.description = 'Preferred OpenSky native Mac/browser UI path. Reuse the user\'s existing task authority and limits; while they work use alongside mode. ' + tool.description;
+  }
   const properties = tool.inputSchema.properties;
   if (["get_app_state", "click", "scroll", "drag", "set_value", "paste", "select_text", "perform_secondary_action"].includes(tool.name)) {
     properties.snapshot_id = { type: "string", description: "Optional snapshot_id from latest observation. Stale snapshots are rejected." };
@@ -409,6 +418,7 @@ async function handleToolCall(name, args = {}) {
   if (!args || Array.isArray(args) || typeof args !== "object") return { ok: false, error: "Tool arguments must be an object" };
   for (const required of tool.inputSchema.required || []) if (!(required in args)) return { ok: false, error: `Missing argument: ${required}` };
   if (name === "get_operating_guidance") return getOperatingGuidance();
+  if (name === 'interaction_mode') return computer_use.interaction_mode(args);
   if (name === 'chrome_tabs') return computer_use.chrome_tabs(args);
   if (name === "find_elements") {
     matchElements({ elements: [] }, args.selector);
@@ -579,7 +589,7 @@ let priorityQueue = Promise.resolve();
 let queueGeneration = 0;
 let pendingRequests = 0;
 let locallyStopped = false;
-const readTools = new Set(["get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
+const readTools = new Set(["interaction_mode", "get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
 function rejectQueued(message, code, error) {
   if (message.id !== undefined) sendMessage({ jsonrpc: "2.0", id: message.id, result: formatToolResult({ ok: false, error_code: code, error }) });
 }
