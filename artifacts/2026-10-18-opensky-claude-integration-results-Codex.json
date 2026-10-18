@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-18",
+  "runtimeVersion": "1.7.0-rc.8",
+  "nativeUIBuild": "1.3.9",
+  "nativeAPI": "1.3.0",
+  "claudeCode": {
+    "clientVersion": "2.1.302",
+    "scope": "user",
+    "officialCLIRegistration": true,
+    "actualConnectionCheckPassed": true,
+    "currentOperatingSkillInstalled": true,
+    "otherServersPreserved": true,
+    "permissionSettingsUnchanged": true,
+    "existingSessionsMayNeedReconnect": true
+  },
+  "claudeDesktop": {
+    "clientVersion": "2.42304.0",
+    "nativeMCPBInstalled": true,
+    "extensionEnabledThroughNativeUI": true,
+    "actualInitializeAndToolDiscoveryPassed": true,
+    "installedEngineReused": true,
+    "legacyDuplicateRemovedWithPrivateBackup": true,
+    "otherExtensionsAndSettingsPreserved": true,
+    "appRestarted": false,
+    "freshConversationModelActionTested": false
+  },
+  "validation": {
+    "automatedTestsPassed": 56,
+    "packagingAssertionsPassed": 45,
+    "officialMCPBManifestAndIconValidationPassed": true,
+    "actualAdapterToolCount": 33,
+    "actualAdapterStatusAndBrowserStatusPassed": true,
+    "customRuntimePathWithSpacesAndUnicodePassed": true,
+    "missingRuntimeFailedWithoutCreatingCredentials": true,
+    "initializeDoesNotStartNativeEngine": true,
+    "registrationIdempotenceAndConflictPreservationPassed": true,
+    "readOnlyPreviewAndOwnerActivityDeferralPassed": true,
+    "preconfiguredBundleHasNoRuntimePathForm": true,
+    "pendingBundleReusePassed": true,
+    "changedSkillBackupAndExactLegacyCleanupPassed": true
+  },
+  "oneCommand": {
+    "existingInstallation": "opensky connect claude",
+    "sourceInstallation": "./install.sh --claude",
+    "actualSourceInstallCommandPassed": true,
+    "actualInstalledConnectCommandPassed": true,
+    "existingConnectionsReused": true,
+    "noDuplicateRegistration": true,
+    "noInstallerReopenedOnConnectedMachine": true,
+    "matchingNativeUIAutomaticallyPreserved": true,
+    "nativePIDAndBinaryUnchanged": true,
+    "allThreePermissionsUnchanged": true,
+    "privateTokenStopAndModePreserved": true,
+    "browserBrokerAndConnectionPreserved": true,
+    "ClaudeSettingsAndRegistryPreservedOnRerun": true
+  },
+  "findings": [
+    {
+      "finding": "Claude Code had the skill but no user-scope OpenSky MCP registration; Desktop had a legacy configuration not loaded by its running process.",
+      "resolution": "Registered Code through its CLI and installed/enabled a native Desktop extension without restarting active Claude sessions."
+    },
+    {
+      "finding": "Opening the initial bundle from Documents timed out; the native file picker appeared late and its untitled window was omitted from normal app inventory.",
+      "resolution": "Verified outcomes before further input, discovered the exact app-owned window through OpenSky scripting and completed native selection. Setup-generated bundles live under the installed runtime, with a prefilled path and a nonblocking launch request.",
+      "remainingGap": "Untitled native picker discovery can still require a bounded OpenSky scripting observation."
+    },
+    {
+      "finding": "The Desktop runtime directory form displayed an unexpanded ${HOME} placeholder and disabled Save.",
+      "resolution": "Configured the real path for the live installation. The portable bundle now accepts an optional custom path; the one-command helper prepares an absolute-path bundle without that form."
+    },
+    {
+      "finding": "The MCP handshake advertised an older hard-coded version.",
+      "resolution": "Read the version from the installed package."
+    }
+  ],
+  "scope": [
+    "Native Desktop installation was live-verified with the initial directory-form bundle. The later optional/preconfigured manifest variants have schema, packaging and fixture validation; the already-enabled real extension was reused.",
+    "The one-command existing-installation path was live-verified. A clean Mac first installation and every Claude interface have not been tested.",
+    "Desktop enabled-state detection reads local extension metadata and is separate from an actual connection check. Unknown layouts remain unverified; the helper never edits the extension registry.",
+    "The extension requires the installed macOS OpenSky engine. It is not a remote claude.ai connector, and normal macOS/Claude consent and host rules remain effective."
+  ],
+  "watchRemainsPaused": true
+}

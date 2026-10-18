@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdir,mkdtemp,rm,access} from 'node:fs/promises';
+import {mkdir,mkdtemp,rm,access,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -17,6 +17,7 @@ test('MCP and CLI expose the same auto guidance without starting an absent engin
   const client=new Client({name:'guidance-check',version:'1.0'},{capabilities:{}});
   await client.connect(new StdioClientTransport({command:process.execPath,args:[path.resolve(import.meta.dirname,'../src/mcp-server.mjs')],env:environment,stderr:'pipe'}));
   try{
+    assert.equal(client.getServerVersion().version,JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8')).version,'MCP reports the installed package version, not stale release metadata.');
     assert.equal(client.getInstructions(),getOperatingGuidance().instructions);
     assert.match(client.getInstructions().slice(0,650),/preserve an owner-selected auto idle policy/);
     const available=(await client.listTools()).tools;

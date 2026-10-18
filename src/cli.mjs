@@ -44,6 +44,7 @@ Usage: opensky <command> [arguments] [--json]
   shutdown                               Exit the daemon (no launch)
   config [codex|claude-code|claude-desktop|cursor|antigravity|all]
                                          Print MCP configuration; does not write client files
+  connect claude [--dry-run] [--no-open]   Register Claude Code, install its skill and prepare Desktop's native extension
   rpc <method> [JSON|-]                   Call any native method; '-' reads JSON from stdin
   apps [--running]                       List macOS apps and windows
   state <App> [--window ID] [--ocr]       Inspect an exact window and capture it
@@ -205,8 +206,23 @@ async function main() {
       actionOutput(await computer_use.chrome_tabs(params));break;
     }
     case "setup":
-      output(`OpenSky setup\n\nRun opensky onboard for guided local setup in Chrome. It checks actual readiness, opens only the settings you choose, shows agent configuration, and offers a verified disposable demo. Normal readiness checks request no permissions.\n\nText path: opensky daemon; allow OpenSky Accessibility and Screen Recording in System Settings > Privacy & Security; opensky doctor; opensky config all. Restart OpenSky after granting screen capture.\n\nFor inactive Chrome tabs and uploads, use opensky web install for the one-time OpenSky extension setup; then opensky web status. Chrome tab Automation is a separate legacy option and off until explicitly enabled in onboarding or with opensky browser enable. Native Accessibility control works without it. macOS owns OS consent; OpenSky adds no chat approval cards or per-click approval gate. Existing agent rules still apply.\n\nNo client configuration was changed. Rebuilding an ad-hoc signed app can require Mac permission again. Emergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
+      output(`OpenSky setup\n\nRun opensky onboard for guided local setup in Chrome. It checks actual readiness, opens only the settings you choose, shows agent configuration, and offers a verified disposable demo. Normal readiness checks request no permissions.\n\nFor Claude, run opensky connect claude to register Claude Code, install its operating skill and prepare the native Desktop extension with the runtime path already configured. A matching enabled extension is reused.\n\nText path: opensky daemon; allow OpenSky Accessibility and Screen Recording in System Settings > Privacy & Security; opensky doctor; opensky config all. Restart OpenSky after granting screen capture.\n\nFor inactive Chrome tabs and uploads, use opensky web install for the one-time OpenSky extension setup; then opensky web status. Chrome tab Automation is a separate legacy option and off until explicitly enabled in onboarding or with opensky browser enable. Native Accessibility control works without it. macOS owns OS consent; OpenSky adds no chat approval cards or per-click approval gate. Existing agent rules still apply.\n\nNo client configuration was changed. Rebuilding an ad-hoc signed app can require Mac permission again. Emergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
     case "config": output(configSnippet(args[1] || "all")); break;
+    case 'connect': {
+      if (args[1] !== 'claude' || args.slice(2).some(value => !['--dry-run','--no-open'].includes(value))) throw Error('Use opensky connect claude [--dry-run] [--no-open].');
+      const {connectClaude} = await import('./claude-connect.mjs');
+      const result = await connectClaude({runtime:OPENSKY_HOME,dryRun:args.includes('--dry-run'),openDesktop:!args.includes('--no-open')});
+      if(wantsJSON) output(result);
+      else {
+        console.log(`OpenSky for Claude${result.dryRun?' — preview only':''}\nClaude Code: ${result.claudeCode.status}\nOperating skill: ${result.skill.status}\nClaude Desktop: ${result.desktop.status}\nNative app, permissions and cooperation policy preserved.`);
+        if(result.desktop.bundle) console.log(`Desktop installation: ${result.desktop.bundle}\n${result.desktop.nextStep}`);
+        else if(result.desktop.nextStep)console.log(result.desktop.nextStep);
+        if(result.claudeCode.nextStep) console.log(result.claudeCode.nextStep);
+        if(result.plan) console.log(result.plan.join('\n'));
+      }
+      if(!result.ok)process.exitCode=1;
+      break;
+    }
     case "doctor": await doctor(); break;
     case "status": case "ping": {
       const result = args.includes("--prompt-ax") ? await callDaemon("status", { promptAX: true }, { autoStart: false }) : await daemonStatus();

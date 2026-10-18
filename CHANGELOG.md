@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0-rc.8 — 2026-10-18
+
+- Add `opensky connect claude` and `./install.sh --claude` for combined Claude Code registration, skill installation and preconfigured native Desktop setup. Reuse connections and pending bundles, preserve unrelated settings, keep one-time native review visible, and defer opening over owner activity. Preserve a matching native API/UI build rather than rebuilding it.
+- Avoid an unexpanded `${HOME}` directory default that blocked the actual Desktop configuration form. The public bundle now uses an optional custom path; locally prepared bundles embed the already-known runtime path.
+
+- Add a native Claude Desktop MCPB extension with the cloud icon, normal extension configuration and discovery of OpenSky's current tools. Reuse the existing managed runtime and native app, including its permissions, stop state, Chrome connection and saved cooperation policy. No native rebuild is needed.
+- Support custom runtime directories and fail clearly when the existing installation is missing, without creating credentials or starting the engine during connection. Ship the extension adapter with runtime updates and provide a bundle builder.
+- Report the real package version during MCP initialization instead of stale release metadata.
+- Verify the packaged file set, a real MCP handshake through an installation path containing spaces and Unicode, tool/guidance discovery, missing-install recovery and no engine startup. Document native Claude Code user-scope registration and the bundled skill.
+
 ## 1.7.0-rc.7 — 2026-10-18
 
 - Add a standard responder-chain Edit menu for native windows. The real Inspector test found Command+A left the old query intact and the next query appended; Select All, Cut, Copy, Paste, Undo and Redo now have normal Mac key equivalents.

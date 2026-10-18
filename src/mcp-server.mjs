@@ -5,7 +5,7 @@ import { getOperatingGuidance } from "./operator-guidance.mjs";
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
-  version: "1.7.0-rc.3"
+  version: JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version
 };
 
 const TOOLS = [

@@ -5,11 +5,13 @@ import path from 'node:path';
 import os from 'node:os';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {parseOptions} from '../scripts/install.mjs';
-import {NATIVE_API_VERSION} from '../src/native-version.mjs';
+import {NATIVE_API_VERSION,NATIVE_BUILD_VERSION} from '../src/native-version.mjs';
 
 test('runtime-only update preserves signed native files, running service and private data',{skip:process.platform!=='darwin'},()=>{
   assert.equal(parseOptions(['--runtime-only']).runtimeOnly,true);
   assert.throws(()=>parseOptions(['--runtime-only','--uninstall']),/cannot be combined/);
+  assert.equal(parseOptions(['--claude']).claude,true);
+  assert.throws(()=>parseOptions(['--claude','--uninstall']),/cannot be combined/);
   // Keep the disposable signed bundle in OS temp, away from user document metadata services.
   const temporary=mkdtempSync(path.join(os.tmpdir(),'2026-10-17-runtime-update-Codex-'));
   try{
@@ -25,7 +27,7 @@ test('runtime-only update preserves signed native files, running service and pri
     writeFileSync(path.join(runtime,'.opensky-install.json'),JSON.stringify({schema:1,product:'opensky-computer-use',runtime,app,skillFiles:[]}));
     mkdirSync(path.join(app,'Contents/MacOS'),{recursive:true});
     copyFileSync('/usr/bin/true',path.join(app,'Contents/MacOS/OpenSky'));
-    const plist=version=>`<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>dev.opensky.computeruse</string><key>CFBundleExecutable</key><string>OpenSky</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>${version}</string></dict></plist>`;
+    const plist=version=>`<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>dev.opensky.computeruse</string><key>CFBundleExecutable</key><string>OpenSky</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>${version}</string><key>CFBundleVersion</key><string>${NATIVE_BUILD_VERSION}</string></dict></plist>`;
     writeFileSync(path.join(app,'Contents/Info.plist'),plist('1.2.0'));
     assert.equal(run().status,1);assert.equal(readFileSync(path.join(runtime,'package.json'),'utf8'),'old runtime');
     writeFileSync(path.join(app,'Contents/Info.plist'),plist(NATIVE_API_VERSION));
@@ -36,6 +38,10 @@ test('runtime-only update preserves signed native files, running service and pri
     assert.equal(existsSync(stopped),false);
     assert.equal(readFileSync(path.join(runtime,'control-token'),'utf8'),'a'.repeat(64));assert.equal(readFileSync(path.join(runtime,'screenshots/keep'),'utf8'),'capture');
     assert.equal(existsSync(path.join(runtime,'src/operator-guidance.mjs')),true);
+    assert.equal(existsSync(path.join(runtime,'skills/opensky-computer-use/SKILL.md')),true);
+    const preview=spawnSync(process.execPath,[installScript,'--claude','--dry-run','--prefix',prefix,'--app-dir',appDir],{encoding:'utf8',env:{...process.env,OPENSKY_HOME:runtime}});
+    assert.equal(preview.status,0,preview.stderr);assert.equal(JSON.parse(preview.stdout).action,'runtime-update','Claude reruns preserve the matching native UI without rebuilding it.');
+    assert.equal(existsSync(stopped),false,'Claude dry-run must not contact the old service or register clients.');
     assert.equal(JSON.parse(readFileSync(path.join(runtime,'package.json'),'utf8')).version,JSON.parse(readFileSync(path.resolve(import.meta.dirname,'../package.json'),'utf8')).version);
     const signature=spawnSync('/usr/bin/codesign',['--verify','--strict',app],{encoding:'utf8'});
     assert.equal(signature.status,0,signature.stderr+(signature.status?execFileSync('/usr/bin/xattr',['-lr',app],{encoding:'utf8'}):''));
