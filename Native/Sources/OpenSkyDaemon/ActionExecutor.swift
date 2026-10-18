@@ -80,9 +80,10 @@ public final class ActionExecutor {
             return failure("click", "The click point is covered by another app or is outside the target app. Refresh app state.")
         }
         animateClick(at: targetPoint, node: node, cursorId: cursorId, label: label, clickCount: clickCount)
-        guard performCGMouseClick(at: targetPoint, button: mouseButton, clickCount: clickCount,
-                                  flags: parseModifierFlags(from: key), holdDuration: holdDuration, target: target, expectedNode: node) else {
-            return failure("click", "Click interrupted by emergency stop, focus change, or event creation failure.")
+        if let failed = performCGMouseClick(at: targetPoint, button: mouseButton, clickCount: clickCount,
+                                  flags: parseModifierFlags(from: key), holdDuration: holdDuration, target: target, expectedNode: node) {
+            return ActionExecutionResult(success: false, action: "click", message: failed.message,
+                                         point: nil, appState: nil, errorCode: failed.code)
         }
         return completed("click", "Clicked at (\(Int(targetPoint.x)), \(Int(targetPoint.y))).",
                          app: app, point: targetPoint, returnState: returnState)
@@ -990,14 +991,26 @@ public final class ActionExecutor {
 
     private func performCGMouseClick(at point: CGPoint, button: String, clickCount: Int,
                                      flags: CGEventFlags, holdDuration: TimeInterval,
-                                     target: NSRunningApplication?, expectedNode: IndexedAXNode?) -> Bool {
+                                     target: NSRunningApplication?, expectedNode: IndexedAXNode?) -> (code: String, message: String)? {
         let source = UserActivityTracker.eventSource()
         let types = mouseTypes(button)
-        guard positionMouse(at: point, target: target) else { return false }
+        guard positionMouse(at: point, target: target) else {
+            return ("click_position_interrupted", "Pointer positioning was interrupted before a button event. Re-observe the target and cooperation state.")
+        }
         for index in 1...clickCount {
-            guard canContinue(target), pointBelongsToTarget(point, target), pointMatchesNode(point, expectedNode),
-                  let down = CGEvent(mouseEventSource: source, mouseType: types.down, mouseCursorPosition: point, mouseButton: types.button),
-                  let up = CGEvent(mouseEventSource: source, mouseType: types.up, mouseCursorPosition: point, mouseButton: types.button) else { return false }
+            guard canContinue(target) else {
+                return ("click_interrupted_before_button", "Focus or stop state changed before the next button event. Earlier clicks in a multi-click action may already be delivered.")
+            }
+            guard pointBelongsToTarget(point, target) else {
+                return ("click_target_covered", "The target point became covered before the next button event. Re-observe before retrying.")
+            }
+            guard pointMatchesNode(point, expectedNode) else {
+                return ("click_target_changed", "The hit control no longer matches the observed control. Re-observe before retrying; no button event for this click was sent.")
+            }
+            guard let down = CGEvent(mouseEventSource: source, mouseType: types.down, mouseCursorPosition: point, mouseButton: types.button),
+                  let up = CGEvent(mouseEventSource: source, mouseType: types.up, mouseCursorPosition: point, mouseButton: types.button) else {
+                return ("click_event_creation_failed", "Could not create the next button event. Earlier clicks in a multi-click action may already be delivered.")
+            }
             down.flags = flags
             up.flags = flags
             down.setIntegerValueField(.mouseEventClickState, value: Int64(index))
@@ -1007,10 +1020,12 @@ public final class ActionExecutor {
             while Date() < deadline && canContinue(target) { Thread.sleep(forTimeInterval: min(0.01, holdDuration)) }
             // A stop or focus change must never leave a held mouse button behind.
             up.post(tap: .cghidEventTap)
-            guard canContinue(target) else { return false }
+            guard canContinue(target) else {
+                return ("click_interrupted_after_button", "Focus or stop state changed after button input was sent. Verify the outcome before retrying.")
+            }
             if index < clickCount { Thread.sleep(forTimeInterval: 0.04) }
         }
-        return true
+        return nil
     }
 
     /// WindowServer routing must see an actual pointer move before a synthetic press.

@@ -1,6 +1,6 @@
 {
   "name": "opensky-computer-use",
-  "version": "1.7.0-rc.3",
+  "version": "1.7.0-rc.4",
   "description": "Fast, local-first browser and desktop control for macOS agents, with on-device OCR, animated pointers, MCP, CLI and JavaScript. No built-in telemetry or cloud relay.",
   "type": "module",
   "main": "./src/index.mjs",

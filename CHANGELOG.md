@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0-rc.4 — 2026-10-18
+
+- Observe opted-in activity through a read-only Quartz event tap. Live diagnostics found tagged OpenSky input in Quartz while the AppKit-based idle record subsequently restarted. Keep unknown events external, retain the general OS-idle cross-check, and start a fresh idle interval whenever monitoring starts or recovers. An unavailable monitor stays alongside; no permission is requested automatically.
+- Give the Inspector window picker a stable AppKit control and cancel its menu tracking on close/teardown. A real hit diagnostic found a menu ancestry that did not match the current picker before, during or after pointer feedback. Keep expected-control checks intact.
+- Report separate click interruption, coverage, control-change and event-creation failures. Distinguish failures before a button event from interruption after delivery; never retry uncertain input automatically.
+- Add offscreen selection/binding/control-identity checks and precise live-test stage/activity diagnostics. Record installed permissions, isolated probe results and unfinished physical search/filter tests separately.
+
 ## 1.7.0-rc.3 — 2026-10-18
 
 - Activate the own accessory app on the main thread and raise its pinned key-capable window with cancellation checks.

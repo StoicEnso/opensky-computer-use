@@ -8,6 +8,49 @@ struct InspectorTarget: Identifiable, Equatable {
     var id: String { "\(app):\(windowID)" }
 }
 
+/// A stable AppKit picker owns its menu, including cancellation on teardown.
+struct InspectorTargetPicker: NSViewRepresentable {
+    @ObservedObject var model: InspectorModel
+    final class Coordinator: NSObject {
+        var model: InspectorModel
+        var targets: [InspectorTarget] = []
+        init(_ model: InspectorModel) { self.model = model }
+        @objc func selected(_ sender: NSPopUpButton) {
+            model.selectedTarget = sender.selectedItem?.representedObject as? String ?? ""
+        }
+    }
+    func makeCoordinator() -> Coordinator { Coordinator(model) }
+    func makeNSView(context: Context) -> NSPopUpButton {
+        let button = NSPopUpButton(frame: .zero, pullsDown: false)
+        button.setAccessibilityLabel("Window")
+        button.setAccessibilityIdentifier("opensky.inspector.window")
+        button.target = context.coordinator; button.action = #selector(Coordinator.selected(_:))
+        button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return button
+    }
+    func updateNSView(_ button: NSPopUpButton, context: Context) {
+        context.coordinator.model = model
+        if context.coordinator.targets != model.targets || button.numberOfItems == 0 {
+            button.menu?.cancelTrackingWithoutAnimation()
+            button.removeAllItems()
+            button.addItem(withTitle: "Choose a window…")
+            button.lastItem?.representedObject = ""
+            for target in model.targets {
+                button.addItem(withTitle: target.label)
+                button.lastItem?.representedObject = target.id
+            }
+            context.coordinator.targets = model.targets
+        }
+        let index = button.itemArray.firstIndex { ($0.representedObject as? String) == model.selectedTarget } ?? 0
+        if button.indexOfSelectedItem != index { button.selectItem(at: index) }
+        button.isEnabled = !model.busy
+    }
+    static func dismantleNSView(_ button: NSPopUpButton, coordinator: Coordinator) {
+        button.menu?.cancelTrackingWithoutAnimation()
+        button.target = nil; button.action = nil
+    }
+}
+
 final class InspectorModel: ObservableObject {
     @Published var targets: [InspectorTarget] = []
     @Published var selectedTarget = "" { didSet { if oldValue != selectedTarget { clearObservation() } } }
@@ -111,10 +154,7 @@ struct InspectorView: View {
                 Label(model.screenRecording ? "Screen capture ready" : "Screen capture unavailable", systemImage: model.screenRecording ? "checkmark.circle.fill" : "circle")
             }.font(.system(size: 12)).foregroundStyle(.secondary)
             HStack {
-                Picker("Window", selection: $model.selectedTarget) {
-                    Text("Choose a window…").tag("")
-                    ForEach(model.targets) { Text($0.label).tag($0.id) }
-                }.disabled(model.busy).accessibilityIdentifier("opensky.inspector.window")
+                InspectorTargetPicker(model: model).frame(maxWidth: .infinity)
                 Button { model.refreshWindows() } label: { Image(systemName: "arrow.clockwise") }.help("Refresh window list").accessibilityLabel("Refresh window list").disabled(model.busy)
                 Button("Inspect Window") { model.inspect() }.buttonStyle(.borderedProminent).disabled(model.busy || model.selectedTarget.isEmpty).accessibilityIdentifier("opensky.inspector.inspect")
             }
@@ -187,5 +227,12 @@ final class InspectorWindowController: NSWindowController, NSWindowDelegate {
             window?.orderBack(nil)
         }
     }
-    func windowWillClose(_ notification: Notification) { model.close() }
+    func windowWillClose(_ notification: Notification) {
+        func cancelMenus(in view: NSView) {
+            (view as? NSPopUpButton)?.menu?.cancelTrackingWithoutAnimation()
+            view.subviews.forEach { cancelMenus(in: $0) }
+        }
+        if let view = window?.contentView { cancelMenus(in: view) }
+        model.close()
+    }
 }

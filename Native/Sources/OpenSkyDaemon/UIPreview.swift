@@ -13,6 +13,7 @@ func renderUIPreview(to directory: URL) throws {
     }
     precondition(AXEngine.inspectorEngine() !== AXEngine.shared, "Inspector must own its cache")
     try checkOwnAXExecution()
+    try checkInspectorTargetPicker()
     var readTime: TimeInterval = 0
     var readCurrent = true
     let readBudget = AXObservationBudget(now: { readTime }, isCurrent: { readCurrent })
@@ -31,6 +32,10 @@ func renderUIPreview(to directory: URL) throws {
     precondition(!UserActivityTracker.isAutoConfig(["mode": "alongside"]))
     precondition(!UserActivityTracker.isAutoConfig(["mode": "desktop", "cooperation_policy": "auto"]))
     var activity = ExternalActivityClock(now: 100)
+    let taggedMove = CGEvent(mouseEventSource: UserActivityTracker.eventSource(), mouseType: .mouseMoved,
+                             mouseCursorPosition: .zero, mouseButton: .left)
+    precondition(taggedMove?.getIntegerValueField(.eventSourceUserData) == ExternalActivityClock.ownEventMarker,
+                 "Production pointer events must retain their Quartz marker; no event is posted by this check")
     activity.observe(marker: ExternalActivityClock.ownEventMarker, now: 400)
     activity.observe(marker: ExternalActivityClock.ownEventMarker, now: 401)
     precondition(activity.idle(at: 401) == 301, "Own synthetic input must not restart external idle time")
@@ -79,6 +84,32 @@ func renderUIPreview(to directory: URL) throws {
     precondition(NSWorkspace.shared.frontmostApplication?.processIdentifier != ProcessInfo.processInfo.processIdentifier,
                  "Offscreen rendering must not activate the preview process")
     print("UI fixtures rendered offscreen; independent cache, search, clear-on-close, stale-result recovery, own-action main-thread/cancellation, external-activity clock and template checks passed.")
+}
+
+private func checkInspectorTargetPicker() throws {
+    let model = InspectorModel(readTargets: { [] }, readWindow: { _ in fatalError("No live read") }, readPermissions: { (false, false, false) })
+    let target = InspectorTarget(app: "dev.opensky.fixture", windowID: 7, label: "Disposable fixture · #7")
+    model.targets = [target]
+    let hosting = NSHostingView(rootView: InspectorTargetPicker(model: model))
+    hosting.frame = NSRect(x: 0, y: 0, width: 400, height: 40)
+    let window = NSWindow(contentRect: hosting.frame, styleMask: [], backing: .buffered, defer: false)
+    window.contentView = hosting
+    RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+    func picker(_ view: NSView) -> NSPopUpButton? {
+        if let button = view as? NSPopUpButton { return button }
+        return view.subviews.lazy.compactMap { picker($0) }.first
+    }
+    guard let button = picker(hosting), let menu = button.menu, let action = button.action else {
+        throw NSError(domain: "Stable Inspector picker", code: 1)
+    }
+    precondition(button.numberOfItems == 2)
+    button.selectItem(at: 1); button.sendAction(action, to: button.target)
+    precondition(model.selectedTarget == target.id, "Native menu selection must update the Inspector binding")
+    model.busy = true
+    RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+    precondition(picker(hosting) === button && button.menu === menu && !button.isEnabled,
+                 "Ordinary model updates must preserve control/menu identity")
+    window.contentView = nil
 }
 
 private func checkOwnAXExecution() throws {

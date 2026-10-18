@@ -30,7 +30,8 @@ struct ExternalActivityClock {
 final class UserActivityTracker {
     static let shared = UserActivityTracker()
     private var clock = ExternalActivityClock(now: ProcessInfo.processInfo.systemUptime)
-    private var globalMonitor: Any?, localMonitor: Any?, timer: Timer?
+    private var eventTap: CFMachPort?, eventSource: CFRunLoopSource?, timer: Timer?
+    private var lastMonitorAttempt: TimeInterval = -10
     private var home = ""
     private var feedbackMonitoringUntil: TimeInterval = 0
     private var monitorReady = false
@@ -48,7 +49,7 @@ final class UserActivityTracker {
         if cooperationPolicy == "desktop" { return idle < 1.5 }
         return true
     }
-    private let mask: NSEvent.EventTypeMask = [.keyDown, .keyUp, .flagsChanged, .mouseMoved, .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp, .otherMouseDown, .otherMouseUp, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .scrollWheel]
+    private let eventTypes: [CGEventType] = [.keyDown, .keyUp, .flagsChanged, .mouseMoved, .leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp, .otherMouseDown, .otherMouseUp, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged, .scrollWheel]
 
     static func isAutoConfig(_ config: [String: Any]?) -> Bool {
         let mode = config?["mode"] as? String
@@ -73,11 +74,40 @@ final class UserActivityTracker {
         RunLoop.main.add(timer!, forMode: .common)
         sample()
     }
-    private func observe(_ event: NSEvent) {
-        let raw = event.cgEvent
-        let marker = raw?.getIntegerValueField(.eventSourceUserData)
+    private func observe(_ event: CGEvent) {
+        precondition(Thread.isMainThread)
+        let marker = event.getIntegerValueField(.eventSourceUserData)
         clock.observe(marker: marker, now: ProcessInfo.processInfo.systemUptime)
         if marker != ExternalActivityClock.ownEventMarker { CursorOverlayManager.shared.externalInputObserved() }
+    }
+    private func installMonitor(now: TimeInterval) {
+        // AppKit may omit mouse-move delivery to a window or transform events
+        // during menu tracking. Observe the tagged Quartz stream before that
+        // delivery; never guess that an untagged event belongs to this process.
+        lastMonitorAttempt = now
+        let mask = eventTypes.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
+        guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap,
+            options: .listenOnly, eventsOfInterest: mask, callback: { _, type, event, context in
+                guard let context else { return Unmanaged.passUnretained(event) }
+                let tracker = Unmanaged<UserActivityTracker>.fromOpaque(context).takeUnretainedValue()
+                if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    tracker.monitorReady = false
+                    tracker.clock = ExternalActivityClock(now: ProcessInfo.processInfo.systemUptime)
+                } else { tracker.observe(event) }
+                return Unmanaged.passUnretained(event)
+            }, userInfo: Unmanaged.passUnretained(self).toOpaque()) else { return }
+        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
+            CFMachPortInvalidate(tap); return
+        }
+        eventTap = tap; eventSource = source
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+        clock = ExternalActivityClock(now: now)
+    }
+    private func removeMonitor() {
+        if let eventSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), eventSource, .commonModes) }
+        if let eventTap { CFMachPortInvalidate(eventTap) }
+        eventSource = nil; eventTap = nil; monitorReady = false
     }
     private func sample() {
         let now = ProcessInfo.processInfo.systemUptime
@@ -85,26 +115,20 @@ final class UserActivityTracker {
         let config = (try? Data(contentsOf: modeURL)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
         cooperationPolicy = Self.isAutoConfig(config) ? "auto" : (config?["mode"] as? String ?? "desktop")
         let permitted = (Self.isAutoConfig(config) || now < feedbackMonitoringUntil) && AXIsProcessTrusted()
-        if permitted && (globalMonitor == nil || localMonitor == nil) {
-            if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
-            if let localMonitor { NSEvent.removeMonitor(localMonitor) }
-            globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in self?.observe(event) }
-            localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in self?.observe(event); return event }
-            // Start a new observed idle interval; never assume prior human absence.
+        if permitted && eventTap == nil && now - lastMonitorAttempt >= 2 { installMonitor(now: now) }
+        if permitted, let eventTap, !CGEvent.tapIsEnabled(tap: eventTap) {
+            // Monitor recovery starts a new full idle interval, never desktop access.
             clock = ExternalActivityClock(now: now)
+            CGEvent.tapEnable(tap: eventTap, enable: true)
         }
-        if !permitted {
-            if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
-            if let localMonitor { NSEvent.removeMonitor(localMonitor) }
-            globalMonitor = nil; localMonitor = nil
-        }
+        if !permitted { removeMonitor() }
         let generalIdle = permitted ? Self.generalIdle() : nil
-        let ready = permitted && globalMonitor != nil && localMonitor != nil && generalIdle != nil
+        let ready = permitted && eventTap.map { CGEvent.tapIsEnabled(tap: $0) } == true && generalIdle != nil
         monitorReady = ready
         let record: [String: Any] = ["schema": 1, "pid": ProcessInfo.processInfo.processIdentifier,
             "sampled_uptime": now, "sampled_at_ms": Int64(Date().timeIntervalSince1970 * 1000), "external_idle_seconds": ready ? clock.idle(at: now, generalIdle: generalIdle) : 0,
             "observed_for_seconds": ready ? max(0, now - clock.startedAt) : 0,
-            "monitor_ready": ready, "own_input_filtered": true, "input_contents_recorded": false]
+            "monitor_ready": ready, "monitor_backend": "quartz_listen_only", "own_input_filtered": true, "input_contents_recorded": false]
         let file = URL(fileURLWithPath: home).appendingPathComponent("user-activity.json")
         if let data = try? JSONSerialization.data(withJSONObject: record) {
             try? data.write(to: file, options: .atomic)

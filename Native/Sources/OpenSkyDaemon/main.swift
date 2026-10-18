@@ -59,7 +59,7 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
-                "build_version": "1.3.5",
+                "build_version": "1.3.6",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),

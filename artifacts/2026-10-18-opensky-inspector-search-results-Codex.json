@@ -1,15 +1,15 @@
 {
   "date": "2026-10-18",
-  "runtimeVersion": "1.7.0-rc.3",
-  "installedNativeBuild": "1.3.4",
-  "candidateNativeBuild": "1.3.5",
+  "runtimeVersion": "1.7.0-rc.4",
+  "installedNativeBuild": "1.3.5",
+  "candidateNativeBuild": "1.3.6",
   "candidateInstalled": false,
   "ownerAuthority": "Finish Inspector search/filter tests under the existing 300-second auto idle rule; preserve active owner input and update GitHub.",
   "findings": [
     {
       "finding": "Physical clicking an own Inspector popup menu item outside the normal window was rejected as covered before delivery.",
       "fix": "Recognize own menu/menu-item ancestry in the AX hit, with matching process identity and the existing expected-node check. Other own hits retain normal-window and overlay checks.",
-      "liveInstalledFixVerified": false
+      "liveInstalledFixVerified": true
     },
     {
       "finding": "A subsequent live attempt was interrupted by a focus change and the filtered idle monitor returned below 300 seconds.",
@@ -27,12 +27,26 @@
     {
       "finding": "A foreground focus command could not activate the accessory app itself while idle remained above 300 seconds; no hardware input was sent.",
       "fix": "Self activation now runs on the main thread, raises the pinned key-capable window and preserves the original cancellation generation.",
-      "liveInstalledFixVerified": false
+      "liveInstalledFixVerified": true
     },
     {
       "finding": "Some existing-helper clicks were acknowledged or rejected without a verified UI outcome. The exact cause is not established.",
       "fix": "Expose the separate macOS event-synthesizing preflight and return event_posting_permission_required before event delivery when that actual OS capability is absent. Background AX actions remain available.",
       "scope": "This diagnostic does not claim the existing helper lacked that permission."
+    },
+    {
+      "finding": "A read-only Quartz probe saw tagged OpenSky pointer input and no external events while the installed AppKit-based activity record subsequently restarted.",
+      "fix": "Observe original Quartz events through an opted-in listen-only tap before AppKit delivery; unknown markers remain external, general OS idle remains a conservative cross-check, and unavailable/recovered monitors require a new idle interval.",
+      "nativeBuild": "1.3.6",
+      "installedFixVerified": false,
+      "isolatedProductionKeyInputContinuityVerified": true
+    },
+    {
+      "finding": "A picker hit reported menu-item/menu/popup ancestry that did not match the current picker before, during and after visible feedback.",
+      "fix": "Use a stable native dropdown with explicit menu cancellation on close and teardown. Preserve expected-control identity checks and expose distinct click-failure stages.",
+      "nativeBuild": "1.3.6",
+      "installedFixVerified": false,
+      "offscreenBindingAndIdentityVerified": true
     }
   ],
   "validation": {
@@ -53,7 +67,13 @@
       "feedbackVisibleDuringProbe": true,
       "screenshotCaptured": false,
       "physicalClickSent": false
-    }
+    },
+    "physicalMenuChoiceVerified": true,
+    "installedSelfActivationVerified": true,
+    "native136OffscreenPickerBindingAndStableIdentityPassed": true,
+    "native136IsolatedReopenCyclesPassed": true,
+    "native136ProductionActivityProbeOwnKeyContinuityPassed": true,
+    "native136InstalledPhysicalChecksPassed": false
   },
   "cooperation": {
     "savedPolicy": "auto",
@@ -64,8 +84,8 @@
   },
   "watchRemainsPaused": true,
   "pending": [
-    "Complete physical search/filter/selection on the fixed native build",
-    "Verify own physical menu targeting and activation on the fixed native build after any genuine macOS consent"
+    "Owner refresh of real macOS consent for the exact frozen 1.3.6 signature",
+    "Installed physical window choice, search/filter and row selection under the real 300-second auto policy"
   ],
   "recovery": {
     "sameApprovedNativeBuildRestarted": true,
@@ -76,7 +96,7 @@
   },
   "limits": [
     "Read budgets are checked between AX messages; per-message timeouts do not establish a hard real-time guarantee.",
-    "The new native 1.3.5 candidate is staged; installed live verification remains separate."
+    "An interrupted live run is not evidence that search/filter/selection passed."
   ],
   "nativeUpgradeAttempt": {
     "attemptedAtAuthorizedIdleCheckpoint": true,
@@ -92,5 +112,36 @@
     "privateSettingsPreserved": true
   },
   "ownerHandoffPending": true,
-  "currentStatus": "Tested fixes published; fixed native build staged. Existing approved helper restored after real macOS signature-consent gate. Physical fixed-build tests remain pending that handoff."
+  "currentStatus": "Native 1.3.6 fixes passed automated/offscreen/isolated checks. A real idle-gated upgrade probe found macOS denied the changed signature; approved 1.3.5 was restored with all three capabilities and Chrome intact. Installed physical search/filter/row-selection on 1.3.6 remains pending owner consent.",
+  "permissionRefresh": {
+    "ownerReplacedEntries": true,
+    "correctInstalledExecutableVerified": true,
+    "frozenCandidateHashVerified": true,
+    "accessibility": true,
+    "screenRecording": true,
+    "eventPosting": true,
+    "browserBrokerAndConnectionPreserved": true,
+    "privateSettingsPreserved": true
+  },
+  "interruptedFixedBuildRun": {
+    "status": "deferred_owner_active",
+    "fixtureSelectedThroughPhysicalMenu": true,
+    "inspectButtonNotClicked": true,
+    "searchAndFilterNotEstablished": true,
+    "savedAutoModePreserved": true
+  },
+  "installedRuntimeVersion": "1.7.0-rc.3",
+  "native136UpgradeAttempt": {
+    "actualPermissionGate": true,
+    "newSignatureAccessibility": false,
+    "newSignatureScreenRecording": false,
+    "newSignatureEventPosting": false,
+    "approved135Restored": true,
+    "restoredAccessibility": true,
+    "restoredScreenRecording": true,
+    "restoredEventPosting": true,
+    "browserConnectionPreserved": true,
+    "browserPausePreserved": true,
+    "privateSettingsPreserved": true
+  }
 }
