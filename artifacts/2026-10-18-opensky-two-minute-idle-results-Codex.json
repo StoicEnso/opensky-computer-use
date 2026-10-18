@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "version": "1.7.0-rc.10",
+  "autoIdleSeconds": 120,
+  "boundaryChecks": {
+    "119.999": "alongside",
+    "120": "desktop",
+    "renewedInput": "alongside",
+    "missingSignal": "alongside"
+  },
+  "targetedTestsPassed": 6,
+  "packagingAssertions": 45,
+  "nativeProcessAndPermissionsPreserved": true,
+  "browserBrokerAndConnectionPreserved": true,
+  "explicitDesktopOverridePreserved": true,
+  "emergencyPausePreserved": true,
+  "nativeUpgradeRequired": false,
+  "clientRefresh": "Reconnect older MCP clients or use the updated CLI/SDK. No running Claude session was forcibly restarted."
+}

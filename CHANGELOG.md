@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0-rc.10 — 18 October 2026
+
+- Set the default auto-cooperation idle wait to two minutes (120 seconds). Keep explicit temporary desktop overrides, activity yielding and emergency pause unchanged.
+- Update MCP descriptions, operating guidance, bundled skills and the Inspector test to use the new threshold.
+
 ## 1.7.0-rc.9 — 18 October 2026
 
 - Fresh-Mac HTTPS bootstrap: verified prebuilt app, private pinned Node, official Claude installation and native MCP setup without Xcode/Homebrew/sudo.

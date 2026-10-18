@@ -11,14 +11,15 @@ test('activity accepts only a fresh, live, private aggregate record from the nat
   for(const override of [{now:()=>102000},{now:()=>99000},{running:()=>false},{stat:()=>({mode:0o644,uid:process.getuid()})},{platform:'linux'},{read:()=>'{invalid'},{read:()=>JSON.stringify({...record,monitor_ready:false})},{read:()=>JSON.stringify({...record,own_input_filtered:false})},{read:()=>JSON.stringify({...record,external_idle_seconds:400})}])assert.equal(readUserActivity({...options,...override}).ok,false);
 });
 
-test('auto cooperation crosses the exact five-minute boundary and yields on renewed input',()=>{
-  const root=fs.mkdtempSync(path.join(os.tmpdir(),'opensky-auto-'));let seconds=299.999;
+test('auto cooperation crosses the exact two-minute boundary and yields on renewed input',()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'opensky-auto-'));let seconds=119.999;
   const options={activityProbe:()=>({ok:true,idle_seconds:seconds})};
   try {
     writeInteractionMode(root,'auto');
     assert.equal(readInteractionMode(root,options).effective_mode,'alongside');
+    assert.equal(readInteractionMode(root,options).idle_threshold_seconds,120);
     assert.equal(prepareInteraction(root,'press_key',{keys:['Return']},options).result.error_code,'desktop_turn_required');
-    seconds=300;assert.equal(readInteractionMode(root,options).effective_mode,'desktop');
+    seconds=120;assert.equal(readInteractionMode(root,options).effective_mode,'desktop');
     assert.deepEqual(prepareInteraction(root,'press_key',{keys:['Return']},options),{params:{keys:['Return']}});
     seconds=0.01;assert.equal(readInteractionMode(root,options).effective_mode,'alongside');
     assert.equal(prepareInteraction(root,'inspector',{action:'show',activate:true},options).result.deferred,true);

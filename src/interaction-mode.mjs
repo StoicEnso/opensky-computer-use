@@ -5,7 +5,7 @@ import {readUserActivity} from './user-activity.mjs';
 
 const filename = 'interaction-mode.json';
 const modes = new Set(['desktop', 'alongside', 'auto']);
-export const AUTO_IDLE_SECONDS=300;
+export const AUTO_IDLE_SECONDS=120;
 
 function resolveAuto(activityProbe,home) {
   let activity;try{activity=activityProbe({home});}catch{activity={ok:false,idle_seconds:null,error_code:'user_activity_unavailable'};}
@@ -53,7 +53,7 @@ export function writeInteractionMode(home, mode, {durationSeconds}={}) {
     renameSync(temporary, path.join(home, filename));
   } finally { rmSync(temporary, { force: true }); }
   return { ...readInteractionMode(home), message: mode==='auto'
-    ? 'Auto cooperation: shared desktop input is available after 300 seconds of filtered external-input idle time. Activity or an unavailable idle signal restores alongside restrictions on the next request. This never resumes an emergency pause; an input already delivered may finish.'
+    ? 'Auto cooperation: shared desktop input is available after 120 seconds of filtered external-input idle time. Activity or an unavailable idle signal restores alongside restrictions on the next request. This never resumes an emergency pause; an input already delivered may finish.'
     : mode === 'alongside'
     ? 'Alongside mode: background AX actions only. Defer shared-input steps and continue independent work; no permission question is needed for each deferred step.'
     : 'Desktop mode: execution modes may use shared keyboard, pointer and clipboard. Use only when the owner has made the desktop available.' };

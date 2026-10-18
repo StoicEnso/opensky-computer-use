@@ -3,7 +3,8 @@
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import assert from 'node:assert/strict';import {spawn,execFileSync} from 'node:child_process';import {randomUUID} from 'node:crypto';
 import {computer_use as sky,callDaemon,daemonStatus} from '../src/index.mjs';
-assert.ok(process.argv.includes('--wait-for-idle'),'Run explicitly with --wait-for-idle. This test uses foreground input only after 300 idle seconds.');
+import {AUTO_IDLE_SECONDS} from '../src/interaction-mode.mjs';
+assert.ok(process.argv.includes('--wait-for-idle'),`Run explicitly with --wait-for-idle. This test uses foreground input only after ${AUTO_IDLE_SECONDS} idle seconds.`);
 const output=process.argv[process.argv.indexOf('--output')+1];assert.ok(process.argv.includes('--output')&&output,'Pass a dated private --output JSON path.');
 const testDate=new Date().toLocaleDateString('sv-SE');
 const inspectorApp='dev.opensky.computeruse',root=fs.mkdtempSync(path.join(os.tmpdir(),`${testDate}-opensky-inspector-search-Codex-`)),bundle=path.join(root,'Inspector Search Fixture.app'),id='dev.opensky.fixture.inspectorsearch.'+randomUUID().replaceAll('-','');
@@ -13,7 +14,7 @@ const checks=[],native=await daemonStatus(),browser=await sky.browser_status(),s
 assert.equal(native.axTrusted,true);assert.equal(native.screenRecordingTrusted,true);assert.notEqual(native.eventPostingTrusted,false,'macOS event-synthesizing access must be ready before foreground tests.');assert.equal(native.stopped,false);assert.equal(savedMode,'auto','Preserve the owner mode; this test requires existing auto consent.');
 let child,opened=false,tookTurn=false,originalFront,originalPID,inspectorID,restored=false,restoreAttempted=false,stage='prepare',lastInputMethod;
 function checkpoint(status,extra={}){fs.writeFileSync(path.resolve(output),JSON.stringify({status,nativeBuild:native.build_version,stage,lastInputMethod,originalForegroundPID:originalPID,checks,...extra},null,2)+'\n');}
-async function idle(){const mode=await sky.interaction_mode();return mode.interaction_mode==='auto'&&mode.effective_mode==='desktop'&&mode.user_activity?.ok&&mode.user_activity.idle_seconds>=300;}
+async function idle(){const mode=await sky.interaction_mode();return mode.interaction_mode==='auto'&&mode.effective_mode==='desktop'&&mode.user_activity?.ok&&mode.user_activity.idle_seconds>=AUTO_IDLE_SECONDS;}
 async function requireIdle(){
  const current=await daemonStatus();assert.equal(current.running,true,'The native service stopped; preserve this test checkpoint.');assert.equal(current.pid,native.pid,'The native app reopened; do not follow stale Inspector targets.');assert.equal(current.stopped,false,'Preserve an owner emergency pause.');
  // A conservative OS-idle sample may arrive before its tagged Quartz callback.
@@ -45,7 +46,7 @@ try {
  let baseline=await waitFor(async()=>{const s=await sky.get_app_state({app:id,window_id:fixture.id,include_screenshot:false,include_ocr:false});return s.ok&&s.elements.some(e=>e.identifier==='fixture.project')?s:false;},'fixture AX readiness');
  const originalInspector=await callDaemon('inspector',{action:'status'},{autoStart:false});assert.ok(!originalInspector.visible||(process.argv.includes('--reuse-test-inspector')&&originalInspector.inspector_element_count===0),'Preserve a pre-existing Inspector workflow.');
  const staged=originalInspector.visible?originalInspector:await callDaemon('inspector',{action:'show',activate:false},{autoStart:false});assert.equal(staged.ok,true,JSON.stringify(staged));opened=true;inspectorID=staged.window_id;if(staged.window_ready===false)await waitFor(async()=>{const r=await callDaemon('inspector',{action:'status'},{autoStart:false});return r.window_ready;},'rendered Inspector frame');await ownReady();
- checkpoint('waiting_for_idle',{fixtureReady:true});console.log('Fixture ready; waiting for the authorized five-minute idle threshold.');
+ checkpoint('waiting_for_idle',{fixtureReady:true});console.log('Fixture ready; waiting for the authorized two-minute idle threshold.');
  while(!await idle()){const current=await daemonStatus();if(!current.running||current.pid!==native.pid)throw Error('Native service stopped or reopened while waiting; preserve the exact target.');assert.equal((await sky.interaction_mode()).interaction_mode,'auto','Preserve a changed cooperation preference.');await delay(5000);}
  stage='activate_inspector';originalFront=front();originalPID=Number(execFileSync('/usr/bin/lsappinfo',['info','-only','pid',originalFront],{encoding:'utf8'}).match(/"pid"=(\d+)/)?.[1]);assert.ok(Number.isInteger(originalPID)&&originalPID>0);await requireIdle();if(useAXChoice){const activated=await callDaemon('inspector',{action:'show',activate:true},{autoStart:false});assert.equal(activated.ok,true,JSON.stringify(activated));}else await input('manage_window',{app:inspectorApp,action:'focus'});tookTurn=true;checkpoint('running');
  let s=await ownReady();await waitFor(async()=>{const r=await own();return r.ok&&r.elements.some(e=>e.identifier==='opensky.inspector.window'&&e.enabled)?r:false;},'window picker enabled');s=await ownReady();stage='open_window_picker';let picker=s.elements.find(e=>e.identifier==='opensky.inspector.window');assert.ok(picker);await click(picker,s);
