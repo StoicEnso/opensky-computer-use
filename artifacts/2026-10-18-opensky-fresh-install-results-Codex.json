@@ -44,5 +44,31 @@
     "OpenSky app is ad-hoc signed, not Developer ID notarized; OS/managed-device policy and real consent remain.",
     "Claude sign-in and first Desktop extension review are owner steps. Chrome extension loading remains optional one-time browser review.",
     "Existing long-running MCP clients need reconnect/new session for newly loaded tool schemas; no working Claude session was restarted."
-  ]
+  ],
+  "postPublicationVerification": {
+    "downloadedArchiveChecksumsPassed": 6,
+    "publicBootstrapMatchesSource": true,
+    "runtimeAndMcpbVersionsMatch": true,
+    "sourceCommit": "c2ca90f2b4776df28d72c6ca5ec6ca7a25afac66",
+    "ci": "https://github.com/StoicEnso/opensky-computer-use/actions/runs/39135538359",
+    "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.9",
+    "ownerPublicCommandRun": {
+      "ok": true,
+      "url": "https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh",
+      "arguments": [
+        "--no-onboard"
+      ],
+      "runtime": "1.7.0-rc.9",
+      "nativePidPreserved": true,
+      "nativeSignatureBytesPreserved": true,
+      "allPermissionsPreserved": true,
+      "tokenAndModePreserved": true,
+      "brokerPidPreserved": true,
+      "browserConnected": true,
+      "browserPaused": false,
+      "claudeCodeConnected": true,
+      "desktopEnabled": true,
+      "appSettingsOpened": false
+    }
+  }
 }
