@@ -10,6 +10,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
 
     override init() {
         super.init()
+        configureApplicationMenu()
         item.button?.title = ""
         item.button?.imagePosition = .imageOnly
         item.button?.setAccessibilityIdentifier("dev.opensky.statusItem")
@@ -30,6 +31,21 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
         item.menu = menu
         NotificationCenter.default.addObserver(self, selector: #selector(controlStateChanged), name: .openskyControlStateChanged, object: nil)
         refresh()
+    }
+
+    private func configureApplicationMenu() {
+        let root = NSMenu()
+        let application = NSMenu(title: "OpenSky")
+        let aboutItem = application.addItem(withTitle: "About OpenSky", action: #selector(about), keyEquivalent: "")
+        aboutItem.target = self
+        application.addItem(.separator())
+        let quitItem = application.addItem(withTitle: "Quit OpenSky", action: #selector(quit), keyEquivalent: "q")
+        quitItem.target = self
+        let appItem = root.addItem(withTitle: "OpenSky", action: nil, keyEquivalent: "")
+        root.setSubmenu(application, for: appItem)
+        let editItem = root.addItem(withTitle: "Edit", action: nil, keyEquivalent: "")
+        root.setSubmenu(OpenSkyEditingMenu.make(), for: editItem)
+        NSApp.mainMenu = root
     }
 
     func menuWillOpen(_ menu: NSMenu) { refresh() }
@@ -87,7 +103,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     }
     @objc private func about() {
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
-            .applicationName: "OpenSky", .applicationVersion: "Native UI 1.3.6 · API 1.3.0",
+            .applicationName: "OpenSky", .applicationVersion: "Native UI \(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "development") · API 1.3.0",
             .credits: NSAttributedString(string: "Your agent. Your Mac.\nOpen source · MIT\nLocal MCP, CLI and JavaScript computer use.")
         ])
         NSApp.activate(ignoringOtherApps: true)

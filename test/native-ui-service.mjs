@@ -26,6 +26,9 @@ try {
   process.env.OPENSKY_PORT=String(await freePort());process.env.OPENSKY_BROWSER_PORT=String(await freePort());
   process.env.OPENSKY_BINARY=path.join(candidate,'Contents/MacOS/OpenSky');
   const sdk=await import('../src/index.mjs');sky=sdk.computer_use;daemonStatus=sdk.daemonStatus;
+  assert.equal(sdk.OPENSKY_HOME,process.env.OPENSKY_HOME,'Abort before input if the SDK was loaded with another runtime.');
+  assert.equal(sdk.DEFAULT_PORT,Number(process.env.OPENSKY_PORT),'Fixture service port must be isolated before any request.');
+  assert.equal(sdk.DAEMON_BINARY,process.env.OPENSKY_BINARY,'Fixture binary must be selected before any request.');
   const before=front();await sky.interaction_mode({mode:'alongside'});await sdk.ensureDaemonRunning();
   const native=await daemonStatus();
   const identity=await nativeProcessIdentity(native.pid,path.join(candidate,'Contents/MacOS/OpenSky'));

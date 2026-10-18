@@ -14,8 +14,9 @@ export function readUserActivity({
     const file=path.join(home,'user-activity.json'),info=stat(file);
     if((info.mode&0o077)!==0||globalThis.process?.getuid&&info.uid!==globalThis.process.getuid())return unavailable;
     const record=JSON.parse(read(file,'utf8')),age=(now()-record.sampled_at_ms)/1000;
-    if(record.schema!==1||record.monitor_ready!==true||record.own_input_filtered!==true||record.input_contents_recorded!==false||!Number.isSafeInteger(record.pid)||record.pid<=0||!running(record.pid))return unavailable;
+    if(record.schema!==1||record.own_input_filtered!==true||record.input_contents_recorded!==false||!Number.isSafeInteger(record.pid)||record.pid<=0||!running(record.pid))return unavailable;
     if(!Number.isFinite(age)||age<0||age>1.5||!Number.isFinite(record.external_idle_seconds)||record.external_idle_seconds<0||!Number.isFinite(record.observed_for_seconds)||record.observed_for_seconds<record.external_idle_seconds)return unavailable;
+    if(record.monitor_ready!==true){const statuses=new Set(['not_enabled','reconnecting','idle_signal_unavailable','tap_disabled']);return statuses.has(record.monitor_status)?{...unavailable,monitor_status:record.monitor_status}:unavailable;}
     return {ok:true,idle_seconds:Math.floor((record.external_idle_seconds+age)*1000)/1000,source:unavailable.source,input_contents_recorded:false,own_input_filtered:true,sample_age_seconds:Math.floor(age*1000)/1000};
   }catch{return unavailable;}
 }

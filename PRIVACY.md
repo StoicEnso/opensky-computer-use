@@ -29,3 +29,5 @@ Browser and app actions communicate with their normal services. Data entered int
 These are product data-handling facts, not a GDPR certification or a claim that no data is stored or transferred. Compliance depends on the actual workflow, information processed, authority to process it, retention and connected providers. Local processing and reduced capture use can support data minimisation, but do not establish compliance on their own. See the [ICO's data protection by design and default guidance](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/accountability-and-governance/guide-to-accountability-and-governance/data-protection-by-design-and-by-default/).
 
 For the control access boundary, see [the security model](SECURITY.md).
+
+The shared cooperation file may record the writing process and parent process IDs, alongside its existing update time, to help diagnose mode changes from overlapping local clients. These are local diagnostic metadata; no keystrokes or pointer coordinates are added.

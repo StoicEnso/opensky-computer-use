@@ -115,12 +115,18 @@ final class UserActivityTracker {
         let config = (try? Data(contentsOf: modeURL)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
         cooperationPolicy = Self.isAutoConfig(config) ? "auto" : (config?["mode"] as? String ?? "desktop")
         let permitted = (Self.isAutoConfig(config) || now < feedbackMonitoringUntil) && AXIsProcessTrusted()
-        if permitted && eventTap == nil && now - lastMonitorAttempt >= 2 { installMonitor(now: now) }
-        if permitted, let eventTap, !CGEvent.tapIsEnabled(tap: eventTap) {
-            // Monitor recovery starts a new full idle interval, never desktop access.
-            clock = ExternalActivityClock(now: now)
-            CGEvent.tapEnable(tap: eventTap, enable: true)
+        if permitted, let tap = eventTap {
+            if !CFMachPortIsValid(tap) {
+                // Permission changes can retire the WindowServer tap while its
+                // local port reference survives. Enabling that port cannot recover it.
+                removeMonitor()
+            } else if !CGEvent.tapIsEnabled(tap: tap) {
+                clock = ExternalActivityClock(now: now)
+                CGEvent.tapEnable(tap: tap, enable: true)
+                if !CGEvent.tapIsEnabled(tap: tap) { removeMonitor() }
+            }
         }
+        if permitted && eventTap == nil && now - lastMonitorAttempt >= 2 { installMonitor(now: now) }
         if !permitted { removeMonitor() }
         let generalIdle = permitted ? Self.generalIdle() : nil
         let ready = permitted && eventTap.map { CGEvent.tapIsEnabled(tap: $0) } == true && generalIdle != nil
@@ -128,7 +134,8 @@ final class UserActivityTracker {
         let record: [String: Any] = ["schema": 1, "pid": ProcessInfo.processInfo.processIdentifier,
             "sampled_uptime": now, "sampled_at_ms": Int64(Date().timeIntervalSince1970 * 1000), "external_idle_seconds": ready ? clock.idle(at: now, generalIdle: generalIdle) : 0,
             "observed_for_seconds": ready ? max(0, now - clock.startedAt) : 0,
-            "monitor_ready": ready, "monitor_backend": "quartz_listen_only", "own_input_filtered": true, "input_contents_recorded": false]
+            "monitor_ready": ready, "monitor_status": ready ? "ready" : (!permitted ? "not_enabled" : (eventTap == nil ? "reconnecting" : (generalIdle == nil ? "idle_signal_unavailable" : "tap_disabled"))),
+            "monitor_backend": "quartz_listen_only", "own_input_filtered": true, "input_contents_recorded": false]
         let file = URL(fileURLWithPath: home).appendingPathComponent("user-activity.json")
         if let data = try? JSONSerialization.data(withJSONObject: record) {
             try? data.write(to: file, options: .atomic)

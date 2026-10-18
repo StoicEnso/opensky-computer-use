@@ -1,6 +1,6 @@
 {
   "name": "opensky-computer-use",
-  "version": "1.7.0-rc.5",
+  "version": "1.7.0-rc.7",
   "description": "Fast, local-first browser and desktop control for macOS agents, with on-device OCR, animated pointers, MCP, CLI and JavaScript. No built-in telemetry or cloud relay.",
   "type": "module",
   "main": "./src/index.mjs",
@@ -30,7 +30,8 @@
     "test:ui-service": "node test/native-ui-service.mjs",
     "build:app": "node scripts/build-app.mjs",
     "test:feedback": "node test/native-window-feedback.mjs",
-    "test:inspector": "node test/inspector-live.mjs"
+    "test:inspector": "node test/inspector-live.mjs",
+    "test:activity-recovery": "node test/native-activity-recovery.mjs"
   },
   "keywords": [
     "computer-use",

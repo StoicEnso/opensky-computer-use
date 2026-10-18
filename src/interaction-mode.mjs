@@ -33,7 +33,7 @@ export function writeInteractionMode(home, mode) {
   try {
     // Older MCP processes understand alongside but reject an unknown auto mode.
     // Keep their background path working while fresh clients resolve the policy.
-    writeFileSync(temporary, JSON.stringify({ mode:mode==='auto'?'alongside':mode,...(mode==='auto'?{cooperation_policy:'auto'}:{}), updated_at: new Date().toISOString() }) + '\n', { flag: 'wx', mode: 0o600 });
+    writeFileSync(temporary, JSON.stringify({ mode:mode==='auto'?'alongside':mode,...(mode==='auto'?{cooperation_policy:'auto'}:{}), updated_at: new Date().toISOString(), ...(Number.isSafeInteger(globalThis.process?.pid)?{updated_by_pid:globalThis.process.pid}:{}), ...(Number.isSafeInteger(globalThis.process?.ppid)?{updated_by_parent_pid:globalThis.process.ppid}:{}) }) + '\n', { flag: 'wx', mode: 0o600 });
     renameSync(temporary, path.join(home, filename));
   } finally { rmSync(temporary, { force: true }); }
   return { ...readInteractionMode(home), message: mode==='auto'

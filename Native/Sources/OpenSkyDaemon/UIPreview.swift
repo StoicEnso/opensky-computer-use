@@ -14,6 +14,7 @@ func renderUIPreview(to directory: URL) throws {
     precondition(AXEngine.inspectorEngine() !== AXEngine.shared, "Inspector must own its cache")
     try checkOwnAXExecution()
     try checkInspectorTargetPicker()
+    try checkEditingShortcut()
     var readTime: TimeInterval = 0
     var readCurrent = true
     let readBudget = AXObservationBudget(now: { readTime }, isCurrent: { readCurrent })
@@ -265,4 +266,20 @@ private func checkWindowFeedback(to directory: URL) throws {
     }
     }
     print("Window feedback checks passed: exposed background pixels, covered/focused-window exclusion, independent same-app windows and overlapping occluders.")
+}
+
+private func checkEditingShortcut() throws {
+    let editor = NSTextView(frame: NSRect(x: 0, y: 0, width: 200, height: 40))
+    editor.string = "café cloud ✓"
+    editor.setSelectedRange(NSRange(location: 0, length: 0))
+    let menu = OpenSkyEditingMenu.make()
+    guard let select = menu.items.first(where: { $0.action == #selector(NSText.selectAll(_:)) }),
+          let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command,
+             timestamp: 0, windowNumber: 0, context: nil, characters: "a", charactersIgnoringModifiers: "a", isARepeat: false, keyCode: 0) else {
+        throw NSError(domain: "Standard editing shortcut unavailable", code: 1)
+    }
+    select.target = editor // Fixture editor only; production resolves its first responder.
+    guard menu.performKeyEquivalent(with: event), editor.selectedRange().length == editor.string.utf16.count else {
+        throw NSError(domain: "Command+A must select the complete Unicode text", code: 1)
+    }
 }

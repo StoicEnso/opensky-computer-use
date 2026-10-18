@@ -1,208 +1,142 @@
 {
   "date": "2026-10-18",
-  "runtimeVersion": "1.7.0-rc.5",
-  "installedNativeBuild": "1.3.7",
-  "candidateNativeBuild": "1.3.7",
-  "candidateInstalled": true,
+  "runtimeVersion": "1.7.0-rc.7",
+  "installedNativeBuild": "1.3.9",
+  "nativeAPI": "1.3.0",
+  "status": "installed_and_live_verified",
   "ownerAuthority": "Finish Inspector search/filter tests under the existing 300-second auto idle rule; preserve active owner input and update GitHub.",
   "findings": [
     {
-      "finding": "Physical clicking an own Inspector popup menu item outside the normal window was rejected as covered before delivery.",
-      "fix": "Recognize own menu/menu-item ancestry in the AX hit, with matching process identity and the existing expected-node check. Other own hits retain normal-window and overlay checks.",
-      "liveInstalledFixVerified": true
+      "finding": "Physical Inspector search crashed when an own AX read lazily created AppKit rows on the RPC worker thread.",
+      "fix": "Own reads and target revalidation run on the main thread before cache locking; operation generations and paused observations remain intact.",
+      "introducedInNativeBuild": "1.3.7",
+      "installedPhysicalFixVerified": true
     },
     {
-      "finding": "A subsequent live attempt was interrupted by a focus change and the filtered idle monitor returned below 300 seconds.",
-      "scope": "This run did not establish a search/filter result. Shared input stopped and the task-owned Inspector was later closed without foreground input."
+      "finding": "Command+A left the previous Inspector query intact, so the next typed query appended.",
+      "fix": "Add a standard responder-chain Edit menu with normal Mac shortcuts. Read the About version from bundle metadata.",
+      "introducedInNativeBuild": "1.3.9",
+      "installedPhysicalFixVerified": true
     },
     {
-      "finding": "After repeated reopen, the Inspector AX frame no longer matched its rendered WindowServer frame; one broader diagnostic read exceeded the client timeout.",
-      "fix": "Create a fresh Inspector controller after close, disable ordering animations, publish passive frame readiness, bound AX reads between messages and keep passive Inspector/pointer recovery off the action queue.",
-      "liveInstalledFixVerified": false
+      "finding": "A deliberately retired real listener port was retained by the previous tracker.",
+      "fix": "Retire invalid or unsuccessfully re-enabled ports and recreate with a bounded retry cadence and a fresh idle interval.",
+      "introducedInNativeBuild": "1.3.8",
+      "controlledRealListenerRegressionPassed": true,
+      "oldSourceNegativeControlFailedAsExpected": true,
+      "productionIncidentRootCauseEstablished": false
     },
     {
-      "finding": "The first fixture-control count changed from 16 to 17 after activation/enhanced Accessibility.",
-      "scope": "The test now reacquires current fixture controls rather than treating the startup count as a fixed UI contract. This is a test correction, not a claimed app defect."
+      "finding": "A live test remained queued after the shared preference changed to permanent alongside.",
+      "resolution": "Restored the owner-authorized auto policy. Permanent alongside deliberately disables auto monitoring; expose validated monitor states and local writer/parent PID metadata for diagnosis.",
+      "unknownModeWriterIdentified": false
     },
     {
-      "finding": "A foreground focus command could not activate the accessory app itself while idle remained above 300 seconds; no hardware input was sent.",
-      "fix": "Self activation now runs on the main thread, raises the pinned key-capable window and preserves the original cancellation generation.",
-      "liveInstalledFixVerified": true
-    },
-    {
-      "finding": "Some existing-helper clicks were acknowledged or rejected without a verified UI outcome. The exact cause is not established.",
-      "fix": "Expose the separate macOS event-synthesizing preflight and return event_posting_permission_required before event delivery when that actual OS capability is absent. Background AX actions remain available.",
-      "scope": "This diagnostic does not claim the existing helper lacked that permission."
-    },
-    {
-      "finding": "A read-only Quartz probe saw tagged OpenSky pointer input and no external events while the installed AppKit-based activity record subsequently restarted.",
-      "fix": "Observe original Quartz events through an opted-in listen-only tap before AppKit delivery; unknown markers remain external, general OS idle remains a conservative cross-check, and unavailable/recovered monitors require a new idle interval.",
-      "nativeBuild": "1.3.6",
-      "installedFixVerified": false,
-      "isolatedProductionKeyInputContinuityVerified": true
-    },
-    {
-      "finding": "A picker hit reported menu-item/menu/popup ancestry that did not match the current picker before, during and after visible feedback.",
-      "fix": "Use a stable native dropdown with explicit menu cancellation on close and teardown. Preserve expected-control identity checks and expose distinct click-failure stages.",
-      "nativeBuild": "1.3.6",
-      "installedFixVerified": false,
-      "offscreenBindingAndIdentityVerified": true
-    },
-    {
-      "finding": "The first live 1.3.6 attempt observed the fixture selected before Inspect Window became enabled.",
-      "fix": "Wait for both the exact chosen fixture and enabled Inspect button, without replaying the menu action.",
-      "subsequentPhysicalInspectPassed": true
-    },
-    {
-      "finding": "The next live 1.3.6 run reached typed search and crashed. Its native log shows an own AX description read creating AppKit table rows on the background RPC thread, followed by an auto-layout exception.",
-      "fix": "Route own snapshots and node revalidation to the main thread before cache locking. Route own attribute and hit-test reads there too, retaining request generations. Observations remain available while paused.",
-      "nativeBuild": "1.3.7",
-      "installedPhysicalFixVerified": false,
-      "offscreenOwnReadThreadAndPausedObservationPassed": true
+      "finding": "The selected fixture appeared before Inspect Window became enabled, and the fixture control count changed after enhanced Accessibility.",
+      "resolution": "Wait for the exact selected fixture and enabled button; reacquire controls. Stop on owner input, saved-policy changes, or native PID changes, without repeating uncertain actions."
     }
   ],
   "validation": {
     "automatedTestsPassed": 51,
     "packagingAssertionsPassed": 45,
     "swiftReleaseBuildPassed": true,
-    "offscreenUIAndMenuOwnershipPolicyPassed": true,
-    "isolatedInspectorServicePassed": true,
-    "physicalSearchAndFilterVerified": false,
-    "physicalRowSelectionVerified": false,
-    "installedNativeAndPermissionsPreserved": true,
-    "browserConnectionPreserved": true,
-    "threeFreshReopenWindowsAndSettledFramesPassed": true,
-    "observationBudgetClockAndCancellationPassed": true,
-    "passiveRecoveryDuringBusyQueuePassed": true,
-    "feedbackHitProbe": {
-      "sameFieldHitBeforeAndDuringFeedback": true,
-      "feedbackVisibleDuringProbe": true,
-      "screenshotCaptured": false,
-      "physicalClickSent": false
-    },
+    "strictSignaturePassed": true,
+    "offscreenCommandASelectsCompleteUnicodeValue": true,
+    "ownReadThreadAndPausedObservationPassed": true,
+    "isolatedInspectorServiceAndThreeReopensPassed": true,
+    "fixtureRuntimeIsolationGuardsPassed": true,
+    "controlledRealListenerRecoveryPassed": true,
+    "independentInstalledPermissionsVerified": true,
     "physicalMenuChoiceVerified": true,
-    "installedSelfActivationVerified": true,
-    "native136OffscreenPickerBindingAndStableIdentityPassed": true,
-    "native136IsolatedReopenCyclesPassed": true,
-    "native136ProductionActivityProbeOwnKeyContinuityPassed": true,
-    "native136InstalledPhysicalChecksPassed": false
+    "physicalSearchAndFilterVerified": true,
+    "physicalRowSelectionVerified": true,
+    "physicalChecks": [
+      {
+        "name": "Window choice and physical Inspect Window",
+        "menuChoice": "physical click",
+        "passed": true,
+        "total": 17,
+        "initialFixtureCount": 16,
+        "currentFixtureCount": 17
+      },
+      {
+        "name": "Physical search \"PROJECT TITLE\"",
+        "passed": true,
+        "matchingControls": 1
+      },
+      {
+        "name": "Physical search \"CaF\u00e9\"",
+        "passed": true,
+        "matchingControls": 1
+      },
+      {
+        "name": "Physical search \"fixture.commit\"",
+        "passed": true,
+        "matchingControls": 1
+      },
+      {
+        "name": "Physical search \"button\"",
+        "passed": true,
+        "matchingControls": 5
+      },
+      {
+        "name": "Physical search \"zz-no-such-control\"",
+        "passed": true,
+        "matchingControls": 0
+      },
+      {
+        "name": "Physical search \"\"",
+        "passed": true,
+        "matchingControls": 17
+      },
+      {
+        "name": "Physical row selection shows correct identifier and Unicode value",
+        "passed": true
+      },
+      {
+        "name": "Clearing search restores all rows",
+        "passed": true
+      },
+      {
+        "name": "Prior foreground restored without clipboard input",
+        "passed": true
+      }
+    ],
+    "installedNativeAndPermissionsPreservedDuringTest": true,
+    "browserConnectionPreserved": true,
+    "originalForegroundRestored": true,
+    "clipboardUsed": false,
+    "ownerDataEdited": false
+  },
+  "installation": {
+    "normalMacOSSettingsThroughOpenSky": true,
+    "specificOwnerSetupAuthorityReused": true,
+    "exactInstalledAppSelected": true,
+    "independentLaunchServicesStartVerified": true,
+    "allThreePermissionsVerified": true,
+    "temporaryInheritedAccessDistinguishedFromIndependentConsent": true,
+    "frozenBinaryUnchangedAfterConsent": true,
+    "nativeBinarySHA256": "52b334706c10303422fad7647443288c941408be82611f2e514eb8a37625dc73",
+    "privateSettingsPreserved": true,
+    "browserBrokerAndConnectionPreserved": true,
+    "authenticationChallengeEncountered": false,
+    "permissionDatabaseEdited": false
   },
   "cooperation": {
     "savedPolicy": "auto",
     "idleThresholdSeconds": 300,
-    "modeChangedForTest": false,
-    "unknownInputStillCountsAsExternal": true,
-    "emergencyStopNotResumed": true
+    "modeChangedToDesktopForTest": false,
+    "inputRecheckedBeforeEachSharedAction": true,
+    "unknownInputCountsAsExternal": true,
+    "ownerStopPreserved": true
   },
   "watchRemainsPaused": true,
-  "pending": [
-    "Installed physical search/filter and row-selection verification on native 1.3.7 under the real 300-second auto rule"
-  ],
-  "recovery": {
-    "sameApprovedNativeBuildRestarted": true,
-    "accessibilityPreserved": true,
-    "screenRecordingPreserved": true,
-    "browserBrokerAndConnectionPreserved": true,
-    "savedAutoPolicyPreserved": true
-  },
+  "pending": [],
   "limits": [
-    "Read budgets are checked between AX messages; per-message timeouts do not establish a hard real-time guarantee.",
-    "An interrupted live run is not evidence that search/filter/selection passed."
-  ],
-  "nativeUpgradeAttempt": {
-    "attemptedAtAuthorizedIdleCheckpoint": true,
-    "newSignatureAccessibility": false,
-    "newSignatureScreenRecording": false,
-    "newSignatureEventPosting": false,
-    "ownerConsentRequired": true,
-    "approvedBuildRestored": true,
-    "approvedBuildAccessibility": true,
-    "approvedBuildScreenRecording": true,
-    "browserConnectionPreserved": true,
-    "browserPausePreserved": true,
-    "privateSettingsPreserved": true
-  },
-  "ownerHandoffPending": false,
-  "currentStatus": "Native 1.3.7 is installed and independently permitted after OpenSky performed normal owner-authorized macOS settings steps. It fixes a real 1.3.6 own-Accessibility read crash. Full installed physical search/filter/selection verification is in progress under the saved 300-second auto rule.",
-  "permissionRefresh": {
-    "ownerReplacedEntries": true,
-    "correctInstalledExecutableVerified": true,
-    "frozenCandidateHashVerified": true,
-    "accessibility": true,
-    "screenRecording": true,
-    "eventPosting": true,
-    "browserBrokerAndConnectionPreserved": true,
-    "privateSettingsPreserved": true
-  },
-  "interruptedFixedBuildRun": {
-    "status": "deferred_owner_active",
-    "fixtureSelectedThroughPhysicalMenu": true,
-    "inspectButtonNotClicked": true,
-    "searchAndFilterNotEstablished": true,
-    "savedAutoModePreserved": true
-  },
-  "installedRuntimeVersion": "1.7.0-rc.3",
-  "native136UpgradeAttempt": {
-    "actualPermissionGate": true,
-    "newSignatureAccessibility": false,
-    "newSignatureScreenRecording": false,
-    "newSignatureEventPosting": false,
-    "approved135Restored": true,
-    "restoredAccessibility": true,
-    "restoredScreenRecording": true,
-    "restoredEventPosting": true,
-    "browserConnectionPreserved": true,
-    "browserPausePreserved": true,
-    "privateSettingsPreserved": true
-  },
-  "native136IndependentReadiness": {
-    "exactInstalledExecutable": true,
-    "frozenBinaryHashUnchanged": true,
-    "independentLaunchServicesIdentity": true,
-    "accessibility": true,
-    "screenRecording": true,
-    "eventPosting": true,
-    "browserBrokerAndConnectionPreserved": true,
-    "privateSettingsPreserved": true,
-    "savedAutoModePreserved": true,
-    "ownerPausedWatchRemainsPaused": true
-  },
-  "existingHelperPermissionSetup": {
-    "usedOpenSky": true,
-    "normalMacOSSettingsUI": true,
-    "specificOwnerApprovalReused": true,
-    "exactInstalledAppSelected": true,
-    "temporaryHostResponsibilityDistinguishedFromIndependentConsent": true,
-    "authenticationChallengeEncountered": false,
-    "clipboardUsed": false,
-    "permissionDatabaseEdited": false,
-    "appResigned": false,
-    "independentNewAppPermissionsVerifiedAfterRestart": true,
-    "testedNativeBuilds": [
-      "1.3.6",
-      "1.3.7"
-    ]
-  },
-  "native137IndependentReadiness": {
-    "exactInstalledExecutable": true,
-    "frozenBinaryHashUnchanged": true,
-    "independentLaunchServicesIdentity": true,
-    "accessibility": true,
-    "screenRecording": true,
-    "eventPosting": true,
-    "browserBrokerAndConnectionPreserved": true,
-    "privateSettingsPreserved": true,
-    "savedAutoModePreserved": true,
-    "ownerPausedWatchRemainsPaused": true
-  },
-  "native137Validation": {
-    "automatedTestsPassed": 51,
-    "packagingAssertionsPassed": 45,
-    "swiftReleaseBuildPassed": true,
-    "strictSignaturePassed": true,
-    "offscreenOwnReadThreadAndPausedObservationPassed": true,
-    "isolatedInspectorServiceAndThreeReopensPassed": true,
-    "physicalSearchAndFilterVerified": false,
-    "physicalRowSelectionVerified": false
-  }
+    "These physical checks use a disposable third-party native fixture, not every Mac application.",
+    "Background app behavior remains app-dependent; physical desktop input is shared and delivered input cannot be recalled.",
+    "Listener recovery was verified with deliberate fixture invalidation; it was not proven to cause the observed permanent-alongside wait.",
+    "AX budgets are checked between messages, not hard real-time deadlines.",
+    "The arm64 app is ad-hoc signed and not notarized; other Macs may require their own permission setup."
+  ]
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.7.0-rc.7 — 2026-10-18
+
+- Add a standard responder-chain Edit menu for native windows. The real Inspector test found Command+A left the old query intact and the next query appended; Select All, Cut, Copy, Paste, Undo and Redo now have normal Mac key equivalents.
+- Verify Command+A selects a complete Unicode value in an offscreen editor without clipboard input or foreground activation.
+- Read the native version shown in About from the actual bundle metadata.
+- Complete installed native 1.3.9 physical Inspector selection, successive searches, Unicode/role/identifier filters, empty results, clearing and row-details checks after an independent LaunchServices start. Preserve the five-minute auto rule, prior foreground, native permissions, stop state and existing Chrome connection.
+
+## 1.7.0-rc.6 — 2026-10-18
+
+- Retire invalid idle-listener ports and recreate listeners after failed re-enabling, with a bounded reconnect cadence. Recovery starts a fresh monitored interval and never resumes stopped control or inherits desktop availability.
+- Add an opt-in regression that invalidates a disposable real listener using the production tracker. The previous source fails this case; the fixed tracker reconnects without posting input or requesting access.
+- Expose a small, validated set of monitor states in passive diagnostics. Record local writer/parent process IDs with cooperation changes to help diagnose overlapping clients; preserve the actual saved mode.
+- Bound the live test's observation-only readiness wait, retain search-value/footer diagnostics, and stop when the native app reopens or the saved cooperation preference changes. Check fixture runtime, port and binary isolation before UI-service tests send any request.
+
 ## 1.7.0-rc.5 — 2026-10-18
 
 - Fix a live Inspector crash: own Accessibility reads could lazily create AppKit result rows on the RPC worker thread. Route own snapshots and target revalidation to the main thread before taking the cache lock; route own attribute and hit-test reads there too. Preserve operation generations and observations while paused.

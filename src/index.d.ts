@@ -8,7 +8,7 @@ export declare const DAEMON_URL: string;
 
 export type ExecutionMode = "hybrid" | "background" | "takeover";
 export type InteractionMode = "alongside" | "desktop" | "auto";
-export interface UserActivityResult {ok:boolean;idle_seconds:number|null;source:string;input_contents_recorded:false;error_code?:string;required_native_build?:string;own_input_filtered?:boolean;sample_age_seconds?:number;}
+export interface UserActivityResult {ok:boolean;idle_seconds:number|null;source:string;input_contents_recorded:false;error_code?:string;required_native_build?:string;own_input_filtered?:boolean;sample_age_seconds?:number;monitor_status?:"not_enabled"|"reconnecting"|"idle_signal_unavailable"|"tap_disabled";}
 export interface BrowserParams {
   tab_id: string;
   workflow_id: string;
