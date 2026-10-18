@@ -1,9 +1,9 @@
 {
   "date": "2026-10-18",
-  "runtimeVersion": "1.7.0-rc.4",
-  "installedNativeBuild": "1.3.5",
-  "candidateNativeBuild": "1.3.6",
-  "candidateInstalled": false,
+  "runtimeVersion": "1.7.0-rc.5",
+  "installedNativeBuild": "1.3.7",
+  "candidateNativeBuild": "1.3.7",
+  "candidateInstalled": true,
   "ownerAuthority": "Finish Inspector search/filter tests under the existing 300-second auto idle rule; preserve active owner input and update GitHub.",
   "findings": [
     {
@@ -47,6 +47,18 @@
       "nativeBuild": "1.3.6",
       "installedFixVerified": false,
       "offscreenBindingAndIdentityVerified": true
+    },
+    {
+      "finding": "The first live 1.3.6 attempt observed the fixture selected before Inspect Window became enabled.",
+      "fix": "Wait for both the exact chosen fixture and enabled Inspect button, without replaying the menu action.",
+      "subsequentPhysicalInspectPassed": true
+    },
+    {
+      "finding": "The next live 1.3.6 run reached typed search and crashed. Its native log shows an own AX description read creating AppKit table rows on the background RPC thread, followed by an auto-layout exception.",
+      "fix": "Route own snapshots and node revalidation to the main thread before cache locking. Route own attribute and hit-test reads there too, retaining request generations. Observations remain available while paused.",
+      "nativeBuild": "1.3.7",
+      "installedPhysicalFixVerified": false,
+      "offscreenOwnReadThreadAndPausedObservationPassed": true
     }
   ],
   "validation": {
@@ -84,8 +96,7 @@
   },
   "watchRemainsPaused": true,
   "pending": [
-    "Owner refresh of real macOS consent for the exact frozen 1.3.6 signature",
-    "Installed physical window choice, search/filter and row selection under the real 300-second auto policy"
+    "Installed physical search/filter and row-selection verification on native 1.3.7 under the real 300-second auto rule"
   ],
   "recovery": {
     "sameApprovedNativeBuildRestarted": true,
@@ -111,8 +122,8 @@
     "browserPausePreserved": true,
     "privateSettingsPreserved": true
   },
-  "ownerHandoffPending": true,
-  "currentStatus": "Native 1.3.6 fixes passed automated/offscreen/isolated checks. A real idle-gated upgrade probe found macOS denied the changed signature; approved 1.3.5 was restored with all three capabilities and Chrome intact. Installed physical search/filter/row-selection on 1.3.6 remains pending owner consent.",
+  "ownerHandoffPending": false,
+  "currentStatus": "Native 1.3.7 is installed and independently permitted after OpenSky performed normal owner-authorized macOS settings steps. It fixes a real 1.3.6 own-Accessibility read crash. Full installed physical search/filter/selection verification is in progress under the saved 300-second auto rule.",
   "permissionRefresh": {
     "ownerReplacedEntries": true,
     "correctInstalledExecutableVerified": true,
@@ -143,5 +154,55 @@
     "browserConnectionPreserved": true,
     "browserPausePreserved": true,
     "privateSettingsPreserved": true
+  },
+  "native136IndependentReadiness": {
+    "exactInstalledExecutable": true,
+    "frozenBinaryHashUnchanged": true,
+    "independentLaunchServicesIdentity": true,
+    "accessibility": true,
+    "screenRecording": true,
+    "eventPosting": true,
+    "browserBrokerAndConnectionPreserved": true,
+    "privateSettingsPreserved": true,
+    "savedAutoModePreserved": true,
+    "ownerPausedWatchRemainsPaused": true
+  },
+  "existingHelperPermissionSetup": {
+    "usedOpenSky": true,
+    "normalMacOSSettingsUI": true,
+    "specificOwnerApprovalReused": true,
+    "exactInstalledAppSelected": true,
+    "temporaryHostResponsibilityDistinguishedFromIndependentConsent": true,
+    "authenticationChallengeEncountered": false,
+    "clipboardUsed": false,
+    "permissionDatabaseEdited": false,
+    "appResigned": false,
+    "independentNewAppPermissionsVerifiedAfterRestart": true,
+    "testedNativeBuilds": [
+      "1.3.6",
+      "1.3.7"
+    ]
+  },
+  "native137IndependentReadiness": {
+    "exactInstalledExecutable": true,
+    "frozenBinaryHashUnchanged": true,
+    "independentLaunchServicesIdentity": true,
+    "accessibility": true,
+    "screenRecording": true,
+    "eventPosting": true,
+    "browserBrokerAndConnectionPreserved": true,
+    "privateSettingsPreserved": true,
+    "savedAutoModePreserved": true,
+    "ownerPausedWatchRemainsPaused": true
+  },
+  "native137Validation": {
+    "automatedTestsPassed": 51,
+    "packagingAssertionsPassed": 45,
+    "swiftReleaseBuildPassed": true,
+    "strictSignaturePassed": true,
+    "offscreenOwnReadThreadAndPausedObservationPassed": true,
+    "isolatedInspectorServiceAndThreeReopensPassed": true,
+    "physicalSearchAndFilterVerified": false,
+    "physicalRowSelectionVerified": false
   }
 }

@@ -134,6 +134,31 @@ private func checkOwnAXExecution() throws {
         lock.lock(); let passed = finished && success; lock.unlock()
         if !passed { throw NSError(domain: "Own AX main-thread/cancellation regression", code: 1) }
     }
+    // Reads can instantiate lazy AppKit rows, so test their thread independently
+    // of mutating AX actions and ensure observation remains available when paused.
+    func backgroundRead() throws {
+        let lock = NSLock(); var finished = false; var correct = false
+        let generation = SafetyController.shared.operationGeneration
+        DispatchQueue.global().async {
+            let read = SafetyController.shared.withGeneration(generation) {
+                OpenSkyAXActions.read(own) {
+                    Thread.isMainThread && SafetyController.shared.operationGeneration == generation
+                }
+            }
+            lock.lock(); correct = read; finished = true; lock.unlock()
+        }
+        let end = Date().addingTimeInterval(3)
+        while Date() < end {
+            lock.lock(); let done = finished; lock.unlock(); if done { break }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+        }
+        lock.lock(); let passed = finished && correct; lock.unlock()
+        if !passed { throw NSError(domain: "Own AX read main-thread regression", code: 1) }
+    }
+    try backgroundRead()
+    SafetyController.shared.setStopped(true)
+    try backgroundRead()
+    SafetyController.shared.setStopped(false)
     let original = SafetyController.shared.operationGeneration
     try background(generation: original, expectAction: true)
     SafetyController.shared.setStopped(true); SafetyController.shared.setStopped(false)

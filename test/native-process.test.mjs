@@ -7,13 +7,13 @@ import {nativeProcessIdentity} from '../src/native-process.mjs';
 import {ownAXUpgradeRequired} from '../src/native-version.mjs';
 
 test('known SwiftUI self-control crash is gated by native build without blocking other apps',()=>{
-  for(const method of ['click','set_value','perform_secondary_action','select_text','manage_window']) {
-    for(const build of [undefined,'1.3.0','1.3.2'])assert.equal(ownAXUpgradeRequired(method,{app:'dev.opensky.computeruse'},build),true);
-    for(const build of ['1.3.3','1.10.0','2.0.0'])assert.equal(ownAXUpgradeRequired(method,{app:'OpenSky'},build),false);
+  for(const method of ['get_app_state','click','set_value','perform_secondary_action','select_text','manage_window','type_text','press_key','paste']) {
+    for(const build of [undefined,'1.3.0','1.3.2','1.3.3','1.3.6'])assert.equal(ownAXUpgradeRequired(method,{app:'dev.opensky.computeruse'},build),true);
+    for(const build of ['1.3.7','1.10.0','2.0.0'])assert.equal(ownAXUpgradeRequired(method,{app:'OpenSky'},build),false);
     assert.equal(ownAXUpgradeRequired(method,{app:'Google Chrome'},'1.3.2'),false);
   }
   assert.equal(ownAXUpgradeRequired('inspector',{app:'OpenSky'},'1.3.2'),false);
-  assert.equal(ownAXUpgradeRequired('get_app_state',{app:'OpenSky'},'1.3.2'),false);
+  assert.equal(ownAXUpgradeRequired('status',{app:'OpenSky'},'1.3.2'),false);
 });
 
 test('native process diagnostics distinguish a staging copy with the same executable name',async()=>{

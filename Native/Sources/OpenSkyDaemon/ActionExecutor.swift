@@ -291,7 +291,7 @@ public final class ActionExecutor {
             return invalidIndex("set_value", elementIndex)
         }
         var writable = DarwinBoolean(false)
-        let valueWritable = node.axElement.map { AXUIElementIsAttributeSettable($0, kAXValueAttribute as CFString, &writable) == .success && writable.boolValue } ?? false
+        let valueWritable = node.axElement.map { element in OpenSkyAXActions.read(element) { AXUIElementIsAttributeSettable(element, kAXValueAttribute as CFString, &writable) } == .success && writable.boolValue } ?? false
         if executionMode == .background && !valueWritable {
             return failure("set_value", "The field does not expose a writable Accessibility value. Background mode never falls back to foreground clicks or keyboard input.")
         }
@@ -310,7 +310,7 @@ public final class ActionExecutor {
             return failure("set_value", "This element has no editable Accessibility reference. Use an explicit click and type_text if appropriate.")
         }
         var rawRole: CFTypeRef?
-        AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &rawRole)
+        _ = OpenSkyAXActions.copyAttribute(element, kAXRoleAttribute as CFString, &rawRole)
         guard let role = rawRole as? String, ["AXTextField", "AXTextArea", "AXComboBox"].contains(role) else {
             return failure("set_value", "Direct value setting failed and this element is not a text input. No keyboard fallback was sent.")
         }
@@ -612,10 +612,10 @@ public final class ActionExecutor {
         let axApp = AXUIElementCreateApplication(target.processIdentifier)
         var reference: CFTypeRef?
         var window: AXUIElement?
-        if AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &reference) == .success,
+        if OpenSkyAXActions.copyAttribute(axApp, kAXFocusedWindowAttribute as CFString, &reference) == .success,
            let reference = reference, CFGetTypeID(reference) == AXUIElementGetTypeID() {
             window = (reference as! AXUIElement)
-        } else if AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &reference) == .success,
+        } else if OpenSkyAXActions.copyAttribute(axApp, kAXWindowsAttribute as CFString, &reference) == .success,
                   let windows = reference as? [AXUIElement] {
             window = windows.first
         }
@@ -626,7 +626,7 @@ public final class ActionExecutor {
                 _ = AXEngine.shared.resolveOrLaunchApp(identifier: url.path, launchIfNeeded: true,
                     launchInBackground: false, reopenIfRunning: true)
                 var reopened: CFTypeRef?
-                if AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &reopened) == .success,
+                if OpenSkyAXActions.copyAttribute(axApp, kAXFocusedWindowAttribute as CFString, &reopened) == .success,
                    let reopened = reopened, CFGetTypeID(reopened) == AXUIElementGetTypeID() {
                     window = (reopened as! AXUIElement)
                 }
@@ -881,6 +881,11 @@ public final class ActionExecutor {
 
     private func pointBelongsToTarget(_ point: CGPoint, _ target: NSRunningApplication?) -> Bool {
         guard let target = target else { return true }
+        if target.processIdentifier == ProcessInfo.processInfo.processIdentifier, !Thread.isMainThread {
+            return OpenSkyAXActions.read(AXUIElementCreateApplication(target.processIdentifier)) {
+                self.pointBelongsToTarget(point, target)
+            }
+        }
         var element: AXUIElement?
         if AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &element) == .success,
            let element = element {
@@ -912,6 +917,11 @@ public final class ActionExecutor {
 
     private func pointMatchesNode(_ point: CGPoint, _ node: IndexedAXNode?) -> Bool {
         guard let expected = node?.axElement else { return true }
+        var pid: pid_t = 0
+        if AXUIElementGetPid(expected, &pid) == .success,
+           pid == ProcessInfo.processInfo.processIdentifier, !Thread.isMainThread {
+            return OpenSkyAXActions.read(expected) { self.pointMatchesNode(point, node) }
+        }
         var hit: AXUIElement?
         guard AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(), Float(point.x), Float(point.y), &hit) == .success else { return false }
         // A label/subview may receive the hit-test inside its indexed button or field.
@@ -920,7 +930,7 @@ public final class ActionExecutor {
             guard let current = hit else { return false }
             if CFEqual(current, expected) { return true }
             var parent: CFTypeRef?
-            guard AXUIElementCopyAttributeValue(current, kAXParentAttribute as CFString, &parent) == .success,
+            guard OpenSkyAXActions.copyAttribute(current, kAXParentAttribute as CFString, &parent) == .success,
                   let parent = parent, CFGetTypeID(parent) == AXUIElementGetTypeID() else { return false }
             hit = (parent as! AXUIElement)
         }
@@ -930,8 +940,8 @@ public final class ActionExecutor {
     private func accessibilityFrame(_ element: AXUIElement) -> CGRect? {
         var positionRef: CFTypeRef?
         var sizeRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionRef) == .success,
-              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
+        guard OpenSkyAXActions.copyAttribute(element, kAXPositionAttribute as CFString, &positionRef) == .success,
+              OpenSkyAXActions.copyAttribute(element, kAXSizeAttribute as CFString, &sizeRef) == .success,
               let positionRef = positionRef, let sizeRef = sizeRef,
               CFGetTypeID(positionRef) == AXValueGetTypeID(), CFGetTypeID(sizeRef) == AXValueGetTypeID() else { return nil }
         var position = CGPoint.zero

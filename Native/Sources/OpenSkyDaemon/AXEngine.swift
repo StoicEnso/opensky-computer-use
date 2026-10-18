@@ -306,6 +306,18 @@ public final class AXEngine {
         allowVisualFallback: Bool = true,
         windowID requestedWindowID: UInt32? = nil
     ) -> AppSnapshotResult {
+        // Dispatch before taking the cache lock: own AX getters can instantiate
+        // SwiftUI/AppKit result rows and must not run on the RPC worker thread.
+        if !Thread.isMainThread,
+           let own = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: false),
+           own.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            return OpenSkyAXActions.read(AXUIElementCreateApplication(own.processIdentifier)) {
+                self.getAppState(appIdentifier: appIdentifier, disableDiff: disableDiff,
+                    includeScreenshot: includeScreenshot, includeOCR: includeOCR,
+                    launchIfNeeded: launchIfNeeded, allowVisualFallback: allowVisualFallback,
+                    windowID: requestedWindowID)
+            }
+        }
         stateLock.lock()
         defer { stateLock.unlock() }
         let priorBudget = observationBudget
@@ -467,6 +479,13 @@ public final class AXEngine {
     }
 
     public func lookupNode(appIdentifier: String, elementIndex: Int) -> IndexedAXNode? {
+        if !Thread.isMainThread,
+           let own = resolveOrLaunchApp(identifier: appIdentifier, launchIfNeeded: false),
+           own.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            return OpenSkyAXActions.read(AXUIElementCreateApplication(own.processIdentifier)) {
+                self.lookupNode(appIdentifier: appIdentifier, elementIndex: elementIndex)
+            }
+        }
         stateLock.lock()
         defer { stateLock.unlock() }
         guard let snapshot = currentSnapshot(appIdentifier), let node = snapshot.nodes[elementIndex] else { return nil }

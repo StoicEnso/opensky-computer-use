@@ -120,7 +120,7 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
   if (autoStart) await ensureDaemonRunning();
   if(ownAXUpgradeRequired(method,params,undefined)) {
     const native=await daemonStatus();
-    if(ownAXUpgradeRequired(method,params,native.build_version))return {ok:false,error_code:'native_ui_upgrade_required',error:'Automating OpenSky’s own SwiftUI controls requires native build 1.3.3 or later. Older builds can crash on self-directed AX actions. The Inspector can still be opened and used normally; upgrade the native app at a quiet checkpoint and complete any real macOS consent. No input was sent.'};
+    if(ownAXUpgradeRequired(method,params,native.build_version))return {ok:false,error_code:'native_ui_upgrade_required',error:'Inspecting or automating OpenSky’s own SwiftUI controls requires native build 1.3.7 or later. Older builds can crash when own Accessibility reads create result rows off the main thread. Passive Inspector status, show and close remain available; upgrade the native app at a quiet checkpoint and complete any real macOS consent. No input was sent.'};
   }
   // Recheck after startup/status waits: the owner may have returned meanwhile.
   const latest=prepareInteraction(OPENSKY_HOME,method,params);

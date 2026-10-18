@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0-rc.5 — 2026-10-18
+
+- Fix a live Inspector crash: own Accessibility reads could lazily create AppKit result rows on the RPC worker thread. Route own snapshots and target revalidation to the main thread before taking the cache lock; route own attribute and hit-test reads there too. Preserve operation generations and observations while paused.
+- Refuse own-control observations and input on native builds before 1.3.7, where the crash remains possible. Other applications and passive Inspector lifecycle controls remain available.
+- Wait for the selected window's Inspect button to become enabled before the live test continues. Always clean up the disposable fixture even when Inspector closure is unavailable after a service failure.
+- Verify normal macOS permission-entry replacement through an approved OpenSky helper under the owner's specific setup authority. Independently verify the updated app after a normal LaunchServices start; temporary inherited access does not establish the app's own consent.
+
 ## 1.7.0-rc.4 — 2026-10-18
 
 - Observe opted-in activity through a read-only Quartz event tap. Live diagnostics found tagged OpenSky input in Quartz while the AppKit-based idle record subsequently restarted. Keep unknown events external, retain the general OS-idle cross-check, and start a fresh idle interval whenever monitoring starts or recovers. An unavailable monitor stays alongside; no permission is requested automatically.
