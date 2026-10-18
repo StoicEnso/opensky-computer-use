@@ -11,13 +11,14 @@ function refresh({recheck=false}={}){
       const response=await fetch('state');if(!response.ok)throw new Error(response.status>=500?'Could not check readiness. Choose Check again.':'Setup is no longer available. Run opensky onboard again.');
       const next=await response.json();if(!next.ok)throw new Error('Could not check readiness. Choose Check again.');
       const previous=state?.browserConnectionState;state=next;
-      for(const [id,ready] of [['service',state.running&&!state.stopped],['accessibility',state.accessibility],['screen',state.screenRecording]]) $(id+'-dot').classList.toggle('ready',ready);
+      for(const [id,ready] of [['service',state.running&&!state.stopped],['accessibility',state.accessibility],['screen',state.screenRecording],['events',state.eventPosting]]) $(id+'-dot').classList.toggle('ready',ready);
       text('service-state',state.stopped?'Paused — resume explicitly when you are ready.':state.running?'Running on this Mac':'Not running');
       $('start').hidden=state.running;
       text('accessibility-state',state.accessibility?'Verified access':'Enable OpenSky in the Mac setting');
       text('screen-state',state.screenRecording?'Verified access':'Enable OpenSky in the Mac setting');
       $('accessibility').hidden=state.accessibility;$('screen').hidden=state.screenRecording;
-      const ready=state.running&&!state.stopped&&state.accessibility&&state.screenRecording;
+      text('events-state',state.eventPosting?'Verified access':'Complete macOS event-synthesizing access if requested');$('events').hidden=!!state.eventPosting;
+      const ready=state.running&&!state.stopped&&state.accessibility&&state.screenRecording&&state.eventPosting;
       text('ready-badge',ready?'DESKTOP DEMO READY':'MAC SETUP IN PROGRESS');$('demo').disabled=!ready;
       text('chrome-state',state.chromeEnabled?'Enabled after successful setup':'Off until you choose to enable it.');
       $('chrome').hidden=state.chromeEnabled;updateConfig();
@@ -46,7 +47,7 @@ for(const button of document.querySelectorAll('[data-action]')) button.addEventL
     const response=await fetch('action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:button.dataset.action})});
     const result=await response.json();if(!result.ok)throw new Error(result.error||'The action could not be completed.');message(result.message||'Done.');
     if(button.dataset.action==='close'){closed=true;clearInterval(poll);}else await refresh({recheck:true});
-  }catch(error){message(error.message,true);}finally{button.disabled=false;if(button.id==='demo')$('demo').disabled=!(state?.running&&!state.stopped&&state.accessibility&&state.screenRecording);}
+  }catch(error){message(error.message,true);}finally{button.disabled=false;if(button.id==='demo')$('demo').disabled=!(state?.running&&!state.stopped&&state.accessibility&&state.screenRecording&&state.eventPosting);}
 });
 $('refresh').addEventListener('click',()=>refresh({recheck:true}));$('client').addEventListener('change',updateConfig);
 async function copy(id,success,failure){try{await navigator.clipboard.writeText($(id).textContent);message(success);}catch{message(failure,true);}}

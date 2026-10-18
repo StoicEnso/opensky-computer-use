@@ -4,7 +4,7 @@ import {createOnboardingServer} from '../scripts/onboarding.mjs';
 
 test('onboarding checks are passive and cross-origin requests cannot trigger setup actions',async t=>{
   let starts=0,prompts=0,browserInstalls=0,opened=[],revealed=[];
-  const setup=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true}),computer:{status:async()=>{prompts++;}},start:async()=>{starts++;},open:async url=>opened.push(url),revealFolder:async folder=>revealed.push(folder),config:client=>`configuration for ${client}`,chromeEnabled:()=>false,browserStatus:async()=>({connected:false}),browserInstallStatus:()=>({native_host_registered:false}),browserInstall:()=>{browserInstalls++;return {extension_path:'/test/extension'};}});
+  const setup=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true,eventPostingTrusted:true}),computer:{status:async()=>{prompts++;}},start:async()=>{starts++;},open:async url=>opened.push(url),revealFolder:async folder=>revealed.push(folder),config:client=>`configuration for ${client}`,chromeEnabled:()=>false,browserStatus:async()=>({connected:false}),browserInstallStatus:()=>({native_host_registered:false}),browserInstall:()=>{browserInstalls++;return {extension_path:'/test/extension'};}});
   const url=await setup.listen();t.after(()=>{setup.server.close();setup.server.closeAllConnections();});const origin=new URL(url).origin;
   const page=await fetch(url);assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/frame-ancestors 'none'/);
   const state=await (await fetch(url+'state')).json();assert.equal(state.running,true);assert.equal(state.chromeEnabled,false);assert.equal(starts,0);assert.equal(prompts,0);
@@ -23,7 +23,7 @@ test('onboarding checks are passive and cross-origin requests cannot trigger set
 
 test('host registration, actual Chrome connection and pause remain separate passive setup states',async t=>{
   let registered=false,connected=false,paused=false,stopped=false,mutations=0;
-  const setup=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true,stopped}),browserStatus:async()=>({connected,paused}),browserInstallStatus:()=>({native_host_registered:registered}),config:()=>'',chromeEnabled:()=>false,start:async()=>{mutations++;},browserInstall:()=>{mutations++;},revealFolder:async()=>{mutations++;}});
+  const setup=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true,eventPostingTrusted:true,stopped}),browserStatus:async()=>({connected,paused}),browserInstallStatus:()=>({native_host_registered:registered}),config:()=>'',chromeEnabled:()=>false,start:async()=>{mutations++;},browserInstall:()=>{mutations++;},revealFolder:async()=>{mutations++;}});
   const url=await setup.listen();t.after(()=>{setup.server.close();setup.server.closeAllConnections();});
   const state=async()=>{const r=await fetch(url+'state');assert.equal(r.status,200);return r.json();};
   assert.equal((await state()).browserConnectionState,'unregistered');
@@ -36,7 +36,7 @@ test('host registration, actual Chrome connection and pause remain separate pass
 
 test('onboarding does not run its demo when readiness is missing or control is paused',async t=>{
   let demos=0;
-  const setup=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true,stopped:true}),config:()=>'',chromeEnabled:()=>false,demo:async()=>{demos++;return{ok:true};}});
+  const setup=createOnboardingServer({status:async()=>({running:true,axTrusted:true,screenRecordingTrusted:true,eventPostingTrusted:true,stopped:true}),config:()=>'',chromeEnabled:()=>false,demo:async()=>{demos++;return{ok:true};}});
   const url=await setup.listen();t.after(()=>{setup.server.close();setup.server.closeAllConnections();});
   const response=await fetch(url+'action',{method:'POST',headers:{Origin:new URL(url).origin,'Content-Type':'application/json'},body:JSON.stringify({action:'demo'})});
   assert.equal(response.status,409);assert.equal(demos,0);

@@ -32,23 +32,24 @@ export function createOnboardingServer({status=daemonStatus,computer=computer_us
       if(req.method==='GET'&&route==='/state') {
         const [current,browser]=await Promise.all([status(),browserStatus()]);
         const registered=browserInstallStatus().native_host_registered===true,connected=browser.connected===true,paused=!!browser.paused||!!current.stopped;
-        return send(200,{ok:true,running:!!current.running,stopped:!!current.stopped,accessibility:!!current.axTrusted,screenRecording:!!current.screenRecordingTrusted,chromeEnabled:chromeEnabled(),browserConnected:connected,browserHostRegistered:registered,browserPaused:paused,browserConnectionState:connected?(paused?'paused':'connected'):(registered?'waiting':'unregistered'),browserFolderRevealAvailable:true,browserExtensionPath:path.join(root,'assets/browser-extension'),configs:Object.fromEntries(['codex','claude','cursor','antigravity'].map(c=>[c,config(c)]))});
+        return send(200,{ok:true,running:!!current.running,stopped:!!current.stopped,accessibility:!!current.axTrusted,screenRecording:!!current.screenRecordingTrusted,eventPosting:!!current.eventPostingTrusted,chromeEnabled:chromeEnabled(),browserConnected:connected,browserHostRegistered:registered,browserPaused:paused,browserConnectionState:connected?(paused?'paused':'connected'):(registered?'waiting':'unregistered'),browserFolderRevealAvailable:true,browserExtensionPath:path.join(root,'assets/browser-extension'),configs:Object.fromEntries(['codex','claude','cursor','antigravity'].map(c=>[c,config(c)]))});
       }
       if(req.method!=='POST'||route!=='/action'||req.headers.origin!==origin||req.headers['content-type']!=='application/json') return send(403,{ok:false,error:'Use the local setup controls.'});
       let body='';for await(const chunk of req){body+=chunk;if(Buffer.byteLength(body)>2048)return send(413,{ok:false,error:'Request too large.'});}
       const {action}=JSON.parse(body);
       if(action==='start'){await start();return send(200,{ok:true,message:'OpenSky started. Refreshing readiness…'});}
-      if(action==='accessibility'||action==='screen'){
+      if(action==='accessibility'||action==='screen'||action==='events'){
         await start();
         if(action==='accessibility') await computer.status({promptAX:true});
-        else await computer.status({promptScreen:true});
-        await open(`x-apple.systempreferences:com.apple.preference.security?${action==='accessibility'?'Privacy_Accessibility':'Privacy_ScreenCapture'}`);
+        else if(action==='screen') await computer.status({promptScreen:true});
+        else await computer.status({promptPostEvent:true});
+        await open(`x-apple.systempreferences:com.apple.preference.security?${action==='screen'?'Privacy_ScreenCapture':'Privacy_Accessibility'}`);
         return send(200,{ok:true,message:'Enable OpenSky in the Mac setting, then return and check readiness.'});
       }
       if(action==='restart'){await computer.shutdown();await start();return send(200,{ok:true,message:'OpenSky restarted. Refreshing readiness…'});}
       if(action==='demo'){
         const current=await status();
-        if(!current.running||!current.axTrusted||!current.screenRecordingTrusted||current.stopped) return send(409,{ok:false,error:'The service must be running, unpaused and have both permissions before the demo.'});
+        if(!current.running||!current.axTrusted||!current.screenRecordingTrusted||!current.eventPostingTrusted||current.stopped) return send(409,{ok:false,error:'The service must be running, unpaused and have all three access checks before the demo.'});
         const result=await demo();return send(result.ok?200:409,{ok:result.ok,message:result.ok?'Demo verified. The disposable window is ready to inspect.':result.error});
       }
       if(action==='chrome'){

@@ -176,7 +176,7 @@ export const computer_use = {
     writeFileSync(filename,Buffer.from(result.image_base64,'base64'),{mode:0o600});return {ok:true,tab_id:result.tab_id,screenshot:{path:filename}};
   },
   async interaction_mode(params = {}) {
-    return params.mode === undefined ? readInteractionMode(OPENSKY_HOME) : writeInteractionMode(OPENSKY_HOME, params.mode);
+    return params.mode === undefined ? readInteractionMode(OPENSKY_HOME) : writeInteractionMode(OPENSKY_HOME, params.mode, {durationSeconds:params.duration_seconds});
   },
   async chrome_tabs(params = {}) { return performChromeTabs(computer_use,params,{home:OPENSKY_HOME}); },
   async get_operating_guidance() { return getOperatingGuidance(); },

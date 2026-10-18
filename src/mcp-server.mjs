@@ -30,8 +30,8 @@ const TOOLS = [
   },
   {
     name: 'interaction_mode',
-    description: 'Read or set persistent desktop cooperation mode. Alongside permits exact-window background AX controls and defers shared input while the owner works. Owner-selected auto uses filtered external-input idle time: desktop becomes available after 300 idle seconds, and activity or an unreadable signal returns to alongside restrictions on the next native request. Inspect effective_mode; keep short serialized UI turns because already-delivered input can finish. Explicit desktop is for an available desktop. Preserve this saved owner choice; do not replace auto with a permanent desktop setting. Defer checkpoints without repeated permission questions. Current-runtime MCP/CLI/SDK recheck before requests; old clients must reconnect. This neither grants task authority nor resumes an emergency pause.',
-    inputSchema: {type:'object',additionalProperties:false,properties:{mode:{type:'string',enum:['alongside','desktop','auto']}}},
+    description: 'Read or set persistent desktop cooperation mode. Alongside permits exact-window background AX controls and defers shared input while the owner works. Owner-selected auto uses filtered external-input idle time: desktop becomes available after 300 idle seconds, and activity or an unreadable signal returns to alongside restrictions on the next native request. Inspect effective_mode; keep short serialized UI turns because already-delivered input can finish. The five-minute threshold is a default. If the owner explicitly says to use the desktop now, use mode desktop with duration_seconds for a bounded turn; it expires back to the saved policy. Restore the saved mode early when finished. This does not resume emergency pause or expand task authority. Preserve the saved owner choice. Defer checkpoints without repeated permission questions. Current-runtime MCP/CLI/SDK recheck before requests; old clients must reconnect. This neither grants task authority nor resumes an emergency pause.',
+    inputSchema: {type:'object',additionalProperties:false,properties:{mode:{type:'string',enum:['alongside','desktop','auto']},duration_seconds:{type:'integer',minimum:1,maximum:3600,description:'Bounded desktop turn only after explicit owner direction; expires back to the saved cooperation mode.'}}},
     annotations: {readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },
   {
@@ -324,7 +324,7 @@ const TOOLS = [
   {
     name: "manage_window",
     description:
-      "Focus, minimize, maximize, center, or move/resize any application window on macOS.",
+      "Focus, minimize, maximize, center, or move/resize a macOS application window. Apps can forbid resizing or enforce a minimum size. A failed resize can follow a successful move: inspect actual geometry before any retry; do not assume an error means nothing changed.",
     inputSchema: {
       type: "object",
       properties: {

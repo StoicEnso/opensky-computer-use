@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0-rc.9 — 18 October 2026
+
+- Fresh-Mac HTTPS bootstrap: verified prebuilt app, private pinned Node, official Claude installation and native MCP setup without Xcode/Homebrew/sudo.
+- Resumable Terminal onboarding checks all three actual macOS access flags and preserves emergency pause.
+- Identical downloaded native apps reuse existing consent and process; invalid apps fail before replacement.
+- Owner-directed desktop turns can expire back to the saved cooperation mode.
+
 ## 1.7.0-rc.8 — 2026-10-18
 
 - Add `opensky connect claude` and `./install.sh --claude` for combined Claude Code registration, skill installation and preconfigured native Desktop setup. Reuse connections and pending bundles, preserve unrelated settings, keep one-time native review visible, and defer opening over owner activity. Preserve a matching native API/UI build rather than rebuilding it.

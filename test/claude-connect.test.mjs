@@ -36,7 +36,7 @@ test('Claude setup registers in user scope once, backs up the owned skill and pr
       const start = args.indexOf('--') + 1; configured = { command: args[start], args: args.slice(start + 1) };
       const saved = JSON.parse(readFileSync(configFile)); saved.mcpServers['opensky-computer-use'] = configured; writeFileSync(configFile, JSON.stringify(saved)); return { stdout: 'Added' };
     }
-    if (!configured) throw Error('No MCP server found with name: opensky-computer-use');
+    if (!configured) throw Error('No MCP server named "opensky-computer-use". Run `claude mcp add` to add one.');
     return { stdout: `Scope: User config\nStatus: ✔ Connected\nCommand: ${configured.command}\nArgs: ${configured.args.join(' ')}\nEnvironment:\n` };
   };
   const first = await connectClaude({ ...f.options, run });
@@ -92,4 +92,10 @@ test('An enabled matching Desktop extension is reused; only the exact legacy dup
   writeFileSync(settings, JSON.stringify({ isEnabled: true, userConfig: { runtime_directory: f.runtime } }));
   writeFileSync(path.join(directory, 'server/index.mjs'), 'different adapter');
   assert.equal(desktopConnection(f.home, f.runtime).status, 'needs_review');
+});
+
+test('Code-only setup does not build, open or alter an installed Desktop extension',async t=>{
+  const f=fixture(t);let builds=0;
+  const result=await connectClaude({...f.options,desktopAvailable:true,skipDesktop:true,build:()=>{builds++;},run:async()=>({stdout:`Command: ${process.execPath}\nArgs: ${f.runtime}/src/mcp-server.mjs\nStatus: Connected\n`})});
+  assert.equal(result.claudeCode.status,'connected');assert.equal(result.desktop.status,'skipped');assert.equal(result.complete,true);assert.equal(builds,0);
 });

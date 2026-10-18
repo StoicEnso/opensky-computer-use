@@ -8,6 +8,7 @@ import { buildApp, BUNDLE_ID, projectRoot } from "./build-app.mjs";
 import { replaceManagedFiles } from "./install-transaction.mjs";
 import { NATIVE_API_VERSION, NATIVE_BUILD_VERSION } from "../src/native-version.mjs";
 import { removeBrowserHosts } from './browser-install.mjs';
+import { validatePrebuiltApp, sameNativeApp } from './prebuilt-app.mjs';
 
 const markerName = ".opensky-install.json";
 const wrapperMarker = "# OpenSky managed launcher v1";
@@ -23,11 +24,12 @@ export function parseOptions(args) {
     if (argument === "--runtime-only") { options.runtimeOnly = true; continue; }
     if (argument === "--onboard") { options.onboard = true; continue; }
     if (argument === "--claude") { options.claude = true; continue; }
-    if (["--prefix", "--app-dir", "--skill"].includes(argument)) {
+    if (["--prefix", "--app-dir", "--skill", "--prebuilt-app"].includes(argument)) {
       const value = args[++i];
       if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value.`);
       if (argument === "--prefix") options.prefix = path.resolve(value);
       if (argument === "--app-dir") options.appDir = path.resolve(value);
+      if (argument === "--prebuilt-app") options.prebuiltApp = path.resolve(value);
       if (argument === "--skill") {
         if (!["codex", "claude", "all"].includes(value)) throw new Error("--skill accepts codex, claude, or all.");
         options.skills.push(...(value === "all" ? ["codex", "claude"] : [value]));
@@ -38,6 +40,7 @@ export function parseOptions(args) {
   }
   if (options.runtimeOnly && options.uninstall) throw new Error("--runtime-only cannot be combined with --uninstall.");
   if (options.claude && options.uninstall) throw new Error('--claude cannot be combined with --uninstall.');
+  if (options.prebuiltApp && (options.uninstall || options.runtimeOnly)) throw new Error('--prebuilt-app cannot be combined with --uninstall or --runtime-only.');
   options.runtime = path.resolve(process.env.OPENSKY_HOME || path.join(options.prefix, "share", "opensky"));
   options.app = path.join(options.appDir, "OpenSky.app");
   options.binDir = path.join(options.prefix, "bin");
@@ -119,8 +122,13 @@ export function install(options) {
   if (Number(process.versions.node.split(".")[0]) < 22) throw new Error("Node.js 22 or later is required.");
   if (process.platform !== "darwin") throw new Error("OpenSky requires macOS 14 or later.");
   const previous = validateDestinations(options);
+  // A downloaded release is verified before any replacement or service stop.
+  if (options.prebuiltApp) {
+    validatePrebuiltApp(options.prebuiltApp);
+    if (previous && previous.app === options.app && sameNativeApp(options.prebuiltApp, options.app)) options.runtimeOnly = true;
+  }
   // A Claude setup rerun should not rebuild an identical native UI or reset consent.
-  if(options.claude && previous && existsSync(path.join(options.app,'Contents/Info.plist'))) {
+  if(options.claude && !options.prebuiltApp && previous && existsSync(path.join(options.app,'Contents/Info.plist'))) {
     const value = key => { try{return execFileSync('/usr/libexec/PlistBuddy',['-c',`Print :${key}`,path.join(options.app,'Contents/Info.plist')],{encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();}catch{return '';} };
     if(value('CFBundleShortVersionString')===NATIVE_API_VERSION && value('CFBundleVersion')===NATIVE_BUILD_VERSION) options.runtimeOnly=true;
   }
@@ -137,16 +145,23 @@ export function install(options) {
     installedFiles: ["src", "scripts", "assets", "extensions", "skills", "package.json", "README.md", "PRIVACY.md", "SECURITY.md", "LICENSE"],
     installedAt: new Date().toISOString(), version: JSON.parse(readFileSync(path.join(projectRoot, "package.json"), "utf8")).version,
     skillFiles: previous?.skillFiles || [] };
-  if (options.dryRun) { console.log(JSON.stringify({ action: options.runtimeOnly ? "runtime-update" : "install", ...manifest, skills: [...new Set(options.skills)], clientRegistration: options.claude ? "Claude Code user scope and skill; native Desktop review when needed" : "manual only", build: options.runtimeOnly ? "preserve existing native app and running service" : "Swift release, fresh bundle, verified ad-hoc signature" }, null, 2)); return; }
+  if (options.dryRun) { console.log(JSON.stringify({ action: options.runtimeOnly ? "runtime-update" : "install", ...manifest, skills: [...new Set(options.skills)], clientRegistration: options.claude ? "Claude Code user scope and skill; native Desktop review when needed" : "manual only", build: options.runtimeOnly ? "preserve existing native app and running service" : options.prebuiltApp ? "verified prebuilt app; no compiler or re-signing" : "Swift release, fresh bundle, verified ad-hoc signature" }, null, 2)); return; }
   const osVersion = execFileSync("/usr/bin/sw_vers", ["-productVersion"], { encoding: "utf8" }).trim();
   if (Number(osVersion.split(".")[0]) < 14) throw new Error(`macOS 14 or later is required (found ${osVersion}).`);
-  if (!options.runtimeOnly) execFileSync("xcrun", ["--find", "swift"], { stdio: "ignore" });
+  if (!options.runtimeOnly && !options.prebuiltApp) execFileSync("xcrun", ["--find", "swift"], { stdio: "ignore" });
   const stagingParent=options.runtimeOnly ? path.dirname(options.runtime) : options.appDir;
   mkdirSync(stagingParent, { recursive: true });
   const stage = mkdtempSync(path.join(stagingParent, ".opensky-install-"));
   try {
     const replacements = [];
-    if (!options.runtimeOnly) replacements.push({source:buildApp(path.join(stage,"OpenSky.app")),destination:options.app});
+    if (!options.runtimeOnly) {
+      const stagedApp = path.join(stage,"OpenSky.app");
+      if (options.prebuiltApp) {
+        execFileSync('/usr/bin/ditto',[options.prebuiltApp,stagedApp]);
+        validatePrebuiltApp(stagedApp);
+      } else buildApp(stagedApp);
+      replacements.push({source:stagedApp,destination:options.app});
+    }
     for (const name of manifest.installedFiles) replacements.push({ source: path.join(projectRoot, name), destination: path.join(options.runtime, name) });
     for (const [i, script] of ["cli.mjs", "mcp-server.mjs"].entries()) {
       const launcher = path.join(stage, `launcher-${i}`);
@@ -178,7 +193,7 @@ export function install(options) {
   } finally { rmSync(stage, { recursive: true, force: true }); }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   try {
     const options = parseOptions(process.argv.slice(2));
     if (options.help) console.log(`Usage: ./install.sh --claude [--dry-run]\n       ./install.sh [--prefix PATH] [--app-dir PATH] [--skill codex|claude|all] [--dry-run]\n       ./install.sh --runtime-only [--prefix PATH] [--app-dir PATH] [--skill codex|claude|all] [--dry-run]\n       ./install.sh --uninstall [--prefix PATH] [--app-dir PATH] [--dry-run]\n\nFull installs rebuild the native app. --runtime-only requires a compatible managed native app and preserves its files, permissions and running service.\n--onboard opens local guided setup after installation. --claude registers Claude Code, installs its skill and prepares native Desktop setup; a matching native UI is preserved. Other client configuration remains manual.\nUninstall preserves local credentials, captures, skills, and client configurations.`);

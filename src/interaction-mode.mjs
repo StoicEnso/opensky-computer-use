@@ -14,20 +14,36 @@ function resolveAuto(activityProbe,home) {
 }
 
 /** Shared by new MCP, CLI and SDK calls; never starts or resumes the engine. */
-export function readInteractionMode(home,{activityProbe=readUserActivity}={}) {
+export function readInteractionMode(home,{activityProbe=readUserActivity,now=Date.now}={}) {
   try {
     const state = JSON.parse(readFileSync(path.join(home, filename), 'utf8'));
     if (!modes.has(state.mode)) throw new Error('Invalid interaction mode');
-    return (state.mode==='auto'||state.mode==='alongside'&&state.cooperation_policy==='auto')
+    const saved = (state.mode==='auto'||state.mode==='alongside'&&state.cooperation_policy==='auto')
       ? resolveAuto(activityProbe,home):{ ok: true, interaction_mode: state.mode };
+    if(state.desktop_override_until!==undefined) {
+      if(!Number.isFinite(state.desktop_override_until))throw Error('Invalid desktop override');
+      if(now()<state.desktop_override_until)return {...saved,effective_mode:'desktop',desktop_override:true,desktop_override_until:new Date(state.desktop_override_until).toISOString(),message:'Temporary desktop turn under explicit owner direction. The saved cooperation mode resumes automatically at expiry; emergency pause remains in force.'};
+    }
+    return saved;
   } catch (error) {
     if (error.code === 'ENOENT') return { ok: true, interaction_mode: 'desktop' };
     return { ok: false, error_code: 'invalid_interaction_mode', error: 'Cannot read OpenSky interaction mode. Inspect or repair interaction-mode.json before sending input.' };
   }
 }
 
-export function writeInteractionMode(home, mode) {
+export function writeInteractionMode(home, mode, {durationSeconds}={}) {
   if (!modes.has(mode)) return { ok: false, error_code: 'invalid_interaction_mode', error: 'Use alongside, desktop or auto.' };
+  if(durationSeconds!==undefined) {
+    if(mode!=='desktop'||!Number.isInteger(durationSeconds)||durationSeconds<1||durationSeconds>3600)return {ok:false,error_code:'invalid_interaction_mode',error:'A temporary desktop turn needs mode desktop and duration_seconds from 1 to 3600. Use only after explicit owner direction.'};
+    let saved={mode:'desktop'};
+    try{saved=JSON.parse(readFileSync(path.join(home,filename),'utf8'));if(!modes.has(saved.mode))throw Error('Invalid mode');}
+    catch(error){if(error.code!=='ENOENT')return {ok:false,error_code:'invalid_interaction_mode',error:'Repair the saved mode before requesting a temporary desktop turn.'};}
+    mkdirSync(home,{recursive:true,mode:0o700});
+    const temporary=path.join(home,`.${filename}.${randomUUID()}`);
+    try{writeFileSync(temporary,JSON.stringify({...saved,desktop_override_until:Date.now()+durationSeconds*1000,updated_at:new Date().toISOString()})+'\n',{flag:'wx',mode:0o600});renameSync(temporary,path.join(home,filename));}
+    finally{rmSync(temporary,{force:true});}
+    return readInteractionMode(home);
+  }
   mkdirSync(home, { recursive: true, mode: 0o700 });
   const temporary = path.join(home, `.${filename}.${randomUUID()}`);
   try {
@@ -50,7 +66,7 @@ const observations = new Set(['get_app_state']);
 function deferred(method, reason, error_code = 'desktop_turn_required') {
   return { ok: false, error_code, deferred: true, interaction_mode: 'alongside', method,
     error: reason,
-    next_step: 'Use a fresh exact-window AX control or direct field value; otherwise save this checkpoint and continue independent authorized work. Do not ask for each deferred step, retry input blindly, or switch to desktop mode while the owner is working.' };
+    next_step: 'Use a fresh exact-window AX control or direct field value; otherwise save this checkpoint and continue independent authorized work. If the owner explicitly directed desktop use now, request a bounded interaction_mode desktop turn with duration_seconds and return to the saved mode when finished. The idle threshold is a default scheduling preference. Do not ask for each deferred step or retry uncertain input blindly.' };
 }
 
 /** A cooperation preference, not an authority boundary or a native input sandbox. */

@@ -66,6 +66,8 @@ export interface BrowserTabsParams {
   url?: string;
 }
 export interface InteractionModeResult {
+  desktop_override?: boolean;
+  desktop_override_until?: string;
   ok: boolean;
   interaction_mode?: InteractionMode;
   effective_mode?: 'alongside'|'desktop';
@@ -431,7 +433,7 @@ export interface OpenSkyComputerUse {
   browser_select_option(params: BrowserTargetParams & {value:string}): Promise<BrowserResult>;
   browser_screenshot(params: BrowserParams): Promise<BrowserResult>;
   /** Persistent cooperation preference shared by current-runtime clients. No engine launch. */
-  interaction_mode(params?: {mode?: InteractionMode}): Promise<InteractionModeResult>;
+  interaction_mode(params?: {mode?: InteractionMode; duration_seconds?: number}): Promise<InteractionModeResult>;
   /** Passive filtered external-input idle metadata. No key contents, mouse coordinates or native startup. */
   user_activity(): Promise<UserActivityResult>;
   /** Optional one-time opt-in Chrome Apple Events tab integration. Native AX works without it. */

@@ -1,5 +1,19 @@
 # OpenSky
 
+## Install OpenSky + Claude
+
+Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh | bash
+```
+
+Installs the prebuilt cloud-tray app, a private Node runtime if needed, Claude Code and Claude Desktop if missing, then connects Claude and guides Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Existing Claude apps/settings and a matching OpenSky app are reused. This command currently installs the tested **1.7.0-rc.9 prerelease**.
+
+Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS event-synthesizing access if requested), sign in to Claude, and review/enable OpenSky’s Desktop extension. The guide reads back actual permissions; it never labels a pending review complete. A Mac password or Touch ID may be required **by System Settings**. OpenSky is currently ad-hoc signed, not Developer ID notarized; managed Macs/Gatekeeper policies may require owner review. The installer does not change those policies.
+
+[Read the installer](bootstrap.sh) · [Options and resume](#one-command-options) · [Source build](#install-from-source)
+
 ![OpenSky — Your agent. Your Mac.](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-cover-Codex.png)
 
 **Fast, local-first browser and desktop control for your Mac.** Give your agent native app controls, on-device OCR and a visible animated pointer through MCP, the command line or JavaScript. Open source, with no built-in telemetry or OpenSky cloud relay.
@@ -8,9 +22,9 @@
 [![Latest release](https://img.shields.io/github/v/release/StoicEnso/opensky-computer-use)](https://github.com/StoicEnso/opensky-computer-use/releases/latest)
 [![MIT license](https://img.shields.io/badge/license-MIT-teal)](LICENSE)
 
-**macOS 14+ · Apple silicon & Intel source builds · Node.js 22+ · Local engine · MIT**
+**macOS 14+ · Apple silicon & Intel prebuilts · Private runtime · Local engine · MIT**
 
-[Install](#install-from-source) · [Connect your agent](#connect-an-agent) · [Work in the background](#work-while-you-use-the-mac) · [Privacy](PRIVACY.md) · [See test results](#tested-scope) · [Releases](https://github.com/StoicEnso/opensky-computer-use/releases)
+[Install](#install-opensky--claude) · [Connect your agent](#connect-an-agent) · [Work in the background](#work-while-you-use-the-mac) · [Privacy](PRIVACY.md) · [See test results](#tested-scope) · [Releases](https://github.com/StoicEnso/opensky-computer-use/releases)
 
 ![OpenSky's native animated pointer](artifacts/2026-10-17-opensky-pointer-demo-Codex.gif)
 
@@ -38,7 +52,19 @@ After installation and permission setup, run `opensky demo`. A new disposable Ma
 
 App support varies. Accessibility actions work best in apps that expose useful trees. Background input is best effort and some apps require focus. OCR gives text locations, not a complete semantic model of every canvas. Multiple virtual pointers do not make simultaneous keyboard or physical mouse actions safe.
 
-## Requirements
+## One-command options
+
+Use `bash -s -- --no-desktop` at the end of the download command for Claude Code only; `--no-claude` installs only OpenSky. `--no-onboard` installs without opening apps/settings. `--prefix /absolute/path` and `--app-dir /absolute/path` choose destinations; `--from /absolute/release-folder` uses downloaded release archives/checksums (and the pinned Node archive when needed).
+
+The bootstrap verifies OpenSky archive SHA-256 checksums before extraction and the app signature/API/build/architecture before replacement. Its private Node download uses a pinned official checksum. Claude Code uses Anthropic’s official installer; Desktop comes from Anthropic’s updater and must pass Apple signature/notarization assessment for Anthropic’s identity. Downloads stay on HTTPS. No signing, TCC editing, permission bypass or shell profile edits occur.
+
+Continue an interrupted permission setup with `~/.local/bin/opensky onboard --terminal --claude`; continue Claude review with `~/.local/bin/opensky connect claude`. Settled permissions are checked and skipped. Noninteractive installs print a resume command and return a pending status instead of opening settings. The existing Chrome profile and extensions are preserved; optional background-browser setup is `opensky web install` followed by Chrome’s one-time Load unpacked review. Chrome is not a prerequisite for Terminal onboarding.
+
+Claude sign-in and plan requirements remain Anthropic’s: [Claude Code setup](https://code.claude.com/docs/en/setup), [Desktop installation](https://support.claude.com/en/articles/10065433-install-claude-desktop). Installing OpenSky does not buy a plan or authenticate an account.
+
+The install validation covers real official downloads, an isolated home with no Node on PATH and developer tools disabled, Claude MCP registration, and existing-profile background setup UI. Permission transitions also have controlled tests, plus separate real denied/new-identity and granted/installed-app checks. **A separate clean macOS account and Intel hardware have not been tested.** [Full scope and results](artifacts/2026-10-18-opensky-fresh-install-results-Codex.json).
+
+## Source-build requirements
 
 - macOS 14 or later, Apple silicon or Intel.
 - Node.js 22 or later.
@@ -96,6 +122,8 @@ The installed app starts through macOS LaunchServices so permission checks belon
 An already-approved OpenSky helper can perform ordinary settings controls for an app update the owner has explicitly authorized. Verify the exact app being added, retain actual macOS consent and leave any password or Touch ID challenge to the owner. On the test Mac, OpenSky completed the normal permission-entry replacement and the updated app then passed independent permission checks after a normal restart. Temporary access inherited by a helper is not proof of the installed app’s own consent.
 
 `opensky doctor` also reports the actual `runningBinary` and whether it matches the configured binary (`binaryMatches`). Check this before replacing permission entries: macOS can reopen another registered staging or backup copy with the same bundle ID. At a quiet checkpoint, quit the duplicate and reopen the installed app; never treat a matching version alone as proof that the correct copy is running. Path diagnostics do not change permissions or quit an app.
+
+If the owner explicitly says to use the desktop now, an agent can use `opensky mode desktop --for 120` (MCP/SDK: `interaction_mode({mode:"desktop",duration_seconds:120})`). This temporary turn overrides idle waiting and expires back to the saved mode. Restore the previous mode early when finished; emergency pause remains effective.
 
 For an owner-authorized five-minute idle policy, use `opensky mode auto` (MCP/SDK: `interaction_mode({mode:'auto'})`). It preserves that preference and reports `effective_mode`: desktop after 300 seconds of external-input inactivity, alongside when input resumes or the signal is unavailable. `opensky activity` / `user_activity()` reads aggregate idle metadata from native build 1.3.3 or later. Its opt-in passive monitors run only in auto mode with existing Accessibility access: OpenSky-tagged events are ignored; unknown and other-software input count conservatively as external. Typed characters and pointer coordinates are not recorded. Current clients recheck before native requests and after startup waits; keep shared-input turns short because delivered input can finish. The monitor starts a fresh observed interval and samples every 250 ms; an expired or dead-process record keeps alongside restrictions. This cooperation policy never resumes an emergency pause or expands task authority. Older MCP clients retain alongside restrictions and need reconnecting for auto support. Select `alongside` to keep background restrictions continuously, or explicit `desktop` for an available desk.
 

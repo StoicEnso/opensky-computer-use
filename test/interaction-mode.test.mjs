@@ -48,6 +48,9 @@ test('alongside defers shared input before any absent engine can launch, across 
   const invalid=(await client.callTool({name:'interaction_mode',arguments:{mode:'automatic'}})).structuredContent;
   assert.equal(invalid.ok,false);
   assert.equal(JSON.parse(await readFile(path.join(home,'interaction-mode.json'),'utf8')).mode,'alongside');
+  await run(process.execPath,[cli,'mode','auto'],{env});
+  const turn=(await client.callTool({name:'interaction_mode',arguments:{mode:'desktop',duration_seconds:120}})).structuredContent;
+  assert.equal(turn.desktop_override,true);assert.equal(turn.interaction_mode,'auto');assert.equal(turn.effective_mode,'desktop');
   await run(process.execPath,[cli,'mode','desktop'],{env});
   assert.equal((await client.callTool({name:'interaction_mode',arguments:{}})).structuredContent.interaction_mode,'desktop');
 });
@@ -70,4 +73,24 @@ test('alongside retains exact-window AX work, forces omitted mode to background 
   for(const method of ['stop','resume','shutdown','status']) assert.deepEqual(prepareInteraction(home,method,{}),{params:{}});
   writeInteractionMode(home,'desktop');
   assert.equal(prepareInteraction(home,'click',{...target,mode:'takeover'}).params.mode,'takeover');
+});
+
+
+test('explicit temporary desktop turns expire to the saved auto policy without resuming or starting anything',async t=>{
+  const home=await mkdtemp(path.join(os.tmpdir(),'2026-10-18-opensky-desktop-turn-Codex-'));
+  t.after(()=>rm(home,{recursive:true,force:true}));
+  writeInteractionMode(home,'auto');
+  const result=writeInteractionMode(home,'desktop',{durationSeconds:120});
+  assert.equal(result.interaction_mode,'auto');assert.equal(result.effective_mode,'desktop');assert.equal(result.desktop_override,true);
+  const persisted=JSON.parse(await readFile(path.join(home,'interaction-mode.json'),'utf8'));
+  assert.equal(persisted.mode,'alongside','Old clients must retain the background path');assert.equal(persisted.cooperation_policy,'auto');
+  const options={now:()=>persisted.desktop_override_until+1,activityProbe:()=>({ok:true,idle_seconds:1})};
+  assert.equal(readInteractionMode(home,options).effective_mode,'alongside');
+  assert.equal(readInteractionMode(home,options).interaction_mode,'auto');
+  assert.equal(prepareInteraction(home,'press_key',{keys:['Return']},options).result.error_code,'desktop_turn_required');
+  await assert.rejects(access(path.join(home,'control-token')),{code:'ENOENT'});
+  assert.equal(writeInteractionMode(home,'auto',{durationSeconds:1}).ok,false);
+  assert.equal(writeInteractionMode(home,'desktop',{durationSeconds:0}).ok,false);
+  writeInteractionMode(home,'auto');assert.equal(readInteractionMode(home,{activityProbe:()=>({ok:true,idle_seconds:0})}).effective_mode,'alongside');
+  assert.equal(JSON.parse(await readFile(path.join(home,'interaction-mode.json'),'utf8')).desktop_override_until,undefined);
 });

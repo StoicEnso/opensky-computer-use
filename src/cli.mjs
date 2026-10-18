@@ -28,7 +28,7 @@ Usage: opensky <command> [arguments] [--json]
   web shutdown                           Pause browser control and stop its local bridge
   web <tabs|snapshot|frames|click|fill|upload|press_key|select_option|screenshot> JSON
                                          Background page control through the OpenSky extension
-  onboard                                Open local guided setup and permission checks in Chrome
+  onboard [--terminal] [--claude]         Guided setup in Chrome or Terminal; verify actual Mac access
   browser list                           List exact Chrome tab/window IDs (after optional setup)
   browser enable                         Explicit one-time Chrome Automation setup
   browser open URL [--window ID]          Dedicated window by default; optional exact Chrome window
@@ -173,7 +173,7 @@ async function main() {
     case "help": case "--help": case "-h": help(); break;
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
-    case "mode": {actionOutput(await computer_use.interaction_mode({mode:args[1]}));break;}
+    case "mode": {const at=args.indexOf('--for');actionOutput(await computer_use.interaction_mode({mode:args[1],...(at>=0?{duration_seconds:Number(args[at+1])}:{})}));break;}
     case 'activity': {actionOutput(await computer_use.user_activity());break;}
     case "inspector": {
       const action=args[1]??'status';
@@ -192,7 +192,15 @@ async function main() {
       if(!params||typeof params!=='object'||Array.isArray(params))throw new Error('Web parameters must be an object.');
       actionOutput(await computer_use[method](params));break;
     }
-    case 'onboard': {const {runOnboarding}=await import('../scripts/onboarding.mjs');await runOnboarding({openBrowser:!args.includes('--no-open')});break;}
+    case 'onboard': {
+      if(args.includes('--terminal')) {
+        const {runTerminalOnboarding}=await import('../scripts/onboarding-terminal.mjs');
+        const result=await runTerminalOnboarding({claude:args.includes('--claude'),claudeDesktop:!args.includes('--no-desktop')});
+        if(wantsJSON)output(result);
+        if(!result.ok||result.pending)process.exitCode=2;
+      } else {const {runOnboarding}=await import('../scripts/onboarding.mjs');await runOnboarding({openBrowser:!args.includes('--no-open')});}
+      break;
+    }
     case 'browser': {
       const action=args[1]||'list';
       const params={action};
@@ -209,9 +217,9 @@ async function main() {
       output(`OpenSky setup\n\nRun opensky onboard for guided local setup in Chrome. It checks actual readiness, opens only the settings you choose, shows agent configuration, and offers a verified disposable demo. Normal readiness checks request no permissions.\n\nFor Claude, run opensky connect claude to register Claude Code, install its operating skill and prepare the native Desktop extension with the runtime path already configured. A matching enabled extension is reused.\n\nText path: opensky daemon; allow OpenSky Accessibility and Screen Recording in System Settings > Privacy & Security; opensky doctor; opensky config all. Restart OpenSky after granting screen capture.\n\nFor inactive Chrome tabs and uploads, use opensky web install for the one-time OpenSky extension setup; then opensky web status. Chrome tab Automation is a separate legacy option and off until explicitly enabled in onboarding or with opensky browser enable. Native Accessibility control works without it. macOS owns OS consent; OpenSky adds no chat approval cards or per-click approval gate. Existing agent rules still apply.\n\nNo client configuration was changed. Rebuilding an ad-hoc signed app can require Mac permission again. Emergency pause: Control+Option+Command+Escape, or opensky stop. Continue only with opensky resume. Exit with opensky shutdown.`); break;
     case "config": output(configSnippet(args[1] || "all")); break;
     case 'connect': {
-      if (args[1] !== 'claude' || args.slice(2).some(value => !['--dry-run','--no-open'].includes(value))) throw Error('Use opensky connect claude [--dry-run] [--no-open].');
+      if (args[1] !== 'claude' || args.slice(2).some(value => !['--dry-run','--no-open','--no-desktop'].includes(value))) throw Error('Use opensky connect claude [--dry-run] [--no-open] [--no-desktop].');
       const {connectClaude} = await import('./claude-connect.mjs');
-      const result = await connectClaude({runtime:OPENSKY_HOME,dryRun:args.includes('--dry-run'),openDesktop:!args.includes('--no-open')});
+      const result = await connectClaude({runtime:OPENSKY_HOME,dryRun:args.includes('--dry-run'),openDesktop:!args.includes('--no-open'),skipDesktop:args.includes('--no-desktop')});
       if(wantsJSON) output(result);
       else {
         console.log(`OpenSky for Claude${result.dryRun?' — preview only':''}\nClaude Code: ${result.claudeCode.status}\nOperating skill: ${result.skill.status}\nClaude Desktop: ${result.desktop.status}\nNative app, permissions and cooperation policy preserved.`);

@@ -56,7 +56,7 @@ export function desktopConnection(home, runtime) {
   return { status: 'not_detected' };
 }
 
-export async function connectClaude({ runtime, home = os.homedir(), dryRun = false, openDesktop = true,
+export async function connectClaude({ runtime, home = os.homedir(), dryRun = false, openDesktop = true, skipDesktop = false,
   claudeConfigDirectory = process.env.CLAUDE_CONFIG_DIR || path.join(home, '.claude'),
   run = (command, args) => execute(command, args, { cwd: home, timeout: 15000, maxBuffer: 1024 * 1024 }),
   reveal = file => { const application = existsSync('/Applications/Claude.app') ? '/Applications/Claude.app' : path.join(home, 'Applications/Claude.app'); const child = spawn('/usr/bin/open', ['-g', '-a', application, file], { detached: true, stdio: 'ignore' }); child.on('error', () => {}); child.unref(); },
@@ -70,7 +70,7 @@ export async function connectClaude({ runtime, home = os.homedir(), dryRun = fal
   const connection = connectionCommand({ root: runtime, binDir: launcher ? path.dirname(launcher) : path.resolve(runtime, '../../bin') });
   const claude = existsSync(path.join(home, '.local/bin/claude')) ? path.join(home, '.local/bin/claude') : 'claude';
   const result = { ok: true, claudeCode: { status: 'not_detected' }, skill: { status: 'unchanged' },
-    desktop: desktopAvailable ? desktopConnection(home, runtime) : { status: 'not_installed' },
+    desktop: skipDesktop ? {status:'skipped'} : desktopAvailable ? desktopConnection(home, runtime) : { status: 'not_installed' },
     nativeAppChanged: false, permissionsChanged: false, cooperationChanged: false, dryRun };
   if (dryRun) {
     result.claudeCode.status='not_checked';
@@ -103,7 +103,7 @@ export async function connectClaude({ runtime, home = os.homedir(), dryRun = fal
   try { prior = await run(claude, ['mcp', 'get', 'opensky-computer-use']); }
   catch (error) {
     if (error.code === 'ENOENT') result.claudeCode = { status: 'not_installed' };
-    else if (/No MCP server found|not found|does not exist/i.test((error.stdout || '') + (error.stderr || '') + error.message)) prior = null;
+    else if (/No MCP server (?:found|named)|not found|does not exist/i.test((error.stdout || '') + (error.stderr || '') + error.message)) prior = null;
     else result.claudeCode = { status: 'check_failed', nextStep: 'Run claude mcp get opensky-computer-use to inspect the client error.' };
   }
   if (prior) {
@@ -120,7 +120,7 @@ export async function connectClaude({ runtime, home = os.homedir(), dryRun = fal
   }
 
   if(desktopAvailable && result.desktop.status==='enabled')Object.assign(result.desktop,removeLegacyDuplicate(home,runtime,connection));
-  if (desktopAvailable && result.desktop.status !== 'enabled') {
+  if (!skipDesktop && desktopAvailable && result.desktop.status !== 'enabled') {
     const folder = path.join(runtime, `${new Date().toLocaleDateString('sv-SE')}-claude-setup-Codex`);
     mkdirSync(folder, { recursive: true, mode: 0o700 });
     const version = readJSON(path.join(runtime, 'package.json')).version;
@@ -135,8 +135,8 @@ export async function connectClaude({ runtime, home = os.homedir(), dryRun = fal
       ...(openDesktop && !mayOpen ? { deferredForOwnerActivity: true } : {}) };
   }
   if(result.claudeCode.status==='connection_failed') result.claudeCode.nextStep='Claude Code did not pass its MCP connection check. Run claude mcp get opensky-computer-use for its current error.';
-  result.ok = ['connected', 'not_installed'].includes(result.claudeCode.status) && ['enabled', 'not_installed', 'review_required'].includes(result.desktop.status);
-  result.complete = ['connected', 'not_installed'].includes(result.claudeCode.status) && ['enabled', 'not_installed'].includes(result.desktop.status);
-  if (result.claudeCode.status === 'not_installed' && result.desktop.status === 'not_installed') { result.ok = false; result.complete = false; }
+  result.ok = ['connected', 'not_installed'].includes(result.claudeCode.status) && ['enabled', 'skipped', 'not_installed', 'review_required'].includes(result.desktop.status);
+  result.complete = ['connected', 'not_installed'].includes(result.claudeCode.status) && ['enabled', 'skipped', 'not_installed'].includes(result.desktop.status);
+  if (result.claudeCode.status === 'not_installed' && ['not_installed','skipped'].includes(result.desktop.status)) { result.ok = false; result.complete = false; }
   return result;
 }

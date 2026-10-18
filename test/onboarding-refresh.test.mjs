@@ -17,7 +17,7 @@ test('manual readiness refresh survives an in-flight passive check and clears st
   vm.runInContext(fs.readFileSync(new URL('../assets/onboarding.js',import.meta.url),'utf8'),context);
   assert.equal(requests.length,1);
   element('refresh').listeners.get('click')();
-  requests[0]({ok:true,json:async()=>({ok:true,running:true,accessibility:true,screenRecording:true,browserConnected:true,browserConnectionState:'connected'})});
+  requests[0]({ok:true,json:async()=>({ok:true,running:true,accessibility:true,screenRecording:true,eventPosting:true,browserConnected:true,browserConnectionState:'connected'})});
   for(let i=0;i<8;i++)await new Promise(r=>setImmediate(r));
   assert.equal(requests.length,2,'A deliberate recheck was lost behind the old passive result.');
   requests[1]({ok:false,status:500});

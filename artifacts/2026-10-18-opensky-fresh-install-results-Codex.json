@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-18",
+  "runtime": "1.7.0-rc.9",
+  "nativeApi": "1.3.0",
+  "nativeBuild": "1.3.9",
+  "bootstrap": "bootstrap.sh",
+  "automated": {
+    "tests": 65,
+    "passed": 65,
+    "skipped": 0,
+    "packagingAssertions": 45
+  },
+  "live": {
+    "isolatedHomeInstall": true,
+    "noSystemNodeOnPath": true,
+    "invalidDeveloperToolsPathInstallPassed": true,
+    "privateNodeVersion": "24.22.0",
+    "prebuiltArm64Installed": true,
+    "claudeCodeOfficialNativeInstaller": "stable 2.1.292 installed in isolated home",
+    "claudeDesktopOfficialDownload": "2.42304.0 installed in isolated home; Anthropic signature and Apple assessment passed",
+    "freshClaudeCodeMcp": "connected",
+    "freshClaudeDesktopMcp": "review_required; deliberately no registry edits or false completion",
+    "noninteractivePermissionSetup": "exit 2 with precise resume command; no app or settings opened",
+    "setupUi": "real installed OpenSky in owned inactive regular-Chrome tab; simulated permission responses; all three controls/readiness transitions passed; test tab closed",
+    "nativePermissionProbe": "independent disposable app identity read all three flags false without requesting access; installed independently approved app read all three flags true",
+    "ownerNativeBinarySha256": "52b334706c10303422fad7647443288c941408be82611f2e514eb8a37625dc73",
+    "ownerNativeProcessPreserved": true,
+    "ownerPermissionsPreserved": true,
+    "ownerClaudeCode": "connected",
+    "ownerClaudeDesktop": "enabled",
+    "ownerBrowserBrokerPreserved": true
+  },
+  "fixes": [
+    "No Xcode dependency for prebuilt validation: direct Mach-O header checks",
+    "Resolve symlinked /tmp entry points; assert installed app/manifest/CLI exist",
+    "Accept current Claude stable missing-MCP wording",
+    "Correct inline codesign requirement; verify real downloaded Desktop",
+    "Temporary explicit-owner desktop turn expires to saved mode",
+    "Include event-synthesizing readback in both onboarding guides"
+  ],
+  "limitations": [
+    "Not a separate clean Mac or fresh macOS-user end-to-end consent run. Denied-to-granted progression uses controlled responses; existing real granted flags and independent real denied flags are separately verified.",
+    "Intel binary cross-built and signature/architecture checked; not exercised on Intel hardware.",
+    "OpenSky app is ad-hoc signed, not Developer ID notarized; OS/managed-device policy and real consent remain.",
+    "Claude sign-in and first Desktop extension review are owner steps. Chrome extension loading remains optional one-time browser review.",
+    "Existing long-running MCP clients need reconnect/new session for newly loaded tool schemas; no working Claude session was restarted."
+  ]
+}
