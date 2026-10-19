@@ -38,21 +38,38 @@
     "isolatedReleaseBootstrapWithoutCompilerPassed": true,
     "remoteCI": {
       "url": "https://github.com/StoicEnso/opensky-computer-use/actions/runs/39314607585",
-      "state": "in_progress at publication; not reported as passed"
-    }
+      "state": "passed"
+    },
+    "installedBinaryIdentityAndFrozenHashPassed": true,
+    "installedBackgroundChromeTrustedClickPassed": true,
+    "installedNativeInputPermissionPending": true,
+    "installedTrayCompactGeometryPoints": [
+      22,
+      22
+    ],
+    "installedTrayTemplateAndPlainBehaviorLabelVerified": true
   },
   "installation": {
-    "approvedAppPreserved": "1.4.2",
-    "candidateInstalled": false,
+    "candidateInstalled": true,
     "frozenNativeSHA256": "09948879aee48af337870741408d25b3d07bec0d38b13e3cc352ecdac1007cb6",
     "pendingMacOSConsentHandoffReused": true,
     "chromeRestarted": false,
     "extensionReloaded": false,
     "watchRemainsPaused": true,
-    "nativePIDPreserved": 54307,
-    "allThreePermissionsStillGranted": true,
     "browserBrokerPIDPreserved": 48646,
-    "browserConnected": true
+    "browserConnected": true,
+    "runtimeInstalled": "1.7.0-rc.15",
+    "nativeInstalled": "1.4.4",
+    "approvedAppBackupRetained": "1.4.2",
+    "installedNativePID": 46082,
+    "currentMacOSPermissions": {
+      "accessibility": false,
+      "screenRecording": false,
+      "eventPosting": false
+    },
+    "macOSConsentRefreshPending": true,
+    "browserPaused": false,
+    "existing96TabIDsAndSelectionsPreserved": true
   },
   "sourceCommit": "affb536b4168ae99caa619a0b188b5056e795f43",
   "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.15"
