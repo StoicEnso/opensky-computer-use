@@ -2,6 +2,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { callDaemon, computer_use } from "./index.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
+import {configureActivityClient} from './agent-activity.mjs';
 
 const SERVER_INFO = {
   name: "opensky-computer-use",
@@ -9,6 +10,7 @@ const SERVER_INFO = {
 };
 
 const TOOLS = [
+  {name:'agent_activity',description:'Read local aggregate OpenSky client activity without starting control or taking screenshots. Working counts in-flight requests from instrumented MCP/CLI/SDK clients, not all thinking agents; a shared connection counts once. Shows calls today, response timing, errors and deferred calls. No request parameters or page content are stored. Older clients must reconnect for instrumentation.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}},
   {
     name:'browser_status',description:'Read OpenSky\'s own Chrome extension/native-messaging connection without starting Chrome or asking for permissions. Use browser_* for background tabs and uploads after the one-time extension setup; native AX remains available.',
     inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}
@@ -434,6 +436,7 @@ for (const tool of TOOLS) {
 }
 
 async function handleToolCall(name, args = {}) {
+  if(name==='agent_activity')return computer_use.agent_activity();
   const tool = TOOLS.find(tool => tool.name === name);
   if (!tool) return { ok: false, error: `Unknown tool: ${name}` };
   if (!args || Array.isArray(args) || typeof args !== "object") return { ok: false, error: "Tool arguments must be an object" };
@@ -533,6 +536,7 @@ async function processRPCMessage(msg) {
 
   try {
     if (method === "initialize") {
+      configureActivityClient({name:params?.clientInfo?.name,interface:'MCP'});
       sendMessage({
         jsonrpc: "2.0",
         id,

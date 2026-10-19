@@ -81,6 +81,9 @@ export function prepareInteraction(home, method, params, options) {
   if (method === 'inspector' && params.activate === true) {
     return {result:defer(method,'Open the Inspector without activation while working alongside the owner.')};
   }
+  if(method==='agent_activity'&&params.action==='show') {
+    return {result:defer(method,'The menu-bar activity panel uses shared foreground UI. Its passive summary remains available through agent_activity or opensky agents.')};
+  }
   if (observations.has(method) && !Number.isInteger(params.window_id)) {
     return { result: defer(method, 'Alongside inspection needs the exact task-owned window_id from list_apps.', 'window_required') };
   }

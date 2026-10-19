@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import {configureActivityClient} from './agent-activity.mjs';
+configureActivityClient({interface:'CLI'});
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
@@ -23,6 +25,7 @@ Usage: opensky <command> [arguments] [--json]
   guidance                               Read default auto workflow guidance (no launch)
   mode [alongside|desktop|auto]           Read/set shared desktop cooperation (no launch)
   activity                              Read external-input idle time (aggregate only)
+  agents                                Read local OpenSky client activity and counters
   web install                            Register OpenSky's Chrome native host; print extension setup
   web status                             Read the independent browser bridge status
   web shutdown                           Pause browser control and stop its local bridge
@@ -175,6 +178,7 @@ async function main() {
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
     case "mode": {const at=args.indexOf('--for');actionOutput(await computer_use.interaction_mode({mode:args[1],...(at>=0?{duration_seconds:Number(args[at+1])}:{})}));break;}
     case 'activity': {actionOutput(await computer_use.user_activity());break;}
+    case 'agents': {actionOutput(await computer_use.agent_activity());break;}
     case "inspector": {
       const action=args[1]??'status';
       if(!['status','show','close'].includes(action))throw new Error('Use inspector status, show or close.');

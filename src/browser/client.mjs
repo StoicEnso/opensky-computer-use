@@ -3,6 +3,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {browserSettings,browserToken,browserPaused,writeBrowserPaused,BROWSER_SERVICE,BROWSER_PROTOCOL,browserReads} from './settings.mjs';
+import {trackAgentOperation} from '../agent-activity.mjs';
 
 const settings=browserSettings();
 export async function browserBridgeStatus() {
@@ -20,6 +21,9 @@ export async function ensureBrowserBridge() {
   throw new Error('OpenSky browser bridge did not start. Check browser-bridge.log.');
 }
 export async function browserRequest(method,params={}) {
+  return trackAgentOperation(settings.home,`browser.${method}`,()=>performBrowserRequest(method,params));
+}
+async function performBrowserRequest(method,params={}) {
   if(method==='status')return browserBridgeStatus();
   if(!browserReads.has(method)&&browserPaused(settings))return {ok:false,error_code:'stopped',error:'OpenSky browser control is paused. Resume explicitly before new input.'};
   const state=await ensureBrowserBridge();

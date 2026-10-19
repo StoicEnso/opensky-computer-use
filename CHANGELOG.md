@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0-rc.11 — 19 October 2026
+
+- Native UI 1.4.0: click or right-click the cloud for a light/dark activity panel with working/recent client rows, daily calls, average response timing, deferred/unsuccessful calls and a fifteen-minute graph. Option-click retains the command menu. Inspector and pause controls remain available.
+- Add content-free, owner-only local counters for instrumented MCP, CLI and SDK requests. Distinguish client connections from agent tasks; expire stale/dead clients, exclude administrative polling and expose the same passive summary through MCP `agent_activity`, CLI `agents` and JavaScript.
+- Existing clients need reconnecting to report activity. Runtime-only updates preserve the approved native helper; the new tray panel needs a full native upgrade and may require renewed macOS consent.
+
 ## 1.7.0-rc.10 — 18 October 2026
 
 - Set the default auto-cooperation idle wait to two minutes (120 seconds). Keep explicit temporary desktop overrides, activity yielding and emergency pause unchanged.

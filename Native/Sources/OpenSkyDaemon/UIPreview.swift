@@ -12,6 +12,7 @@ func renderUIPreview(to directory: URL) throws {
         try data.write(to: directory.appendingPathComponent(name))
     }
     precondition(AXEngine.inspectorEngine() !== AXEngine.shared, "Inspector must own its cache")
+    try renderAgentActivityPreview(to: directory, save: save)
     try checkOwnAXExecution()
     try checkInspectorTargetPicker()
     try checkEditingShortcut()

@@ -436,6 +436,7 @@ export interface OpenSkyComputerUse {
   interaction_mode(params?: {mode?: InteractionMode; duration_seconds?: number}): Promise<InteractionModeResult>;
   /** Passive filtered external-input idle metadata. No key contents, mouse coordinates or native startup. */
   user_activity(): Promise<UserActivityResult>;
+  agent_activity(): Promise<{ok:true;schema:1;working:number;recent:number;calls:number;failed:number;deferred:number;average_ms:number;clients:Array<{id:string;name:string;interface:string;working:boolean;pending:number;method:string;last_seen:number}>;buckets:Array<{minute:number;calls:number}>;coverage:string}>;
   /** Optional one-time opt-in Chrome Apple Events tab integration. Native AX works without it. */
   chrome_tabs(params?: ChromeTabsParams): Promise<ChromeTabsResult>;
   /** Read local agent guidance without starting or resuming the native engine. */

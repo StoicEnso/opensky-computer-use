@@ -41,6 +41,10 @@ try {
   assert.equal(fs.statSync(activityPath).mode&0o777,0o600);
   const control=params=>sdk.callDaemon('inspector',params,{autoStart:false});
   const initial=await control({action:'status'});
+  const panel=params=>sdk.callDaemon('agent_activity',params,{autoStart:false});
+  assert.equal((await panel({action:'status'})).visible,false);
+  assert.equal((await panel({action:'show'})).error_code,'desktop_turn_required','Activity panels must not appear over an active owner.');
+  assert.equal((await panel({action:'unknown'})).error_code,'invalid_arguments');
   assert.equal(initial.ok,true);assert.equal(initial.visible,false);assert.equal(initial.tray_image_template,true);assert.equal(initial.tray_title,'');
   if(!native.axTrusted||!native.screenRecordingTrusted)assert.match(initial.tray_accessibility_label,/permissions needed/);
   assert.equal((await control({action:'show',activate:'wrong'})).error_code,'invalid_arguments');
@@ -51,6 +55,7 @@ try {
   let paused;for(let i=0;i<30;i++){paused=await control({action:'status'});if(paused.tray_accessibility_label.includes('paused'))break;await new Promise(r=>setTimeout(r,50));}
   assert.equal(paused.control_paused,true);assert.ok(paused.tray_accessibility_label.includes('paused'));
   const closed=await control({action:'close'});assert.equal(closed.visible,false);assert.equal(closed.inspector_element_count,0);
+  assert.equal((await panel({action:'close'})).visible,false,'Activity recovery remains available while paused.');
   const ids=new Set([shown.window_id]);
   for(let cycle=0;cycle<3;cycle++){
     const next=await control({action:'show'});assert.equal(next.visible,true);assert.ok(!ids.has(next.window_id),'Reopening must not reuse a closed Accessibility window.');ids.add(next.window_id);

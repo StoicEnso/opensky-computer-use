@@ -89,7 +89,7 @@ test('native control transport and real MCP client interoperability', { skip: !a
   });
   await t.test('passive Inspector and pointer recovery bypass a busy action queue', async () => {
     const running=rpc('cursor_wiggle',{enabled:true,duration:1.5});await new Promise(r=>setTimeout(r,100));
-    for(const [method,params] of [['cursor_status',{}],['cursor_dismiss',{}],['inspector',{action:'status'}],['inspector',{action:'close'}]]){
+    for(const [method,params] of [['cursor_status',{}],['cursor_dismiss',{}],['inspector',{action:'status'}],['inspector',{action:'close'}],['agent_activity',{action:'status'}],['agent_activity',{action:'close'}]]){
       const began=Date.now();assert.equal((await rpc(method,params)).ok,true);assert.ok(Date.now()-began<800,method+' must not wait behind the active request');
     }
     assert.equal((await rpc('status')).stopped,false);await running;

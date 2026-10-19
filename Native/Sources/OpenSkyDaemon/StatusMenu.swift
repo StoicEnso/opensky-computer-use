@@ -1,12 +1,16 @@
 import AppKit
+import SwiftUI
 
-final class OpenSkyMenu: NSObject, NSMenuDelegate {
+final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let status = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let permissions = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var stopItem: NSMenuItem!
     private var resumeItem: NSMenuItem!
     private var inspector: InspectorWindowController?
+    private let activity = AgentActivityModel()
+    private let activityPanel = NSPopover()
+    private var quickMenu: NSMenu!
 
     override init() {
         super.init()
@@ -28,7 +32,24 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
         menu.addItem(withTitle: "About OpenSky", action: #selector(about), keyEquivalent: "")
         menu.addItem(withTitle: "Quit OpenSky", action: #selector(quit), keyEquivalent: "q")
         for entry in menu.items { entry.target = self }
-        item.menu = menu
+        quickMenu = menu
+        item.button?.target = self
+        item.button?.action = #selector(toggleActivity)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        activityPanel.behavior = .transient
+        activityPanel.animates = !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        activityPanel.delegate = self
+        let content = NSHostingController(rootView: AgentActivityView(model: activity,
+            inspector: { [weak self] in self?.activityPanel.performClose(nil); self?.openInspector() },
+            setup: { [weak self] in self?.activityPanel.performClose(nil); self?.openSetup() },
+            pause: { [weak self] in
+                guard let self else { return }
+                if SafetyController.shared.isStopped { self.resumeControl() } else { self.stopControl() }
+                self.activity.refresh()
+            },
+            about: { [weak self] in self?.activityPanel.performClose(nil); self?.about() },
+            quit: { [weak self] in self?.quit() }))
+        activityPanel.contentViewController = content
         NotificationCenter.default.addObserver(self, selector: #selector(controlStateChanged), name: .openskyControlStateChanged, object: nil)
         refresh()
     }
@@ -49,6 +70,22 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
     }
 
     func menuWillOpen(_ menu: NSMenu) { refresh() }
+    @objc private func toggleActivity() {
+        if NSEvent.modifierFlags.contains(.option), let button = item.button {
+            activityPanel.performClose(nil)
+            quickMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
+            return
+        }
+        _ = activityControl(action: activityPanel.isShown ? "close" : "show")
+    }
+    func popoverDidClose(_ notification: Notification) { activity.stop() }
+    func activityControl(action: String) -> [String: Any] {
+        if action == "show", let button = item.button {
+            refresh(); activity.start()
+            activityPanel.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        } else if action == "close" { activityPanel.performClose(nil); activity.stop() }
+        return ["ok": true, "visible": activityPanel.isShown]
+    }
     private func refresh() {
         let stopped = SafetyController.shared.isStopped
         let ax = AXEngine.shared.isAXTrusted(), screen = CGPreflightScreenCaptureAccess(), post = CGPreflightPostEventAccess()
@@ -60,7 +97,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate {
         permissions.title = "Accessibility \(ax ? "✓" : "—")   Screen Capture \(screen ? "✓" : "—")   Event Posting \(post ? "✓" : "—")"
         stopItem.isEnabled = !stopped; resumeItem.isEnabled = stopped
     }
-    @objc private func controlStateChanged() { DispatchQueue.main.async { self.refresh() } }
+    @objc private func controlStateChanged() { DispatchQueue.main.async { self.refresh(); if self.activityPanel.isShown { self.activity.refresh() } } }
     @objc func stopControl() { SafetyController.shared.setStopped(true); CursorOverlayManager.shared.dismissCursor(); refresh() }
     @objc private func resumeControl() { SafetyController.shared.setStopped(false); refresh() }
     @objc private func openInspector() {

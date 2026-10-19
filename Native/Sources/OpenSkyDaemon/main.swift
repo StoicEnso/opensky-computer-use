@@ -5,7 +5,7 @@ import Network
 import Security
 import Carbon.HIToolbox
 
-private let inspectionMethods: Set<String> = ["ping", "status", "inspector", "list_apps", "get_app_state", "screenshot_screen", "stop", "resume", "shutdown", "cursor_dismiss", "cursor_status"]
+private let inspectionMethods: Set<String> = ["ping", "status", "inspector", "agent_activity", "list_apps", "get_app_state", "screenshot_screen", "stop", "resume", "shutdown", "cursor_dismiss", "cursor_status"]
 
 // MARK: - JSON-RPC Request & Dispatcher
 
@@ -33,6 +33,11 @@ public final class OpenSkyRPCDispatcher {
             windowID: asInt(params["window_id"]).map { UInt32($0) } ?? feedbackApp.flatMap { AXEngine.shared.pinnedWindowID(appIdentifier: $0) })
         defer { PointerFeedbackContext.current = previousFeedback }
         switch method {
+        case "agent_activity":
+            let action = params["action"] as? String ?? "status"
+            guard ["status", "show", "close"].contains(action) else { return ["ok": false, "error_code": "invalid_arguments", "error": "Use status, show or close."] }
+            let control = { residentMenu?.activityControl(action: action) ?? ["ok": false, "error_code": "native_ui_unavailable"] }
+            return Thread.isMainThread ? control() : DispatchQueue.main.sync(execute: control)
         case "inspector":
             let action = params["action"] as? String ?? "status"
             guard ["status", "show", "close"].contains(action) else { return ["ok": false, "error_code": "invalid_arguments", "error": "Use status, show or close."] }
@@ -59,7 +64,7 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
-                "build_version": "1.3.9",
+                "build_version": "1.4.0",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
@@ -673,7 +678,7 @@ public final class LocalHTTPServer {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let method = json["method"] as? String,
               let params = json["params"] as? [String: Any] else { respond(connection, status: 400, body: ["ok": false, "error": "Expected {method,params} JSON"]); return }
-        let passiveInspector = method == "inspector" && ["status", "close"].contains(params["action"] as? String ?? "status")
+        let passiveInspector = ["inspector", "agent_activity"].contains(method) && ["status", "close"].contains(params["action"] as? String ?? "status")
         let priority = passiveInspector || ["stop", "resume", "shutdown", "status", "ping", "cursor_status", "cursor_dismiss"].contains(method)
         let generation = SafetyController.shared.operationGeneration
         let enqueuedAt = ProcessInfo.processInfo.systemUptime

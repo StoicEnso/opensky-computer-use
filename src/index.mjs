@@ -11,6 +11,7 @@ import { performChromeTabs } from "./chrome.mjs";
 import { readInteractionMode, writeInteractionMode, prepareInteraction } from "./interaction-mode.mjs";
 import { browserRequest, setBrowserPaused } from "./browser/client.mjs";
 import {readUserActivity} from './user-activity.mjs';
+import {trackAgentOperation,readAgentActivity} from './agent-activity.mjs';
 export { OpenSkyError, matchElements } from "./session.mjs";
 export { getOperatingGuidance } from "./operator-guidance.mjs";
 export { NATIVE_API_VERSION } from "./native-version.mjs";
@@ -113,6 +114,10 @@ export async function ensureDaemonRunning() {
  * Automatically starts the resident daemon if not already running, with authenticated local transport.
  */
 export async function callDaemon(method, params = {}, { autoStart = true } = {}) {
+  return trackAgentOperation(OPENSKY_HOME,`native.${method}`,()=>callDaemonOperation(method,params,{autoStart}));
+}
+
+async function callDaemonOperation(method, params = {}, { autoStart = true } = {}) {
   if (['stop','shutdown'].includes(method)) await setBrowserPaused(true);
   const prepared = prepareInteraction(OPENSKY_HOME, method, params);
   if (prepared.result) return prepared.result;
@@ -153,6 +158,7 @@ export async function callDaemon(method, params = {}, { autoStart = true } = {})
  * Can be imported directly in Node.js, Codex REPL, Claude scripts, or Antigravity tools.
  */
 export const computer_use = {
+  async agent_activity() {return readAgentActivity({home:OPENSKY_HOME});},
   async user_activity() {return readUserActivity();},
   async browser_status() { return browserRequest('status'); },
   async browser_tabs(params = {}) {
