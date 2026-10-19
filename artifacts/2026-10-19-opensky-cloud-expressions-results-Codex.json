@@ -33,7 +33,13 @@
     "intelCrossBuildSignaturePassed": true,
     "intelHardwareTested": false,
     "newProductionInstallLiveTested": false,
-    "packagingAssertionsPassed": 45
+    "packagingAssertionsPassed": 45,
+    "downloadedReleaseChecksumsPassed": 6,
+    "isolatedReleaseBootstrapWithoutCompilerPassed": true,
+    "remoteCI": {
+      "url": "https://github.com/StoicEnso/opensky-computer-use/actions/runs/39314607585",
+      "state": "in_progress at publication; not reported as passed"
+    }
   },
   "installation": {
     "approvedAppPreserved": "1.4.2",
@@ -42,6 +48,12 @@
     "pendingMacOSConsentHandoffReused": true,
     "chromeRestarted": false,
     "extensionReloaded": false,
-    "watchRemainsPaused": true
-  }
+    "watchRemainsPaused": true,
+    "nativePIDPreserved": 54307,
+    "allThreePermissionsStillGranted": true,
+    "browserBrokerPIDPreserved": 48646,
+    "browserConnected": true
+  },
+  "sourceCommit": "affb536b4168ae99caa619a0b188b5056e795f43",
+  "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.15"
 }
