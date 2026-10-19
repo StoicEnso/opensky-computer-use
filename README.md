@@ -1,6 +1,10 @@
 # OpenSky
 
-**Stop being your AI’s hands.** Your Mac. Your agents. Your rules.
+## Build like you have a team.
+
+Give your AI agents hands on your Mac. Let them handle the tabs, forms, files and app work while you keep building.
+
+**Your Mac. Your agents. Your rules.**
 
 ## Install OpenSky + Claude
 
@@ -10,7 +14,7 @@ Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
 curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh | bash
 ```
 
-Installs the prebuilt cloud-tray app, a private Node runtime if needed, Claude Code and Claude Desktop if missing, then connects Claude and guides Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Existing Claude apps/settings and a matching OpenSky app are reused. This command currently installs the tested **1.7.0-rc.13 prerelease**.
+One command installs OpenSky, sets up Claude Code and Claude Desktop if needed, and guides the one-time Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Already have Claude? Your apps and settings are reused. Currently installs the tested **1.7.0-rc.14 prerelease**.
 
 Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS event-synthesizing access if requested), sign in to Claude, and review/enable OpenSky’s Desktop extension. The guide reads back actual permissions; it never labels a pending review complete. A Mac password or Touch ID may be required **by System Settings**. OpenSky is currently ad-hoc signed, not Developer ID notarized; managed Macs/Gatekeeper policies may require owner review. The installer does not change those policies.
 
@@ -18,7 +22,15 @@ Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS ev
 
 ![OpenSky — Your agent. Your Mac.](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-cover-Codex.png)
 
-**Put your Mac to work with the agents you choose.** OpenSky gives them native app controls, background Chrome tabs and file uploads—plus a little cloud in your menu bar that shows which clients are working. Connect through MCP, the command line or JavaScript. Open source, with no outbound telemetry or OpenSky cloud relay.
+### One person. More in motion.
+
+You bring the ideas and the agents. OpenSky puts the Mac within their reach: native apps, your signed-in Chrome session, background tabs and file uploads. A little cloud in your menu bar shows which clients are working. An Inspector lets you look closer. Pause keeps control within reach.
+
+**Keep building.** Let agents handle the legwork in supported background windows and tabs while you use your Mac.
+
+**Bring your team.** Start with Claude, or connect the agents you choose through MCP, the command line or JavaScript. Independent background tasks can overlap; shared keyboard and pointer turns stay coordinated.
+
+**Own the tools.** A local control engine. Open source. MIT licensed. No outbound telemetry or OpenSky cloud relay.
 
 [![macOS checks](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/StoicEnso/opensky-computer-use)](https://github.com/StoicEnso/opensky-computer-use/releases/latest)
@@ -41,6 +53,24 @@ Already installed? Run **`opensky onboard`** for a local setup screen that check
 After installation and permission setup, run `opensky demo`. A new disposable Mac window comes forward. OpenSky reads its controls, points at targets, clicks the counter three times, types English/Dhivehi/emoji and pastes a checklist. Each result is checked. The window stays open so you can inspect it; close it when finished.
 
 `opensky demo --pointers-only` previews the visual effects without performing input. `opensky demo --quick` uses shorter presentation pauses. Stop at any time with **Control + Option + Command + Escape**.
+
+## Know how your agents are working
+
+The cloud stays small. Its mode mark makes control visible:
+
+| Tray mark | What it means |
+| --- | --- |
+| Split windows | **Alongside** — supported background controls |
+| Pointer | **Desktop** — shared keyboard and pointer work available |
+| **A** beside the mark | **Auto** is choosing between the two after two idle minutes |
+| Small clock | A temporary desktop turn, returning to the saved mode |
+| Pause bars in the cloud | Control is paused |
+
+Open the cloud to see the current behavior, saved policy, real working clients and a plain-language explanation. Auto stays visible as Auto when its effective behavior changes. Missing activity keeps Auto alongside; the panel also identifies missing Mac permissions. Mode display is read-only and does not grant permissions or resume control. [Design fixtures and validation](artifacts/2026-10-19-opensky-mode-awareness-results-Codex.json).
+
+![OpenSky mode icons at menu-bar size, with enlarged details](artifacts/2026-10-19-opensky-mode-icons-light-Codex.png)
+
+[See the panel design](artifacts/2026-10-19-opensky-activity-working-light-Codex.png) — disposable sample clients, not a claim of agents bundled with OpenSky.
 
 ## What is included
 

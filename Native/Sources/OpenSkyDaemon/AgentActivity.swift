@@ -93,7 +93,7 @@ final class AgentActivityModel: ObservableObject {
     @Published var snapshot = AgentActivitySnapshot()
     @Published var paused = false
     @Published var permissionsReady = false
-    @Published var mode = "Auto"
+    @Published var mode = InteractionModeDisplay.unavailable
     private var timer: Timer?; private var reading = false; private var generation = 0
     private let home: URL
     init(home: URL = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OPENSKY_HOME"] ?? NSHomeDirectory() + "/.local/share/opensky")) { self.home = home }
@@ -109,13 +109,9 @@ final class AgentActivityModel: ObservableObject {
         let generation = self.generation, home = self.home
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let snapshot = AgentActivitySnapshot.read(home: home)
-            let data = try? Data(contentsOf: home.appendingPathComponent("interaction-mode.json"))
-            let config = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-            let override = (config?["desktop_override_until"] as? Double ?? 0) > Date().timeIntervalSince1970 * 1000
-            let mode = override ? "Desktop · temporary" : config?["cooperation_policy"] as? String == "auto" || config?["mode"] as? String == "auto" ? "Auto · 2 min" : config?["mode"] as? String == "alongside" ? "Alongside" : "Desktop"
             DispatchQueue.main.async {
                 guard let self, self.generation == generation else { return }
-                self.reading = false; self.snapshot = snapshot; self.mode = mode
+                self.reading = false; self.snapshot = snapshot
             }
         }
     }
@@ -137,7 +133,8 @@ struct AgentActivityView: View {
                     Circle().fill(tint).frame(width: 5, height: 5)
                     Text(model.paused ? "Paused" : "Live").font(.system(size: 11, weight: .medium))
                 }.padding(.horizontal, 9).padding(.vertical, 5).background(tint.opacity(0.10), in: Capsule())
-            }.padding(.bottom, 20)
+            }.padding(.bottom, 16)
+            modeCard.padding(.bottom, 16)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text("\(data.working)").font(.system(size: 46, weight: .semibold, design: .rounded)).monospacedDigit()
                 VStack(alignment: .leading, spacing: 3) {
@@ -189,9 +186,8 @@ struct AgentActivityView: View {
             Divider().padding(.top, 13).padding(.bottom, 12)
             HStack(spacing: 6) {
                 Image(systemName: model.permissionsReady ? "checkmark.shield" : "exclamationmark.shield")
-                Text(model.permissionsReady ? "Desktop ready" : "Desktop permissions needed")
+                Text(model.permissionsReady ? "Mac permissions ready" : "Mac permissions needed")
                 Spacer()
-                Text(model.mode)
             }.font(.system(size: 10)).foregroundStyle(.secondary)
             HStack(spacing: 8) {
                 Button(action: inspector) { Label("Inspector", systemImage: "viewfinder").frame(maxWidth: .infinity) }
@@ -204,6 +200,26 @@ struct AgentActivityView: View {
             Text("Local counters · no page content recorded").font(.system(size: 9)).foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity).padding(.top, 12)
         }.padding(20).frame(width: 380).fixedSize(horizontal: false, vertical: true).background(.regularMaterial)
+    }
+    private var modeCard: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: model.paused ? "pause.fill" : model.mode.symbol)
+                .font(.system(size: 16, weight: .medium)).frame(width: 28)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(model.mode.title(paused: model.paused, permissionsReady: model.permissionsReady))
+                        .font(.system(size: 12, weight: .semibold))
+                    Spacer(minLength: 0)
+                    Text(model.mode.badge).font(.system(size: 9, weight: .medium))
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(.primary.opacity(0.06), in: Capsule())
+                }
+                Text(model.mode.detail(paused: model.paused, permissionsReady: model.permissionsReady))
+                    .font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }.padding(12).frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
+            .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityElement(children: .combine).accessibilityIdentifier("dev.opensky.activity.mode")
     }
     private func metric(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {

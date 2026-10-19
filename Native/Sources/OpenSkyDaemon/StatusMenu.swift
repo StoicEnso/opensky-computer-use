@@ -3,7 +3,7 @@ import SwiftUI
 import Combine
 
 final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
-    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let status = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let permissions = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var stopItem: NSMenuItem!
@@ -13,6 +13,10 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private let activityPanel = NSPopover()
     private var quickMenu: NSMenu!
     private var activitySizeObserver: AnyCancellable?
+    private var modeTimer: Timer?
+    private var readingMode = false
+    private var permissionsReady = false
+    private let runtimeHome = URL(fileURLWithPath: ProcessInfo.processInfo.environment["OPENSKY_HOME"] ?? NSHomeDirectory() + "/.local/share/opensky")
 
     override init() {
         super.init()
@@ -59,6 +63,31 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
         }
         NotificationCenter.default.addObserver(self, selector: #selector(controlStateChanged), name: .openskyControlStateChanged, object: nil)
         refresh()
+        // Only the tiny policy/activity projection polls with the panel closed.
+        // Client counters and app/window observation remain stopped.
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in self?.sampleMode() }
+        RunLoop.main.add(timer, forMode: .common); modeTimer = timer
+    }
+    deinit { modeTimer?.invalidate() }
+    private func sampleMode() {
+        guard !readingMode else { return }; readingMode = true
+        let home = runtimeHome
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let mode = InteractionModeDisplay.read(home: home)
+            DispatchQueue.main.async {
+                guard let self else { return }; self.readingMode = false
+                if self.activity.mode != mode { self.activity.mode = mode; self.updateModeAppearance() }
+            }
+        }
+    }
+    private func updateModeAppearance() {
+        let stopped = SafetyController.shared.isStopped, mode = activity.mode
+        let summary = mode.summary(paused: stopped)
+        item.button?.image = CloudMark.statusImage(mode: mode, stopped: stopped)
+        let label = "OpenSky · \(summary)" + (!permissionsReady && !stopped ? " · Desktop permissions needed" : "")
+        item.button?.toolTip = label
+        item.button?.setAccessibilityLabel(label)
+        status.title = label
     }
 
     private func configureApplicationMenu() {
@@ -94,7 +123,10 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
             activityPanel.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             activityPanel.contentViewController?.view.window?.makeKey()
         } else if action == "close" { activityPanel.performClose(nil); activity.stop() }
-        var result: [String: Any] = ["ok": true, "visible": activityPanel.isShown]
+        var result: [String: Any] = ["ok": true, "visible": activityPanel.isShown,
+            "saved_mode": activity.mode.policy?.rawValue.lowercased() ?? "unavailable",
+            "effective_mode": activity.mode.effective?.rawValue.lowercased() ?? "unavailable",
+            "mode_summary": activity.mode.summary(paused: SafetyController.shared.isStopped)]
         // Own UI geometry lets clients target this menu without guessing a
         // position on multi-display desktops. No other app content is read.
         func desktopFrame(_ rect: NSRect) -> [CGFloat] {
@@ -112,11 +144,9 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private func refresh() {
         let stopped = SafetyController.shared.isStopped
         let ax = AXEngine.shared.isAXTrusted(), screen = CGPreflightScreenCaptureAccess(), post = CGPreflightPostEventAccess()
-        let state = stopped ? "Control paused" : (ax && screen && post ? "Ready for your agent" : "Desktop permissions needed")
-        item.button?.image = CloudMark.image(stopped: stopped)
-        item.button?.toolTip = "OpenSky · \(state)"
-        item.button?.setAccessibilityLabel("OpenSky, \(state.lowercased())")
-        status.title = "OpenSky · \(state)"
+        permissionsReady = ax && screen && post
+        activity.mode = InteractionModeDisplay.read(home: runtimeHome)
+        updateModeAppearance()
         permissions.title = "Accessibility \(ax ? "✓" : "—")   Screen Capture \(screen ? "✓" : "—")   Event Posting \(post ? "✓" : "—")"
         stopItem.isEnabled = !stopped; resumeItem.isEnabled = stopped
     }
@@ -164,7 +194,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     @objc private func about() {
         NSApplication.shared.orderFrontStandardAboutPanel(options: [
             .applicationName: "OpenSky", .applicationVersion: "Native UI \(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "development") · API 1.3.0",
-            .credits: NSAttributedString(string: "Your agent. Your Mac.\nOpen source · MIT\nLocal MCP, CLI and JavaScript computer use.")
+            .credits: NSAttributedString(string: "Your Mac. Your agents. Your rules.\nOpen source · MIT\nLocal MCP, CLI and JavaScript computer use.")
         ])
         NSApp.activate(ignoringOtherApps: true)
     }

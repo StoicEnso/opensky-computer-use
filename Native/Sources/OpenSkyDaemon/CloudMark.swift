@@ -26,4 +26,32 @@ enum CloudMark {
         image.isTemplate = true
         return image
     }
+    /// Stable-width, monochrome status mark. Auto's A is policy; the glyph is
+    /// effective behavior. Keep the original cloud intact at native menu size.
+    static func statusImage(mode: InteractionModeDisplay, stopped: Bool = false) -> NSImage {
+        let image = NSImage(size: NSSize(width: 43, height: 18), flipped: false) { _ in
+            CloudMark.image(stopped: stopped).draw(in: NSRect(x: 0, y: 0, width: 20, height: 18))
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+            let symbol = NSImage(systemSymbolName: mode.symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config)
+            if let symbol {
+                let scale = min(13 / symbol.size.width, 13 / symbol.size.height)
+                let size = NSSize(width: symbol.size.width * scale, height: symbol.size.height * scale)
+                symbol.draw(in: NSRect(x: 24 + (13 - size.width) / 2, y: (18 - size.height) / 2, width: size.width, height: size.height))
+            }
+            if mode.automatic || mode.reason == .temporary {
+                if mode.reason == .temporary {
+                    NSImage(systemSymbolName: "clock", accessibilityDescription: nil)?
+                        .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 7, weight: .semibold))?
+                        .draw(in: NSRect(x: 36, y: 1, width: 7, height: 7))
+                } else {
+                    ("A" as NSString).draw(at: NSPoint(x: 37, y: 1), withAttributes: [
+                        .font: NSFont.systemFont(ofSize: 8, weight: .bold), .foregroundColor: NSColor.black])
+                }
+            }
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+
 }

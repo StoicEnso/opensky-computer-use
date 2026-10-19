@@ -12,7 +12,7 @@ opensky_verify() {
   [[ "$actual" == "$expected" ]] || { echo "Checksum failed for $2; nothing will be installed." >&2; return 1; }
 }
 opensky_main() (
-  local version='1.7.0-rc.13' release_date='2026-10-19'
+  local version='1.7.0-rc.14' release_date='2026-10-19'
   local prefix="$HOME/.local" app_dir="$HOME/Applications" offline='' claude=1 desktop=1 onboard=1
   while [ "$#" -gt 0 ]; do
     case "$1" in

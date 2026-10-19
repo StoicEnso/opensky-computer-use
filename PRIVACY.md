@@ -1,6 +1,6 @@
 # OpenSky data handling
 
-Updated 19 October 2026 for runtime 1.7.0-rc.13 / native API 1.3.0 and UI build 1.4.2.
+Updated 19 October 2026 for runtime 1.7.0-rc.14 / native API 1.3.0 and UI build 1.4.3.
 
 OpenSky is a local macOS control engine. There is no developer upload endpoint, outbound telemetry or OpenSky cloud relay. Native control uses authenticated loopback RPC; MCP communicates with the connected agent over standard input/output. Apple Vision OCR runs on the Mac. Optional local activity counters support the menu-bar activity view; they are not sent to OpenSky's developers.
 
@@ -33,3 +33,5 @@ These are product data-handling facts, not a GDPR certification or a claim that 
 For the control access boundary, see [the security model](SECURITY.md).
 
 The shared cooperation file may record the writing process and parent process IDs, alongside its existing update time, to help diagnose mode changes from overlapping local clients. These are local diagnostic metadata; no keystrokes or pointer coordinates are added.
+
+The menu-bar mode indicator passively reads the existing local cooperation preference and aggregate activity record. It shows saved/effective mode, temporary turns and pause without collecting event contents, starting a new monitor, or reading other apps. Client-statistics polling still stops when the panel closes.

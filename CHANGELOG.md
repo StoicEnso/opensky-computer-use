@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0-rc.14 — 19 October 2026
+
+- Native UI 1.4.3 keeps the cloud and adds fixed-width template mode marks: split windows for Alongside, pointer for Desktop, A for Auto and a clock for temporary turns. Tooltips and accessibility labels report saved/effective policy and pause.
+- Add a prominent read-only mode card with the actual two-minute Auto state, temporary override, unavailable activity and permission explanations. Update mode while the panel is closed without polling client statistics or observing app content.
+- Validate mode projection against fresh/live/private aggregate activity, the exact threshold, invalid data, override expiry and pause. Add light/dark true-size icon strips, six panel fixtures and passive live-service transition checks.
+- Reposition the GitHub introduction and launch copy around “Build like you have a team,” with the one-command install near the top and concrete bring-your-own-agent capabilities.
+
 ## 1.7.0-rc.13 — 19 October 2026
 
 - Fix the browser bridge repeatedly cancelling fresh observations during native tray pause. Cancel existing requests once per native pause transition; retain the stop gate on mutations.

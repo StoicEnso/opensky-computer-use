@@ -36,7 +36,7 @@ func renderAgentActivityPreview(to directory: URL, save: (NSView, String) throws
     let popover = NSPopover(); popover.contentViewController = content
     sizeAgentActivityPopover(popover, content: content)
     let quietSize = popover.contentSize
-    precondition(quietSize.width == 380 && quietSize.height > 350 && quietSize.height < 680)
+    precondition(quietSize.width == 380 && quietSize.height > 350 && quietSize.height < 760)
     sizingModel.snapshot = summary
     RunLoop.current.run(until: Date().addingTimeInterval(0.1))
     sizeAgentActivityPopover(popover, content: content)
@@ -47,17 +47,20 @@ func renderAgentActivityPreview(to directory: URL, save: (NSView, String) throws
     sizeAgentActivityPopover(popover, content: content)
     precondition(popover.contentSize == quietSize, "The panel must shrink back to its compact quiet state")
     popover.contentViewController = nil
-    for (name, appearance, snapshot, paused) in [
-        ("working-light", NSAppearance.Name.aqua, summary, false),
-        ("working-dark", .darkAqua, summary, false),
-        ("quiet-light", .aqua, AgentActivitySnapshot(), false),
-        ("paused-dark", .darkAqua, summary, true)
+    for (name, appearance, snapshot, paused, mode) in [
+        ("working-light", NSAppearance.Name.aqua, summary, false, InteractionModeDisplay(policy: .auto, effective: .alongside, reason: .ownerActive)),
+        ("working-dark", .darkAqua, summary, false, InteractionModeDisplay(policy: .auto, effective: .desktop, reason: .idle)),
+        ("quiet-light", .aqua, AgentActivitySnapshot(), false, InteractionModeDisplay(policy: .alongside, effective: .alongside, reason: .selected)),
+        ("paused-dark", .darkAqua, summary, true, InteractionModeDisplay(policy: .auto, effective: .alongside, reason: .ownerActive)),
+        ("temporary-light", .aqua, AgentActivitySnapshot(), false, InteractionModeDisplay(policy: .auto, effective: .desktop, reason: .temporary)),
+        ("unavailable-dark", .darkAqua, AgentActivitySnapshot(), false, InteractionModeDisplay(policy: .auto, effective: .alongside, reason: .unavailable))
     ] {
         let model = AgentActivityModel(home: temp); model.snapshot = snapshot; model.paused = paused
-        model.permissionsReady = true; model.mode = "Auto · 2 min"
+        model.permissionsReady = true; model.mode = mode
         let view = NSHostingView(rootView: AgentActivityView(model: model))
         let size = view.fittingSize
-        precondition(size.width == 380 && size.height > 350 && size.height < 680, "Activity must fit a compact menu panel")
+        precondition(size.width == 380 && size.height > 350 && size.height < 760, "Activity must fit a compact menu panel")
+        print("Activity preview \(name): \(size.width) × \(size.height)")
         view.frame = NSRect(origin: .zero, size: size)
         let window = NSWindow(contentRect: view.frame, styleMask: [], backing: .buffered, defer: false)
         window.appearance = NSAppearance(named: appearance); window.contentView = view

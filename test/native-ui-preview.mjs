@@ -19,11 +19,12 @@ try {
   assert.equal(run.status,0,run.stderr||run.error?.message||`Native preview exited ${run.status}, signal ${run.signal}.`);
   assert.match(run.stdout,/stale-result recovery/);assert.match(run.stdout,/Window feedback checks passed/);
   assert.match(run.stdout,/Agent activity fixtures passed/);
-  for(const name of ['working-light','working-dark','quiet-light','paused-dark']) {
+  assert.match(run.stdout,/Mode display checks passed/);
+  for(const name of ['working-light','working-dark','quiet-light','paused-dark','temporary-light','unavailable-dark']) {
     const png=readFileSync(path.join(output,`2026-10-19-opensky-activity-${name}-Codex.png`));
     assert.equal(png.subarray(1,4).toString(),'PNG');
     const scale=png.readUInt32BE(16)/380;assert.ok([1,2,3].includes(scale));
-    assert.ok(png.readUInt32BE(20)/scale>350&&png.readUInt32BE(20)/scale<680);
+    assert.ok(png.readUInt32BE(20)/scale>350&&png.readUInt32BE(20)/scale<760);
   }
   for(const [name,width,height] of [['inspector-light',920,660],['inspector-dark',920,660],['tray-preview',800,220],['window-feedback',400,300],['window-feedback-offset',400,300]]) {
     const png=readFileSync(path.join(output,`2026-10-17-opensky-${name}-Codex.png`));
@@ -31,6 +32,10 @@ try {
     // The backing scale may differ between local and CI displays.
     const scale=png.readUInt32BE(16)/width;
     assert.ok([1,2,3].includes(scale));assert.equal(png.readUInt32BE(20),height*scale);
+  }
+  for(const appearance of ['light','dark']) {
+    const png=readFileSync(path.join(output,`2026-10-19-opensky-mode-icons-${appearance}-Codex.png`));
+    const scale=png.readUInt32BE(16)/840;assert.ok([1,2,3].includes(scale));assert.equal(png.readUInt32BE(20),180*scale);
   }
   assert.equal(existsSync(env.OPENSKY_HOME),false,'UI rendering must not initialize service credentials or runtime state.');
   console.log('Native UI checks passed: offscreen light/dark/tray rendering, exact fixture selection, stale-result recovery, search, clear-on-close, independent cache, template marks and no service startup.');

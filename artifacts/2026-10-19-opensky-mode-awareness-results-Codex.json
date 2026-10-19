@@ -1,0 +1,51 @@
+{
+  "created": "2026-10-19",
+  "runtime": "1.7.0-rc.14",
+  "nativeAPI": "1.3.0",
+  "nativeUI": "1.4.3",
+  "positioning": "Build like you have a team. Your Mac. Your agents. Your rules.",
+  "modeDisplay": {
+    "readOnly": true,
+    "fixedWidthTemplateCloud": true,
+    "savedAndEffectiveSeparated": true,
+    "autoThresholdSeconds": 120,
+    "temporaryOverrideAndExpiry": true,
+    "pausePrecedence": true,
+    "unavailableActivityStaysAlongside": true,
+    "permissionGateExplained": true,
+    "closedPanelPassiveModeUpdates": true,
+    "closedPanelClientPolling": false
+  },
+  "validation": {
+    "automatedTestsPassed": 75,
+    "packagingAssertionsPassed": 45,
+    "nativeOffscreenLightDarkPanelFixtures": 6,
+    "trueSizeLightDarkModeStrips": true,
+    "modeResolutionBoundaryInvalidRecordAndOverrideFixturesPassed": true,
+    "realIsolatedNativeServiceTransitionsAndReopenPassed": true,
+    "arm64BuildAndSignaturePassed": true,
+    "intelCrossBuildAndSignaturePassed": true,
+    "intelHardwareTested": false,
+    "physicalModePanelTest": "Passed in a disposable distinct native app through approved installed OpenSky; exact-window macOS/Vision capture used on the secondary display.",
+    "physicalRightClickEscapePauseResumeInspectorPassed": true,
+    "foregroundAppRestored": true,
+    "multiDisplayFixturePassed": true
+  },
+  "installation": {
+    "newNativeInstalled": false,
+    "approvedNativePreserved": "1.4.2",
+    "allThreeMacPermissionsStillGranted": true,
+    "nativePID": 54307,
+    "browserBrokerPID": 48646,
+    "browserConnectionPreserved": true,
+    "chromeRestarted": false,
+    "extensionReloaded": false,
+    "macOSConsentBypassed": false
+  },
+  "scope": "Panel previews use labelled disposable sample clients. The isolated app has a distinct bundle identity. These results do not establish universal background app support or an agent orchestrator.",
+  "watchRemainsPaused": true,
+  "limitations": [
+    "Screen-wide OpenSky capture currently targets the primary display; exact-window fixture instrumentation verified the secondary-display panel.",
+    "The new production app still needs installation and actual macOS permission readback; disposable identity permission results do not establish production consent."
+  ]
+}

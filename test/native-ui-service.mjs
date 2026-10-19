@@ -43,6 +43,25 @@ try {
   const initial=await control({action:'status'});
   const panel=params=>sdk.callDaemon('agent_activity',params,{autoStart:false});
   assert.equal((await panel({action:'status'})).visible,false);
+  const modeWait=async(saved,effective,summary)=>{
+    let state;for(let i=0;i<40;i++) {
+      // A corrupt fixture mode deliberately blocks SDK calls; observe only the
+      // native panel metadata through this isolated fixture's authenticated API.
+      state=saved==='unavailable'?await fetch(`http://127.0.0.1:${process.env.OPENSKY_PORT}/rpc`,{
+        method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+fs.readFileSync(path.join(process.env.OPENSKY_HOME,'control-token'),'utf8').trim()},
+        body:JSON.stringify({method:'agent_activity',params:{action:'status'}})
+      }).then(r=>r.json()):await panel({action:'status'});if(state.saved_mode===saved&&state.effective_mode===effective&&(!summary||summary.test(state.mode_summary)))return state;await new Promise(r=>setTimeout(r,50));}
+    assert.fail(`Passive tray mode did not settle: ${JSON.stringify(state)}`);
+  };
+  await modeWait('alongside','alongside');
+  await sky.interaction_mode({mode:'desktop'});await modeWait('desktop','desktop');
+  await sky.interaction_mode({mode:'auto'});await modeWait('auto','alongside',/Auto · Alongside/);
+  await sky.interaction_mode({mode:'desktop',duration_seconds:1});await modeWait('auto','desktop',/Desktop turn · Auto saved/);
+  await modeWait('auto','alongside',/Auto · Alongside/);
+  fs.writeFileSync(path.join(process.env.OPENSKY_HOME,'interaction-mode.json'),'{bad');
+  await modeWait('unavailable','unavailable');
+  await sky.interaction_mode({mode:'alongside'});await modeWait('alongside','alongside');
+
   assert.equal((await panel({action:'show'})).error_code,'desktop_turn_required','Activity panels must not appear over an active owner.');
   assert.equal((await panel({action:'unknown'})).error_code,'invalid_arguments');
   assert.equal(initial.ok,true);assert.equal(initial.visible,false);assert.equal(initial.tray_image_template,true);assert.equal(initial.tray_title,'');
@@ -52,8 +71,8 @@ try {
   const shown=await control({action:'show'});assert.equal(shown.visible,true);assert.ok(shown.window_id>0);
   assert.equal((await control({action:'show',activate:true})).error_code,'desktop_turn_required');
   await sky.stop();
-  let paused;for(let i=0;i<30;i++){paused=await control({action:'status'});if(paused.tray_accessibility_label.includes('paused'))break;await new Promise(r=>setTimeout(r,50));}
-  assert.equal(paused.control_paused,true);assert.ok(paused.tray_accessibility_label.includes('paused'));
+  let paused;for(let i=0;i<30;i++){paused=await control({action:'status'});if(/paused/i.test(paused.tray_accessibility_label))break;await new Promise(r=>setTimeout(r,50));}
+  assert.equal(paused.control_paused,true);assert.ok(/paused/i.test(paused.tray_accessibility_label));
   const closed=await control({action:'close'});assert.equal(closed.visible,false);assert.equal(closed.inspector_element_count,0);
   assert.equal((await panel({action:'close'})).visible,false,'Activity recovery remains available while paused.');
   const ids=new Set([shown.window_id]);
@@ -64,7 +83,7 @@ try {
     assert.equal((await control({action:'close'})).visible,false);
   }
   assert.equal(front(),before,'Background Inspector presentation must preserve the frontmost app.');
-  console.log(JSON.stringify({passed:true,distinctDisposableBundleIdentity:true,nativeBuild:native.build_version,backgroundInspectorOpened:true,threeFreshReopenWindowsAndSettledFramesPassed:true,liveTrayTemplateAndNoText:true,pausedTrayLabelVerified:true,invalidRequestsRejected:true,foregroundActivationDeferred:true,inspectorClosedWhilePaused:true,frontmostAppUnchanged:true,thirdPartyWindowInspectionVerified:false,installedAppPermissionsVerified:false,permissionsRequested:false}));
+  console.log(JSON.stringify({passed:true,distinctDisposableBundleIdentity:true,nativeBuild:native.build_version,backgroundInspectorOpened:true,threeFreshReopenWindowsAndSettledFramesPassed:true,liveTrayTemplateAndNoText:true,passiveSavedEffectiveModeAndOverrideExpiryVerified:true,pausedTrayLabelVerified:true,invalidRequestsRejected:true,foregroundActivationDeferred:true,inspectorClosedWhilePaused:true,frontmostAppUnchanged:true,thirdPartyWindowInspectionVerified:false,installedAppPermissionsVerified:false,permissionsRequested:false}));
 } finally {
   if(daemonStatus&&(await daemonStatus()).running)await sky.shutdown();
   fs.rmSync(root,{recursive:true,force:true});
