@@ -32,7 +32,7 @@
     "arm64BuildSignaturePassed": true,
     "intelCrossBuildSignaturePassed": true,
     "intelHardwareTested": false,
-    "newProductionInstallLiveTested": false,
+    "newProductionInstallLiveTested": true,
     "packagingAssertionsPassed": 45,
     "downloadedReleaseChecksumsPassed": 6,
     "isolatedReleaseBootstrapWithoutCompilerPassed": true,
@@ -42,12 +42,28 @@
     },
     "installedBinaryIdentityAndFrozenHashPassed": true,
     "installedBackgroundChromeTrustedClickPassed": true,
-    "installedNativeInputPermissionPending": true,
+    "installedNativeInputPermissionPending": false,
     "installedTrayCompactGeometryPoints": [
       22,
       22
     ],
-    "installedTrayTemplateAndPlainBehaviorLabelVerified": true
+    "installedTrayTemplateAndPlainBehaviorLabelVerified": true,
+    "installedAllThreeMacOSPermissionsVerified": true,
+    "installedAlongsideDesktopPausedCloudsVisuallyVerified": true,
+    "installedLeftRightEscapeOutsideDismissalPassed": true,
+    "installedInspectorButtonResizeAndRestorePassed": true,
+    "installedInspectorSearchFilterUnicodeIdentifierRoleNoMatchClearAndDetailsPassed": true,
+    "installedNativeBackgroundAXWriteReadRestorePassed": true,
+    "installedExactWindowNativeScreenshotAndOCRPassed": true,
+    "installedPauseBlocksBrowserInputAndFreshReadsSurvive": true,
+    "installedExplicitNativeAPIResumeRestoresExactlyOneClick": true,
+    "resumeButtonRendered": true,
+    "physicalResumeButtonClicked": false,
+    "resumeMethod": "explicit authenticated native API; the paused driver did not click its own Resume button",
+    "counterClickReceipts": 1,
+    "originalForegroundRestored": true,
+    "foregroundChecksUsedSavedTwoMinuteIdleRule": true,
+    "explicitDesktopOverrideNeeded": false
   },
   "installation": {
     "candidateInstalled": true,
@@ -61,16 +77,23 @@
     "runtimeInstalled": "1.7.0-rc.15",
     "nativeInstalled": "1.4.4",
     "approvedAppBackupRetained": "1.4.2",
-    "installedNativePID": 46082,
+    "installedNativePID": 55387,
     "currentMacOSPermissions": {
-      "accessibility": false,
-      "screenRecording": false,
-      "eventPosting": false
+      "accessibility": true,
+      "screenRecording": true,
+      "eventPosting": true
     },
-    "macOSConsentRefreshPending": true,
+    "macOSConsentRefreshPending": false,
     "browserPaused": false,
-    "existing96TabIDsAndSelectionsPreserved": true
+    "existing96TabIDsAndSelectionsPreserved": true,
+    "existingTabsAtForegroundChecks": 93,
+    "existingTabIDsPreservedDuringForegroundChecks": true,
+    "selectedTabIDsPreservedDuringForegroundChecks": true,
+    "tabCountNote": "96 tabs were preserved through the upgrade/background check. The owner changed the session to 93 before the foreground checks; that fresh 93-tab baseline and selections were preserved.",
+    "savedCooperationMode": "auto",
+    "nativeRebuiltAfterConsent": false
   },
   "sourceCommit": "affb536b4168ae99caa619a0b188b5056e795f43",
-  "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.15"
+  "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.15",
+  "postConsentVerificationDate": "2026-10-19"
 }
