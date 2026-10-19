@@ -55,9 +55,9 @@ try {
   };
   await modeWait('alongside','alongside');
   await sky.interaction_mode({mode:'desktop'});await modeWait('desktop','desktop');
-  await sky.interaction_mode({mode:'auto'});await modeWait('auto','alongside',/Auto · Alongside/);
-  await sky.interaction_mode({mode:'desktop',duration_seconds:1});await modeWait('auto','desktop',/Desktop turn · Auto saved/);
-  await modeWait('auto','alongside',/Auto · Alongside/);
+  await sky.interaction_mode({mode:'auto'});await modeWait('auto','alongside',/Alongside you/);
+  await sky.interaction_mode({mode:'desktop',duration_seconds:1});await modeWait('auto','desktop',/Desktop turn/);
+  await modeWait('auto','alongside',/Alongside you/);
   fs.writeFileSync(path.join(process.env.OPENSKY_HOME,'interaction-mode.json'),'{bad');
   await modeWait('unavailable','unavailable');
   await sky.interaction_mode({mode:'alongside'});await modeWait('alongside','alongside');

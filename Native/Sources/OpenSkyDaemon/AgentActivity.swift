@@ -126,7 +126,7 @@ struct AgentActivityView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
-                Image(nsImage: CloudMark.image(stopped: model.paused)).resizable().scaledToFit().frame(width: 29, height: 26).foregroundStyle(.cyan)
+                Image(nsImage: CloudMark.statusImage(mode: model.mode, stopped: model.paused)).resizable().scaledToFit().frame(width: 29, height: 26).foregroundStyle(.cyan)
                 Text("OpenSky").font(.system(size: 16, weight: .semibold))
                 Spacer()
                 HStack(spacing: 5) {
@@ -202,21 +202,11 @@ struct AgentActivityView: View {
         }.padding(20).frame(width: 380).fixedSize(horizontal: false, vertical: true).background(.regularMaterial)
     }
     private var modeCard: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: model.paused ? "pause.fill" : model.mode.symbol)
-                .font(.system(size: 16, weight: .medium)).frame(width: 28)
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 8) {
-                    Text(model.mode.title(paused: model.paused, permissionsReady: model.permissionsReady))
-                        .font(.system(size: 12, weight: .semibold))
-                    Spacer(minLength: 0)
-                    Text(model.mode.badge).font(.system(size: 9, weight: .medium))
-                        .padding(.horizontal, 7).padding(.vertical, 3)
-                        .background(.primary.opacity(0.06), in: Capsule())
-                }
-                Text(model.mode.detail(paused: model.paused, permissionsReady: model.permissionsReady))
-                    .font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            }
+        VStack(alignment: .leading, spacing: 5) {
+            Text(model.mode.title(paused: model.paused, permissionsReady: model.permissionsReady))
+                .font(.system(size: 12, weight: .semibold))
+            Text(model.mode.detail(paused: model.paused, permissionsReady: model.permissionsReady))
+                .font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }.padding(12).frame(maxWidth: .infinity, minHeight: 60, alignment: .leading)
             .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
             .accessibilityElement(children: .combine).accessibilityIdentifier("dev.opensky.activity.mode")

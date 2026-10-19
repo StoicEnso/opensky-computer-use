@@ -14,7 +14,7 @@ Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
 curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh | bash
 ```
 
-One command installs OpenSky, sets up Claude Code and Claude Desktop if needed, and guides the one-time Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Already have Claude? Your apps and settings are reused. Currently installs the tested **1.7.0-rc.14 prerelease**.
+One command installs OpenSky, sets up Claude Code and Claude Desktop if needed, and guides the one-time Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Already have Claude? Your apps and settings are reused. Currently installs the tested **1.7.0-rc.15 prerelease**.
 
 Stay at your Mac for the one-time permissions, Claude sign-in and connection review.
 
@@ -63,21 +63,19 @@ After installation and permission setup, run `opensky demo`. A new disposable Ma
 
 ## Know how your agents are working
 
-The cloud stays small. Its mode mark makes control visible:
+One little cloud. Its expression tells you how agents can work:
 
-| Tray mark | What it means |
+| Cloud | What it means |
 | --- | --- |
-| Split windows | **Alongside** — supported background controls |
-| Pointer | **Desktop** — shared keyboard and pointer work available |
-| **A** beside the mark | **Auto** is choosing between the two after two idle minutes |
-| Small clock | A temporary desktop turn, returning to the saved mode |
-| Pause bars in the cloud | Control is paused |
+| Relaxed eyes | **Alongside / background** — supported background controls |
+| Open eyes | **Desktop control** — shared keyboard and pointer work available |
+| Pause bars | Control is paused |
 
-Open the cloud to see the current behavior, saved policy, real working clients and a plain-language explanation. Auto stays visible as Auto when its effective behavior changes. Missing activity keeps Auto alongside; the panel also identifies missing Mac permissions. Mode display is read-only and does not grant permissions or resume control. [Design fixtures and validation](artifacts/2026-10-19-opensky-mode-awareness-results-Codex.json).
+No separate Auto badge or extra symbols. The cloud shows the current behavior, however it was selected. Open it for a plain-language explanation, real working clients and pause controls. Automatic switching still follows the two-minute idle preference; temporary turns still return to the saved mode. Missing activity keeps automatic operation alongside, and the panel identifies missing Mac permissions. Display changes never grant permissions or resume control. [Validation](artifacts/2026-10-19-opensky-cloud-expressions-results-Codex.json).
 
-![OpenSky mode icons at menu-bar size, with enlarged details](artifacts/2026-10-19-opensky-mode-icons-light-Codex.png)
+![OpenSky cloud expressions at menu-bar size, with enlarged details](artifacts/2026-10-19-opensky-cloud-expressions-Codex.png)
 
-[See the panel design](artifacts/2026-10-19-opensky-activity-working-light-Codex.png) — disposable sample clients, not a claim of agents bundled with OpenSky.
+[See the simplified panel](artifacts/2026-10-19-opensky-activity-cloud-expressions-Codex.png) — disposable sample clients, not agents bundled with OpenSky.
 
 ## What is included
 

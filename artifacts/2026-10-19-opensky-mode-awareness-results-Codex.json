@@ -32,7 +32,7 @@
     "multiDisplayFixturePassed": true,
     "downloadedReleasePayloadChecksumsPassed": 6,
     "isolatedReleaseBootstrapWithoutCompilerPassed": true,
-    "exactCommitRemoteCI": "queued at publication; not reported as passed",
+    "exactCommitRemoteCI": "passed",
     "remoteCIURL": "https://github.com/StoicEnso/opensky-computer-use/actions/runs/39278974117"
   },
   "installation": {
@@ -55,5 +55,6 @@
     "The new production app still needs installation and actual macOS permission readback; disposable identity permission results do not establish production consent."
   ],
   "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.14",
-  "sourceCommit": "17b075b912582272539459f5c0683898b677715c"
+  "sourceCommit": "17b075b912582272539459f5c0683898b677715c",
+  "supersededDesign": "The owner requested the simpler cloud-only expressions in native 1.4.4; see 2026-10-19-opensky-cloud-expressions-results-Codex.json."
 }

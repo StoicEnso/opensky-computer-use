@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0-rc.15 — 19 October 2026
+
+- Simplify native UI 1.4.4 to the original compact cloud: relaxed eyes for alongside/background control, open eyes for desktop control, pause bars when stopped and a neutral waiting face for unreadable mode data. Auto, manual and temporary policies share the same behavior face.
+- Remove Auto/clock/secondary-glyph badges, restore the square status-item footprint and mirror the expression in the popover header. Keep current behavior and temporary-turn explanations in plain words; saved/effective metadata and scheduling are unchanged.
+- Validate light/dark true-size expressions, policy-equivalent artwork, pause precedence, popover sizing and passive native-service mode changes. Update GitHub screenshots and guidance to the simpler scheme.
+
 ## 1.7.0-rc.14 — 19 October 2026
 
 - Native UI 1.4.3 keeps the cloud and adds fixed-width template mode marks: split windows for Alongside, pointer for Desktop, A for Auto and a clock for temporary turns. Tooltips and accessibility labels report saved/effective policy and pause.

@@ -41,8 +41,8 @@ func checkInteractionModeDisplay(to directory: URL, save: (NSView, String) throw
     precondition(InteractionModeDisplay.resolve(config: nil, missing: true, activity: nil, now: now) == manualDesktop)
     precondition(idle.title(paused: true, permissionsReady: true) == "Control paused")
     precondition(idle.title(paused: false, permissionsReady: false) == "Desktop permission needed")
-    precondition(active.summary(paused: false) == "Auto · Alongside" && idle.summary(paused: false) == "Auto · Desktop")
-    precondition(temporary.summary(paused: false) == "Desktop turn · Auto saved")
+    precondition(active.summary(paused: false) == "Alongside you" && idle.summary(paused: false) == "Desktop control")
+    precondition(temporary.summary(paused: false) == "Desktop turn")
 
     let home = FileManager.default.temporaryDirectory.appendingPathComponent("2026-10-19-mode-fixture-Codex-" + UUID().uuidString)
     try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
@@ -60,16 +60,25 @@ func checkInteractionModeDisplay(to directory: URL, save: (NSView, String) throw
     precondition(InteractionModeDisplay.read(home: home).reason == .invalid)
 
     let states: [(String, InteractionModeDisplay, Bool)] = [
-        ("Auto · Alongside", active, false), ("Auto · Desktop", idle, false),
-        ("Alongside", alongside, false), ("Desktop", manualDesktop, false),
-        ("Desktop turn", temporary, false), ("Paused · Auto", active, true), ("Unavailable", .unavailable, false)]
+        ("Alongside / background", active, false), ("Desktop control", idle, false), ("Paused", active, true)]
     for dark in [false, true] {
         let view = ModeIconPreview(states: states, dark: dark)
         try save(view, "2026-10-19-opensky-mode-icons-\(dark ? "dark" : "light")-Codex.png")
     }
     let images = states.map { CloudMark.statusImage(mode: $0.1, stopped: $0.2) }
-    precondition(images.allSatisfy { $0.isTemplate && $0.size == NSSize(width: 43, height: 18) })
-    precondition(Set(images.compactMap { $0.tiffRepresentation }).count == states.count, "Every mode must have a distinct mark")
+    precondition(images.allSatisfy { $0.isTemplate && $0.size == NSSize(width: 20, height: 18) })
+    precondition(Set(images.compactMap { $0.tiffRepresentation }).count == states.count, "Control states need distinct faces")
+    precondition(CloudMark.statusImage(mode: active).tiffRepresentation == CloudMark.statusImage(mode: alongside).tiffRepresentation,
+        "Auto and manual alongside must share one calm face")
+    for mode in [idle, manualDesktop, temporary] {
+        precondition(CloudMark.statusImage(mode: mode).tiffRepresentation == images[1].tiffRepresentation,
+            "Auto, manual and temporary desktop must share one alert face")
+        precondition(CloudMark.statusImage(mode: mode, stopped: true).tiffRepresentation == images[2].tiffRepresentation,
+            "Pause takes precedence over every policy")
+    }
+    let waiting = CloudMark.statusImage(mode: .unavailable)
+    precondition(waiting.isTemplate && waiting.size == NSSize(width: 20, height: 18))
+    precondition(!images.compactMap { $0.tiffRepresentation }.contains(waiting.tiffRepresentation!), "Unknown data cannot imply desktop control")
     print("Mode display checks passed: runtime parity, threshold, stale/unavailable activity, live private records, overrides, expiry, pause, permissions and distinct fixed-width template icons.")
 }
 
@@ -77,26 +86,26 @@ private final class ModeIconPreview: NSView {
     let states: [(String, InteractionModeDisplay, Bool)]; let dark: Bool
     init(states: [(String, InteractionModeDisplay, Bool)], dark: Bool) {
         self.states = states; self.dark = dark
-        super.init(frame: NSRect(x: 0, y: 0, width: 840, height: 180))
+        super.init(frame: NSRect(x: 0, y: 0, width: 450, height: 180))
     }
     required init?(coder: NSCoder) { fatalError() }
     override func draw(_ rect: NSRect) {
         (dark ? NSColor(calibratedWhite: 0.12, alpha: 1) : NSColor(calibratedWhite: 0.96, alpha: 1)).setFill(); bounds.fill()
         let ink = dark ? NSColor.white : NSColor.black
         let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: ink]
-        ("OpenSky · Mode marks at menu-bar size" as NSString).draw(at: NSPoint(x: 22, y: 142), withAttributes: attributes)
+        ("OpenSky · One cloud, three expressions" as NSString).draw(at: NSPoint(x: 22, y: 142), withAttributes: attributes)
         for (index, state) in states.enumerated() {
-            let x = CGFloat(index) * 117 + 22
+            let x = CGFloat(index) * 145 + 22
             let mark = CloudMark.statusImage(mode: state.1, stopped: state.2)
             // Tint explicitly: these are offscreen previews rather than NSStatusBar's template renderer.
             let tinted = NSImage(size: mark.size, flipped: false) { _ in
                 mark.draw(at: .zero, from: .zero, operation: .sourceOver, fraction: 1)
                 ink.setFill(); NSRect(origin: .zero, size: mark.size).fill(using: .sourceIn); return true
             }
-            tinted.draw(in: NSRect(x: x, y: 97, width: 43, height: 18))
+            tinted.draw(in: NSRect(x: x, y: 97, width: 20, height: 18))
             (state.0 as NSString).draw(at: NSPoint(x: x, y: 70), withAttributes: [.font: NSFont.systemFont(ofSize: 10), .foregroundColor: ink])
             // 2x magnification helps inspect edges, while the row above stays actual size.
-            tinted.draw(in: NSRect(x: x, y: 15, width: 86, height: 36))
+            tinted.draw(in: NSRect(x: x, y: 15, width: 40, height: 36))
         }
     }
 }

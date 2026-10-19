@@ -10,20 +10,18 @@ struct InteractionModeDisplay: Equatable {
     var policy: Policy?; var effective: Effective?; var reason: Reason
     static let unavailable = Self(policy: nil, effective: nil, reason: .invalid)
     var automatic: Bool { policy == .auto }
-    var symbol: String { effective == .alongside ? "rectangle.split.2x1" : effective == .desktop ? "cursorarrow" : "questionmark" }
-    var badge: String { reason == .temporary ? "Temporary · \(policy?.rawValue ?? "Mode") saved" : policy?.rawValue ?? "Check mode" }
     func title(paused: Bool, permissionsReady: Bool) -> String {
         if paused { return "Control paused" }
         if reason == .invalid { return "Mode unavailable" }
         if effective == .alongside { return "Alongside you" }
         if !permissionsReady { return "Desktop permission needed" }
-        return reason == .temporary ? "Desktop turn" : automatic ? "Desktop available" : "Desktop control"
+        return reason == .temporary ? "Desktop turn" : "Desktop control"
     }
     func detail(paused: Bool, permissionsReady: Bool) -> String {
         if paused { return "Resume when you’re ready. Your mode stays saved." }
         if reason == .invalid { return "Check your mode with opensky mode." }
         if effective == .desktop && !permissionsReady { return "Open Setup to check macOS access." }
-        if reason == .temporary { return "Returns to \(policy?.rawValue ?? "your saved mode") when this turn ends." }
+        if reason == .temporary { return "Returns to your usual mode when this turn ends." }
         if automatic {
             if reason == .unavailable { return "Activity signal unavailable. Staying alongside." }
             return effective == .desktop ? "Shared input available while you’re idle." : "Desktop turns after 2 minutes idle."
@@ -31,10 +29,11 @@ struct InteractionModeDisplay: Equatable {
         return effective == .alongside ? "Agents use supported background controls." : "Agents may use your keyboard and pointer."
     }
     func summary(paused: Bool) -> String {
-        let mode = effective?.rawValue ?? "Mode unavailable"
-        let selection = reason == .temporary ? "\(mode) turn · \(policy?.rawValue ?? "Mode") saved" : automatic ? "Auto · \(mode)" : mode
-        return paused ? "Paused · \(selection)" : selection
+        let behavior = effective == .alongside ? "Alongside you" : effective == .desktop ?
+            (reason == .temporary ? "Desktop turn" : "Desktop control") : "Mode unavailable"
+        return paused ? "Paused · \(behavior)" : behavior
     }
+
     private static func number(_ value: Any?) -> Double? {
         guard let n = value as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID(), n.doubleValue.isFinite else { return nil }
         return n.doubleValue

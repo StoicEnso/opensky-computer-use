@@ -1,0 +1,47 @@
+{
+  "created": "2026-10-19",
+  "runtime": "1.7.0-rc.15",
+  "nativeAPI": "1.3.0",
+  "nativeUI": "1.4.4",
+  "revision": "Owner requested a cloud-only expression scheme; supersedes the uninstalled native 1.4.3 candidate.",
+  "display": {
+    "canvasPoints": [
+      20,
+      18
+    ],
+    "statusItem": "square",
+    "alongside": "relaxed curved eyes",
+    "desktop": "open eyes",
+    "paused": "pause bars",
+    "unreadableMode": "neutral waiting dots",
+    "autoBadge": false,
+    "temporaryBadge": false,
+    "secondaryModeGlyph": false,
+    "visibleSavedPolicyPill": false,
+    "headerMirrorsTray": true,
+    "autoManualTemporaryShareBehaviorFace": true,
+    "schedulingOrAuthorityChanged": false
+  },
+  "validation": {
+    "automatedTestsPassed": 75,
+    "nativeLightDarkPreviewsPassed": true,
+    "panelFixtures": 6,
+    "distinctExpressionsAndPolicyEquivalencePassed": true,
+    "pausePrecedencePassed": true,
+    "passiveIsolatedNativeServiceAndOverrideExpiryPassed": true,
+    "arm64BuildSignaturePassed": true,
+    "intelCrossBuildSignaturePassed": true,
+    "intelHardwareTested": false,
+    "newProductionInstallLiveTested": false,
+    "packagingAssertionsPassed": 45
+  },
+  "installation": {
+    "approvedAppPreserved": "1.4.2",
+    "candidateInstalled": false,
+    "frozenNativeSHA256": "09948879aee48af337870741408d25b3d07bec0d38b13e3cc352ecdac1007cb6",
+    "pendingMacOSConsentHandoffReused": true,
+    "chromeRestarted": false,
+    "extensionReloaded": false,
+    "watchRemainsPaused": true
+  }
+}

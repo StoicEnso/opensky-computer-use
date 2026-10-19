@@ -3,7 +3,7 @@ import SwiftUI
 import Combine
 
 final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
-    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let status = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let permissions = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var stopItem: NSMenuItem!

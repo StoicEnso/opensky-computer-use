@@ -35,7 +35,7 @@ try {
   }
   for(const appearance of ['light','dark']) {
     const png=readFileSync(path.join(output,`2026-10-19-opensky-mode-icons-${appearance}-Codex.png`));
-    const scale=png.readUInt32BE(16)/840;assert.ok([1,2,3].includes(scale));assert.equal(png.readUInt32BE(20),180*scale);
+    const scale=png.readUInt32BE(16)/450;assert.ok([1,2,3].includes(scale));assert.equal(png.readUInt32BE(20),180*scale);
   }
   assert.equal(existsSync(env.OPENSKY_HOME),false,'UI rendering must not initialize service credentials or runtime state.');
   console.log('Native UI checks passed: offscreen light/dark/tray rendering, exact fixture selection, stale-result recovery, search, clear-on-close, independent cache, template marks and no service startup.');
