@@ -3,7 +3,7 @@
 ## 1.7.0-rc.12 — 19 October 2026
 
 - Fix native UI 1.4.1 activity panel sizing: fit the hosting view before presentation and resize after client rows arrive or disappear. An offscreen image alone missed the zero initial popover size.
-- Add a regression check against the actual NSPopover/NSHostingController container for initial sizing and growth/shrinkage. Runtime counters are unchanged.
+- Add a regression check against the actual NSPopover/NSHostingController container for initial sizing and growth/shrinkage, and run native UI checks in the default test suite/CI. Runtime counters are unchanged.
 
 ## 1.7.0-rc.11 — 19 October 2026
 
