@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -11,6 +12,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     private let activity = AgentActivityModel()
     private let activityPanel = NSPopover()
     private var quickMenu: NSMenu!
+    private var activitySizeObserver: AnyCancellable?
 
     override init() {
         super.init()
@@ -50,6 +52,11 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
             about: { [weak self] in self?.activityPanel.performClose(nil); self?.about() },
             quit: { [weak self] in self?.quit() }))
         activityPanel.contentViewController = content
+        sizeAgentActivityPopover(activityPanel, content: content)
+        activitySizeObserver = activity.objectWillChange.debounce(for: .milliseconds(25), scheduler: RunLoop.main).sink { [weak self] _ in
+            guard let self, self.activityPanel.isShown, let content = self.activityPanel.contentViewController else { return }
+            sizeAgentActivityPopover(self.activityPanel, content: content)
+        }
         NotificationCenter.default.addObserver(self, selector: #selector(controlStateChanged), name: .openskyControlStateChanged, object: nil)
         refresh()
     }
@@ -82,6 +89,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
     func activityControl(action: String) -> [String: Any] {
         if action == "show", let button = item.button {
             refresh(); activity.start()
+            if let content = activityPanel.contentViewController { sizeAgentActivityPopover(activityPanel, content: content) }
             activityPanel.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         } else if action == "close" { activityPanel.performClose(nil); activity.stop() }
         return ["ok": true, "visible": activityPanel.isShown]

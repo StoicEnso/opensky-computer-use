@@ -1,6 +1,17 @@
 import AppKit
 import SwiftUI
 
+/// NSHostingController starts with a zero view/preferred size outside a window.
+/// Fit the actual content before presentation and after its client rows change.
+func sizeAgentActivityPopover(_ popover: NSPopover, content: NSViewController) {
+    content.view.layoutSubtreeIfNeeded()
+    let fitting = (content as? NSHostingController<AgentActivityView>)?.sizeThatFits(in: NSSize(width: 380, height: 1000)) ?? content.view.fittingSize
+    let size = NSSize(width: 380, height: ceil(fitting.height))
+    content.preferredContentSize = size
+    content.view.setFrameSize(size)
+    popover.contentSize = size
+}
+
 struct AgentActivityRecord: Decodable {
     struct Pending: Decodable { let id: String; let method: String; let started_at: Double }
     struct Bucket: Decodable { let minute: Double; let calls: Double }
@@ -192,7 +203,7 @@ struct AgentActivityView: View {
             }.controlSize(.regular).padding(.top, 13)
             Text("Local counters · no page content recorded").font(.system(size: 9)).foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity).padding(.top, 12)
-        }.padding(20).frame(width: 380).background(.regularMaterial)
+        }.padding(20).frame(width: 380).fixedSize(horizontal: false, vertical: true).background(.regularMaterial)
     }
     private func metric(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {

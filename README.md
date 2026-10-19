@@ -8,7 +8,7 @@ Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
 curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh | bash
 ```
 
-Installs the prebuilt cloud-tray app, a private Node runtime if needed, Claude Code and Claude Desktop if missing, then connects Claude and guides Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Existing Claude apps/settings and a matching OpenSky app are reused. This command currently installs the tested **1.7.0-rc.11 prerelease**.
+Installs the prebuilt cloud-tray app, a private Node runtime if needed, Claude Code and Claude Desktop if missing, then connects Claude and guides Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Existing Claude apps/settings and a matching OpenSky app are reused. This command currently installs the tested **1.7.0-rc.12 prerelease**.
 
 Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS event-synthesizing access if requested), sign in to Claude, and review/enable OpenSky’s Desktop extension. The guide reads back actual permissions; it never labels a pending review complete. A Mac password or Touch ID may be required **by System Settings**. OpenSky is currently ad-hoc signed, not Developer ID notarized; managed Macs/Gatekeeper policies may require owner review. The installer does not change those policies.
 
@@ -316,7 +316,7 @@ Your agent can use the same MCP, CLI or SDK tools continuously under a task such
 
 The agent supplies reasoning, scheduling and enforcement of task rules. OpenSky is the local control engine. A zero-spend instruction is not a payment lock enforced by this driver. Applicable system, developer, harness and tool rules retain their authority whether or not they mention OpenSky. Restrictions exclusive to a different tool are not automatically imported. macOS permissions, protected dialogs, authentication, stale-target checks and emergency pause remain effective. Auto adds no authority for unrelated work and does not resume stopped control.
 
-The 1.5–1.7 JavaScript/browser runtime works with the existing 1.3.0 native API; an existing installation does not need a native rebuild for browser workflows. Full builds now include the cloud companion icon and native UI build 1.4.0.
+The 1.5–1.7 JavaScript/browser runtime works with the existing 1.3.0 native API; an existing installation does not need a native rebuild for browser workflows. Full builds now include the cloud companion icon and native UI build 1.4.1.
 
 ### A little companion in your menu bar
 

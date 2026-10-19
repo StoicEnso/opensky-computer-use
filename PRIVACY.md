@@ -1,6 +1,6 @@
 # OpenSky data handling
 
-Updated 19 October 2026 for runtime 1.7.0-rc.11 / native API 1.3.0 and UI build 1.4.0.
+Updated 19 October 2026 for runtime 1.7.0-rc.12 / native API 1.3.0 and UI build 1.4.1.
 
 OpenSky is a local macOS control engine. There is no developer upload endpoint, outbound telemetry or OpenSky cloud relay. Native control uses authenticated loopback RPC; MCP communicates with the connected agent over standard input/output. Apple Vision OCR runs on the Mac. Optional local activity counters support the menu-bar activity view; they are not sent to OpenSky's developers.
 

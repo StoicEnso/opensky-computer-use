@@ -16,7 +16,7 @@ try {
   const invalid=spawnSync(binary,['--render-ui-preview'],{env,encoding:'utf8',timeout:5000});
   assert.equal(invalid.status,64,invalid.stderr);
   const run=spawnSync(binary,['--render-ui-preview',output],{env,encoding:'utf8',timeout:20000});
-  assert.equal(run.status,0,run.stderr||run.error?.message);
+  assert.equal(run.status,0,run.stderr||run.error?.message||`Native preview exited ${run.status}, signal ${run.signal}.`);
   assert.match(run.stdout,/stale-result recovery/);assert.match(run.stdout,/Window feedback checks passed/);
   assert.match(run.stdout,/Agent activity fixtures passed/);
   for(const name of ['working-light','working-dark','quiet-light','paused-dark']) {

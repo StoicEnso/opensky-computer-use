@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0-rc.12 — 19 October 2026
+
+- Fix native UI 1.4.1 activity panel sizing: fit the hosting view before presentation and resize after client rows arrive or disappear. An offscreen image alone missed the zero initial popover size.
+- Add a regression check against the actual NSPopover/NSHostingController container for initial sizing and growth/shrinkage. Runtime counters are unchanged.
+
 ## 1.7.0-rc.11 — 19 October 2026
 
 - Native UI 1.4.0: click or right-click the cloud for a light/dark activity panel with working/recent client rows, daily calls, average response timing, deferred/unsuccessful calls and a fifteen-minute graph. Option-click retains the command menu. Inspector and pause controls remain available.

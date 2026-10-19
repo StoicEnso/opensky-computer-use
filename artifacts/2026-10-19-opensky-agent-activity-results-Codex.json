@@ -1,8 +1,8 @@
 {
   "date": "2026-10-19",
-  "runtime": "1.7.0-rc.11",
+  "runtime": "1.7.0-rc.12",
   "nativeAPI": "1.3.0",
-  "stagedNativeUI": "1.4.0",
+  "stagedNativeUI": "1.4.1",
   "automatedTestsPassed": 73,
   "packagingAssertionsPassed": 45,
   "newActivityBackendTests": 8,
@@ -25,5 +25,7 @@
   "nativePanelForegroundDeferredAlongside": true,
   "ownerProfilePanelClickLiveVerified": false,
   "intelNativeCrossBuildPassed": true,
-  "intelHardwareTested": false
+  "intelHardwareTested": false,
+  "nativePopoverInitialGrowShrinkRegressionPassed": true,
+  "revised": "2026-10-19"
 }

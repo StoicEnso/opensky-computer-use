@@ -29,6 +29,24 @@ func renderAgentActivityPreview(to directory: URL, save: (NSView, String) throws
     try FileManager.default.createDirectory(at: temp.appendingPathComponent("agent-activity"), withIntermediateDirectories: true)
     try Data("{corrupt".utf8).write(to: temp.appendingPathComponent("agent-activity/11111111-1111-1111-1111-111111111111.json"))
     precondition(AgentActivitySnapshot.read(home: temp).clients.isEmpty)
+    // Check the actual NSPopover/NSHostingController container, not only NSView images.
+    // Hosting controllers initially have a zero frame; a native popover needs an explicit fit.
+    let sizingModel = AgentActivityModel(home: temp)
+    let content = NSHostingController(rootView: AgentActivityView(model: sizingModel))
+    let popover = NSPopover(); popover.contentViewController = content
+    sizeAgentActivityPopover(popover, content: content)
+    let quietSize = popover.contentSize
+    precondition(quietSize.width == 380 && quietSize.height > 350 && quietSize.height < 680)
+    sizingModel.snapshot = summary
+    RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+    sizeAgentActivityPopover(popover, content: content)
+    precondition(popover.contentSize.width == 380 && popover.contentSize.height > quietSize.height,
+                 "The actual native panel must grow when working client rows arrive")
+    sizingModel.snapshot = AgentActivitySnapshot()
+    RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+    sizeAgentActivityPopover(popover, content: content)
+    precondition(popover.contentSize == quietSize, "The panel must shrink back to its compact quiet state")
+    popover.contentViewController = nil
     for (name, appearance, snapshot, paused) in [
         ("working-light", NSAppearance.Name.aqua, summary, false),
         ("working-dark", .darkAqua, summary, false),
@@ -47,5 +65,5 @@ func renderAgentActivityPreview(to directory: URL, save: (NSView, String) throws
         try save(view, "2026-10-19-opensky-activity-\(name)-Codex.png")
         window.contentView = nil; model.stop()
     }
-    print("Agent activity fixtures passed: distinct clients, concurrent calls, exited/stale expiry, day rollover, corrupt record recovery and light/dark/quiet/paused native rendering.")
+    print("Agent activity fixtures passed: distinct clients, concurrent calls, exited/stale expiry, day rollover, corrupt record recovery, actual popover initial/grow/shrink sizing and light/dark/quiet/paused native rendering.")
 }
