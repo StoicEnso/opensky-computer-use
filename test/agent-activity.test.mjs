@@ -18,9 +18,9 @@ test('active clients are distinct sessions, not requests; latency and counters r
   const b=createActivityRecorder({home,now,pid:124,client:{name:'Claude Code',interface:'MCP'}});
   const a1=a.begin('native.click'),a2=a.begin('browser.fill'),b1=b.begin('browser.upload');
   assert.equal(read().working,2);assert.equal(read().clients[0].pending+read().clients[1].pending,3);
-  advance(250);a1({ok:true});a1({ok:true});a2({ok:false,error_code:'desktop_turn_required'});
+  advance(250);a1({ok:true});a1({ok:true});a2({ok:false,error_code:'fresh_target_required',deferred:true});
   assert.equal(read().working,1);assert.equal(read().recent,1);
-  advance(750);b1({ok:false,error_code:'browser_target_stale'});
+  advance(750);b1({ok:false,error_code:'cancelled'});
   const result=read();assert.equal(result.working,0);assert.equal(result.calls,3);assert.equal(result.deferred,1);assert.equal(result.failed,1);assert.equal(result.average_ms,500);
   assert.equal(result.buckets.reduce((sum,bin)=>sum+bin.calls,0),3);
   const stored=readdirSync(path.join(home,'agent-activity')).map(file=>JSON.parse(readFileSync(path.join(home,'agent-activity',file),'utf8')));

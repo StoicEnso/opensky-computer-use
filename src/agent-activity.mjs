@@ -6,7 +6,7 @@ import nodeProcess from 'node:process';
 
 const proc=globalThis.process??nodeProcess;
 const allowed=new Set(['native.list_apps','native.get_app_state','native.click','native.drag','native.scroll','native.set_value','native.type_text','native.press_key','native.paste','native.perform_secondary_action','native.select_text','native.manage_window','native.run_applescript','native.screenshot_screen','browser.tabs_list','browser.tab_open','browser.tab_claim','browser.tab_navigate','browser.tab_close','browser.tab_release','browser.snapshot','browser.frames','browser.click','browser.fill','browser.upload','browser.press_key','browser.select_option','browser.screenshot']);
-const deferred=new Set(['desktop_turn_required','stopped','cancelled']);
+const deferred=new Set(['desktop_turn_required','stopped']);
 const filePattern=/^[a-f0-9-]{36}\.json$/;
 const dayAt=ms=>{const d=new Date(ms);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 const living=pid=>{try{proc?.kill(pid,0);return !!proc;}catch(error){return error.code==='EPERM';}};
@@ -64,7 +64,7 @@ export function createActivityRecorder({home,pid=proc?.pid,now=Date.now,id=rando
         if(state.day!==day){state.day=day;state.calls=state.failed=state.deferred=state.duration_ms=0;}
         state.calls++;
         state.duration_ms+=Math.min(120000,Math.max(0,time-request.started_at));
-        const blocked=result?.ok===false&&deferred.has(result?.error_code);
+        const blocked=result?.ok===false&&(result.deferred===true||deferred.has(result?.error_code));
         if(blocked)state.deferred++;else if(result?.ok===false)state.failed++;
         const minute=Math.floor(time/60000)*60000;
         state.buckets=state.buckets.filter(bin=>bin.minute>=minute-14*60000);
