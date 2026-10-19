@@ -78,7 +78,7 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
 
     func menuWillOpen(_ menu: NSMenu) { refresh() }
     @objc private func toggleActivity() {
-        if NSEvent.modifierFlags.contains(.option), let button = item.button {
+        if (NSApp.currentEvent?.modifierFlags ?? NSEvent.modifierFlags).contains(.option), let button = item.button {
             activityPanel.performClose(nil)
             quickMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button)
             return
@@ -90,9 +90,24 @@ final class OpenSkyMenu: NSObject, NSMenuDelegate, NSPopoverDelegate {
         if action == "show", let button = item.button {
             refresh(); activity.start()
             if let content = activityPanel.contentViewController { sizeAgentActivityPopover(activityPanel, content: content) }
+            NSApp.activate(ignoringOtherApps: true)
             activityPanel.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            activityPanel.contentViewController?.view.window?.makeKey()
         } else if action == "close" { activityPanel.performClose(nil); activity.stop() }
-        return ["ok": true, "visible": activityPanel.isShown]
+        var result: [String: Any] = ["ok": true, "visible": activityPanel.isShown]
+        // Own UI geometry lets clients target this menu without guessing a
+        // position on multi-display desktops. No other app content is read.
+        func desktopFrame(_ rect: NSRect) -> [CGFloat] {
+            [rect.minX, CGDisplayBounds(CGMainDisplayID()).height - rect.maxY, rect.width, rect.height]
+        }
+        if let button = item.button, let window = button.window {
+            result["tray_frame"] = desktopFrame(window.convertToScreen(button.convert(button.bounds, to: nil)))
+        }
+        if activityPanel.isShown, let window = activityPanel.contentViewController?.view.window {
+            result["window_id"] = window.windowNumber
+            result["panel_frame"] = desktopFrame(window.frame)
+        }
+        return result
     }
     private func refresh() {
         let stopped = SafetyController.shared.isStopped

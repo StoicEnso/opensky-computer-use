@@ -1,5 +1,7 @@
 # OpenSky
 
+**Stop being your AI’s hands.** Your Mac. Your agents. Your rules.
+
 ## Install OpenSky + Claude
 
 Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
@@ -8,7 +10,7 @@ Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
 curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh | bash
 ```
 
-Installs the prebuilt cloud-tray app, a private Node runtime if needed, Claude Code and Claude Desktop if missing, then connects Claude and guides Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Existing Claude apps/settings and a matching OpenSky app are reused. This command currently installs the tested **1.7.0-rc.12 prerelease**.
+Installs the prebuilt cloud-tray app, a private Node runtime if needed, Claude Code and Claude Desktop if missing, then connects Claude and guides Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Existing Claude apps/settings and a matching OpenSky app are reused. This command currently installs the tested **1.7.0-rc.13 prerelease**.
 
 Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS event-synthesizing access if requested), sign in to Claude, and review/enable OpenSky’s Desktop extension. The guide reads back actual permissions; it never labels a pending review complete. A Mac password or Touch ID may be required **by System Settings**. OpenSky is currently ad-hoc signed, not Developer ID notarized; managed Macs/Gatekeeper policies may require owner review. The installer does not change those policies.
 
@@ -16,7 +18,7 @@ Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS ev
 
 ![OpenSky — Your agent. Your Mac.](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-cover-Codex.png)
 
-**Fast, local-first browser and desktop control for your Mac.** Give your agent native app controls, on-device OCR and a visible animated pointer through MCP, the command line or JavaScript. Open source, with no outbound telemetry or OpenSky cloud relay.
+**Put your Mac to work with the agents you choose.** OpenSky gives them native app controls, background Chrome tabs and file uploads—plus a little cloud in your menu bar that shows which clients are working. Connect through MCP, the command line or JavaScript. Open source, with no outbound telemetry or OpenSky cloud relay.
 
 [![macOS checks](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StoicEnso/opensky-computer-use/actions/workflows/ci.yml)
 [![Latest release](https://img.shields.io/github/v/release/StoicEnso/opensky-computer-use)](https://github.com/StoicEnso/opensky-computer-use/releases/latest)
@@ -328,6 +330,8 @@ The cloud replaces the old text label. It uses a macOS template image for light 
 
 “Working” means a live instrumented MCP/CLI/SDK client has a call in flight, including a call waiting for the engine. A shared MCP connection counts once, even if a harness uses it for several tasks. Thinking/waiting agents, old clients and raw native callers cannot be counted reliably. Reconnect existing MCP clients after updating; the activity view starts with new calls and does not infer historical work from chat logs. Quiet clients disappear from the recent list after a minute; stale requests expire after ninety seconds and exited clients do not remain active. An unsuccessful call is not proof the target app rejected all input; verify uncertain outcomes before retrying.
 
+Native UI 1.4.2 supports Escape and outside-click dismissal and reads the actual mouse-event modifier for Option-click. A settled native pause keeps fresh browser observations available; native Resume restores its browser pause while preserving a separate SDK/extension pause.
+
 Read the same local summary with `opensky agents --json`, MCP `agent_activity`, or SDK `computer_use.agent_activity()`. These reads do not start control, capture the desktop or increase the counters. Per-client `OPENSKY_ACTIVITY=0` disables recording. See [data handling](PRIVACY.md) for the exact retained fields.
 
 ![Ready and paused cloud marks in light and dark menu-bar fixtures](assets/2026-10-17-opensky-brand-Codex/2026-10-17-opensky-tray-preview-Codex.png)
@@ -443,6 +447,8 @@ Native build 1.3.9 adds standard Mac editing commands for Inspector fields. In t
 
 `npm run test:inspector -- --wait-for-idle --output /absolute/dated-private-results.json` is an opt-in real input check. It requires an already-running, permitted app and the owner's saved **auto** cooperation policy; it never selects desktop mode or resumes a pause. It creates a disposable native window, waits for at least 120 filtered external-input idle seconds, and rechecks before shared mouse/keyboard input. It covers search by label/value/identifier/role, case handling, empty results, clearing and row details. Mac activity can interrupt it; an interrupted result is not a passed test. Keep its output private because diagnostic state can include local runtime context.
 
+When the owner explicitly makes the desktop available now, replace `--wait-for-idle` with `--owner-desktop-turn`. This opt-in test uses a bounded 120-second override and restores the saved auto policy afterward. It never resumes an emergency pause. Use this flag only under direct owner instruction.
+
 On the 18 October test Mac, native UI **1.3.9** passed the complete physical Inspector workflow after a normal independent app launch: exact fixture selection, Inspect Window, replacing successive queries, case-insensitive labels, Unicode values, identifiers, roles, no matches, clearing and row details. The test waited for 300 filtered external-input idle seconds and rechecked before shared input. It restored the prior foreground app, left the clipboard unused and preserved the native process, permissions, stop state, auto policy and Chrome broker. The run used a disposable third-party native fixture; application support still varies. See [the installed results](artifacts/2026-10-18-opensky-inspector-search-results-Codex.json).
 
 The real tests found two defects beyond the earlier offscreen checks: own AX reads could create AppKit rows on a worker thread, and the accessory app lacked an Edit menu so Command+A did not replace a query. Own reads now run on the main thread, and native windows have standard responder-chain editing shortcuts. The frozen app was independently verified with Accessibility, Screen Recording and event-synthesizing access after normal settings controls through the already-authorized OpenSky helper. Inherited temporary access was tested separately and was not treated as independent consent. **51 automated tests and 45 packaging assertions**, offscreen editing checks and three isolated reopen/frame-readiness cycles also passed.
@@ -456,6 +462,8 @@ Native UI 1.3.6 observes the tagged Quartz stream directly through a read-only t
 `npm run test:activity-recovery` is an opt-in check using the production tracker with a disposable runtime and an already-approved host. It retires only its own listen-only tap and verifies recreation with a fresh idle interval. It posts no input, requests no permission and does not change the installed service. The earlier tracker source fails the same deliberately retired-port case.
 
 ## Tested scope
+
+The 19 October tray follow-up passes **75 automated tests and 45 packaging assertions**. In the existing Chrome profile, installed native 1.4.1 showed two real MCP clients, grew and shrank with their rows, blocked paused browser input and completed physical Inspector searches/filters. Native 1.4.2 additionally passed real Escape, outside click, Option-menu and physical Pause/Resume tests through an independent approved OpenSky driver controlling a disposable app identity. The browser pause/resume fix passed real existing-profile fixture actions without a Chrome restart or extension reload. The final installed 1.4.2 permission refresh is recorded separately from those tests. [Exact validation scope](artifacts/2026-10-19-opensky-agent-activity-results-Codex.json).
 
 The Claude integration follow-up passed **56 automated tests and 45 packaging assertions**, official MCPB manifest/icon validation, a real adapter handshake exposing 33 tools, and native installation/enabling in Claude Desktop. The actual `./install.sh --claude` and installed `opensky connect claude` paths passed with existing registrations reused and the app binary/process, all permissions, stop state, cooperation policy, Chrome connection and other Claude settings preserved. Public portable and locally preconfigured manifests have schema/fixture checks; a brand-new Mac installation has not been tested. See [the Claude integration results](artifacts/2026-10-18-opensky-claude-integration-results-Codex.json).
 

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
+import http from 'node:http';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -46,6 +47,38 @@ test('browser bridge authenticates, rejects origins, isolates profiles and does 
   const badUpload=await rpc('upload',{profile_id:'profile-b',files:['relative-file.txt']});assert.equal(badUpload.ok,false);assert.equal(b.requests.length,0);
   await fetch(settings.url+'/pause',{method:'POST',headers,body:JSON.stringify({paused:true})});
   assert.equal((await rpc('click',{profile_id:'profile-b'})).error_code,'stopped');assert.equal(b.requests.length,0);
+});
+
+
+test('native tray pause cancels once, preserves fresh reads, and resumes only its own browser pause',async t=>{
+  const home=await fs.mkdtemp(path.join(os.tmpdir(),'opensky-native-pause-test-'));
+  const freePort=()=>new Promise(resolve=>{const s=net.createServer();s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(()=>resolve(p));});});
+  let stopped=false,unavailable=false;
+  const native=http.createServer((req,res)=>{if(unavailable){res.statusCode=503;res.end('{}');return;}res.end(JSON.stringify({service:'OpenSky Computer Use Daemon',stopped}));});
+  await new Promise(r=>native.listen(0,'127.0.0.1',r));
+  const settings=browserSettings({OPENSKY_HOME:home,OPENSKY_BROWSER_PORT:String(await freePort()),OPENSKY_PORT:String(native.address().port),OPENSKY_BROWSER_SOCKET:path.join(home,'bridge.sock')});
+  const bridge=await startBrowserBridge(settings),token=browserToken(settings),headers={Authorization:`Bearer ${token}`,'Content-Type':'application/json'};
+  const socket=net.connect(settings.socket);await once(socket,'connect');const messages=[];
+  socket.on('data',jsonLineReader(m=>{messages.push(m);if(m.type==='request'&&m.method==='snapshot')setTimeout(()=>{if(!socket.destroyed)socket.write(JSON.stringify({type:'result',id:m.id,result:{ok:true}})+'\n');},550);}));
+  socket.write(JSON.stringify({type:'hello',token,profile_id:'fixture',version:'test'})+'\n');
+  t.after(async()=>{socket.destroy();await bridge.close();await new Promise(r=>native.close(r));await fs.rm(home,{recursive:true,force:true});});
+  const rpc=method=>fetch(settings.url+'/rpc',{method:'POST',headers,body:JSON.stringify({method,params:{profile_id:'fixture'}})}).then(r=>r.json());
+  const wait=async fn=>{for(let n=0;n<200;n++){if(fn())return;await new Promise(r=>setTimeout(r,10));}assert.fail('Native pause fixture timed out');};
+  await wait(()=>messages.some(m=>m.type==='ready'));
+  const input=rpc('click');await wait(()=>messages.some(m=>m.type==='request'&&m.method==='click'));
+  stopped=true;assert.equal((await input).error_code,'cancelled');
+  const cancellations=messages.filter(m=>m.type==='cancel').length;
+  assert.equal((await rpc('click')).error_code,'stopped');
+  assert.equal((await rpc('snapshot')).ok,true,'Settled native pause must permit fresh read-only requests across polling intervals.');
+  assert.equal(messages.filter(m=>m.type==='cancel').length,cancellations,'A settled pause must not repeatedly cancel requests.');
+  unavailable=true;await new Promise(r=>setTimeout(r,450));assert.equal(messages.some(m=>m.type==='resume'),false,'An unavailable native status must never resume a native pause.');unavailable=false;
+  stopped=false;await wait(()=>messages.some(m=>m.type==='resume'));assert.equal(bridge.status().connected,true);
+  const resumes=messages.filter(m=>m.type==='resume').length;
+  stopped=true;assert.equal((await rpc('click')).error_code,'stopped');
+  await fetch(settings.url+'/pause',{method:'POST',headers,body:JSON.stringify({paused:true})});
+  stopped=false;await new Promise(r=>setTimeout(r,450));
+  assert.equal(bridge.status().paused,true,'Native resume must preserve a separate SDK or extension pause.');
+  assert.equal(messages.filter(m=>m.type==='resume').length,resumes);
 });
 
 function chromeFixture(){

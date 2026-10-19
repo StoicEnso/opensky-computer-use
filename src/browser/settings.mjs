@@ -27,9 +27,11 @@ export function writeBrowserPaused(settings,paused) {
   fs.mkdirSync(settings.home,{recursive:true,mode:0o700});
   fs.writeFileSync(settings.pausePath,JSON.stringify({paused,updated_at:new Date().toISOString()})+'\n',{mode:0o600});
 }
-export async function nativeStopped(settings) {
-  const token=browserToken(settings);if(!token)return false;
-  try{const response=await fetch(`http://127.0.0.1:${settings.nativePort}/status`,{headers:{Authorization:`Bearer ${token}`},signal:AbortSignal.timeout(700)});const value=await response.json();return response.ok&&value.service==='OpenSky Computer Use Daemon'&&value.stopped===true;}catch{return false;}
+// null means unavailable, never an observed resume transition.
+export async function nativeStopState(settings) {
+  const token=browserToken(settings);if(!token)return null;
+  try{const response=await fetch(`http://127.0.0.1:${settings.nativePort}/status`,{headers:{Authorization:`Bearer ${token}`},signal:AbortSignal.timeout(700)});const value=await response.json();return response.ok&&value.service==='OpenSky Computer Use Daemon'&&typeof value.stopped==='boolean'?value.stopped:null;}catch{return null;}
 }
+export async function nativeStopped(settings) {return (await nativeStopState(settings))===true;}
 export const browserReads=new Set(['status','tabs_list','snapshot','frames','screenshot']);
 export const browserMethods=new Set([...browserReads,'tab_open','tab_claim','tab_navigate','tab_close','tab_release','click','fill','upload','press_key','select_option']);

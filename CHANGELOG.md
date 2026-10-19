@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.0-rc.13 — 19 October 2026
+
+- Fix the browser bridge repeatedly cancelling fresh observations during native tray pause. Cancel existing requests once per native pause transition; retain the stop gate on mutations.
+- Propagate a verified native resume to the browser worker while preserving a separate SDK/extension pause. A missing native status never counts as a resume.
+- Native UI 1.4.2 gives the activity panel keyboard focus, fixes Escape/outside-click dismissal and reads the actual click-event modifier for the Option menu. Expose own tray/panel geometry for precise multi-display targeting. Runtime-only installation still preserves a compatible approved native app.
+- Validate the installed native panel with two real MCP clients, real panel growth/shrinkage, pause and background Chrome actions. Add an explicit bounded desktop-turn option to the opt-in live Inspector test.
+- Sharpen the GitHub introduction around “Stop being your AI’s hands” and add founder/operator positioning and launch copy with evidence-bounded product claims.
+
 ## 1.7.0-rc.12 — 19 October 2026
 
 - Fix native UI 1.4.1 activity panel sizing: fit the hosting view before presentation and resize after client rows arrive or disappear. An offscreen image alone missed the zero initial popover size.

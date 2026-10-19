@@ -4,14 +4,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID,timingSafeEqual} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {browserSettings,browserToken,browserPaused,writeBrowserPaused,nativeStopped,BROWSER_SERVICE,BROWSER_PROTOCOL,browserReads,browserMethods} from './settings.mjs';
+import {browserSettings,browserToken,browserPaused,writeBrowserPaused,nativeStopped,nativeStopState,BROWSER_SERVICE,BROWSER_PROTOCOL,browserReads,browserMethods} from './settings.mjs';
 import {jsonLineReader} from './framing.mjs';
 
 export async function startBrowserBridge(settings=browserSettings()) {
-  const token=browserToken(settings,true),connections=new Map(),pending=new Map();let generation=0,closeBridge;
+  const token=browserToken(settings,true),connections=new Map(),pending=new Map();let generation=0,closeBridge,nativePaused=false;
   const authorized=value=>typeof value==='string'&&Buffer.byteLength(value)===Buffer.byteLength(token)&&timingSafeEqual(Buffer.from(value),Buffer.from(token));
   const send=(socket,value)=>{if(!socket.destroyed)socket.write(JSON.stringify(value)+'\n');};
   const cancel=reason=>{generation++;for(const c of connections.values())send(c.socket,{type:'cancel',generation});for(const [id,p]of pending){clearTimeout(p.timer);p.resolve({ok:false,error_code:'cancelled',error:reason,outcome:'Inspect any input already delivered before retrying.'});pending.delete(id);}};
+  // Native tray pause and SDK/extension pause are independent. Cancel once on
+  // a native transition, keep fresh observations available, and restore only a
+  // native-triggered bridge pause after an explicit native resume.
+  const synchronizeNativePause=async()=>{
+    const stopped=await nativeStopState(settings);
+    if(stopped===null)return nativePaused;
+    if(stopped&&!nativePaused){nativePaused=true;cancel('Native emergency pause interrupted browser requests.');}
+    else if(!stopped&&nativePaused){nativePaused=false;if(!browserPaused(settings))for(const c of connections.values())send(c.socket,{type:'resume',generation});}
+    return stopped;
+  };
   const peers=net.createServer(socket=>{
     let connectionId;
     const authTimer=setTimeout(()=>socket.destroy(),2000);
@@ -43,7 +53,7 @@ export async function startBrowserBridge(settings=browserSettings()) {
       const {method,params={}}=await body(req);
       if(!browserMethods.has(method)||!params||typeof params!=='object'||Array.isArray(params))return reply(400,{ok:false,error_code:'invalid_browser_request',error:'Unknown browser method or invalid parameters.'});
       if(Buffer.byteLength(JSON.stringify({method,params}))>900000)throw new Error('Browser command exceeds the native-messaging command limit.');
-      if(!browserReads.has(method)&&(browserPaused(settings)||await nativeStopped(settings)))return reply(409,{ok:false,error_code:'stopped',error:'OpenSky control is paused; resume explicitly.'});
+      if(!browserReads.has(method)&&(browserPaused(settings)||await synchronizeNativePause()))return reply(409,{ok:false,error_code:'stopped',error:'OpenSky control is paused; resume explicitly.'});
       if(method==='upload'){
         if(!Array.isArray(params.files)||!params.files.length||params.files.length>20)throw new Error('Provide 1–20 absolute file paths.');
         for(const file of params.files)if(typeof file!=='string'||!path.isAbsolute(file)||!fs.statSync(file).isFile())throw new Error('Upload paths must identify existing regular files.');
@@ -58,7 +68,7 @@ export async function startBrowserBridge(settings=browserSettings()) {
   });
   try{await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(settings.port,'127.0.0.1',resolve);});}catch(e){peers.close();fs.rmSync(settings.socket,{force:true});throw e;}
   let checking=false;
-  const pausePoll=setInterval(async()=>{if(checking||!pending.size)return;checking=true;try{if(await nativeStopped(settings))cancel('Native emergency pause interrupted browser requests.');}finally{checking=false;}},200);pausePoll.unref();
+  const pausePoll=setInterval(async()=>{if(checking||(!pending.size&&!nativePaused))return;checking=true;try{await synchronizeNativePause();}finally{checking=false;}},200);pausePoll.unref();
   closeBridge=async()=>{clearInterval(pausePoll);cancel('Bridge closed.');for(const c of connections.values()){c.socket.end();const timer=setTimeout(()=>c.socket.destroy(),500);timer.unref();}await Promise.all([new Promise(r=>server.close(r)),new Promise(r=>peers.close(r))]);fs.rmSync(settings.socket,{force:true});};
   return {status,server,peers,close:closeBridge};
 }
