@@ -29,7 +29,11 @@
     "physicalModePanelTest": "Passed in a disposable distinct native app through approved installed OpenSky; exact-window macOS/Vision capture used on the secondary display.",
     "physicalRightClickEscapePauseResumeInspectorPassed": true,
     "foregroundAppRestored": true,
-    "multiDisplayFixturePassed": true
+    "multiDisplayFixturePassed": true,
+    "downloadedReleasePayloadChecksumsPassed": 6,
+    "isolatedReleaseBootstrapWithoutCompilerPassed": true,
+    "exactCommitRemoteCI": "queued at publication; not reported as passed",
+    "remoteCIURL": "https://github.com/StoicEnso/opensky-computer-use/actions/runs/39278974117"
   },
   "installation": {
     "newNativeInstalled": false,
@@ -40,12 +44,16 @@
     "browserConnectionPreserved": true,
     "chromeRestarted": false,
     "extensionReloaded": false,
-    "macOSConsentBypassed": false
+    "macOSConsentBypassed": false,
+    "frozenNewNativeSHA256": "f07e8b11f5c18b09391a59d4bc9a9772eea9beef6b7ed4d0099d21e82f57bd0b",
+    "ownerAvailabilityQuestionPending": true
   },
   "scope": "Panel previews use labelled disposable sample clients. The isolated app has a distinct bundle identity. These results do not establish universal background app support or an agent orchestrator.",
   "watchRemainsPaused": true,
   "limitations": [
     "Screen-wide OpenSky capture currently targets the primary display; exact-window fixture instrumentation verified the secondary-display panel.",
     "The new production app still needs installation and actual macOS permission readback; disposable identity permission results do not establish production consent."
-  ]
+  ],
+  "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.14",
+  "sourceCommit": "17b075b912582272539459f5c0683898b677715c"
 }

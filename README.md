@@ -16,7 +16,14 @@ curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main
 
 One command installs OpenSky, sets up Claude Code and Claude Desktop if needed, and guides the one-time Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Already have Claude? Your apps and settings are reused. Currently installs the tested **1.7.0-rc.14 prerelease**.
 
+Stay at your Mac for the one-time permissions, Claude sign-in and connection review.
+
+<details>
+<summary>What setup asks you to approve</summary>
+
 Stay at your Mac once: approve Accessibility and Screen Recording (plus macOS event-synthesizing access if requested), sign in to Claude, and review/enable OpenSky’s Desktop extension. The guide reads back actual permissions; it never labels a pending review complete. A Mac password or Touch ID may be required **by System Settings**. OpenSky is currently ad-hoc signed, not Developer ID notarized; managed Macs/Gatekeeper policies may require owner review. The installer does not change those policies.
+
+</details>
 
 [Read the installer](bootstrap.sh) · [Options and resume](#one-command-options) · [Source build](#install-from-source)
 
