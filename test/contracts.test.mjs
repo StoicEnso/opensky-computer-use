@@ -73,7 +73,10 @@ test('native control transport and real MCP client interoperability', { skip: !a
     await new Promise(resolve => setTimeout(resolve, 100));
     await rpc('stop');await rpc('resume');
     assert.equal((await running).error_code, 'cancelled');
-    for (const result of await Promise.all(queued)) assert.equal(result.error_code, 'cancelled');
+    // The concurrent HTTP transport may admit a request after stop. That
+    // request must be rejected as stopped; admitted generations are cancelled.
+    // Neither result permits old input to execute after resume.
+    for (const result of await Promise.all(queued)) assert.ok(['cancelled','stopped'].includes(result.error_code), JSON.stringify(result));
     assert.equal((await rpc('cursor_move', { point: [60, 60] })).ok, true);
     await rpc('cursor_dismiss');
   });
