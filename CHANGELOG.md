@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0 — 24 October 2026
+
+- Promote the tested cooperation update to stable with the exact frozen native 1.4.5 binaries; no new native build or signature change from rc.16.
+- Auto yields running and queued desktop actions when the owner returns, retains supported background work and notifies connected MCP clients on both mode transitions. Availability does not replay partial input or resume emergency pause.
+- Include the verified stop-contract timing correction. Standard MCP log notifications may not wake every host; bounded waits, action-result cooperation and SDK/CLI subscriptions remain available.
+
 ## 1.7.0-rc.16 — 24 October 2026
 
 - Native 1.4.5 interrupts running and queued shared-input work when auto detects owner activity, even within the same app. Background AX and browser work remain available. Explicit bounded overrides remain effective until expiry. Partial input is never replayed and availability never resumes emergency pause.

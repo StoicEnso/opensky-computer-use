@@ -1,6 +1,6 @@
 # OpenSky data handling
 
-Updated 24 October 2026 for runtime 1.7.0-rc.16 / native API 1.3.0 and UI build 1.4.5.
+Updated 24 October 2026 for runtime 1.7.0 / native API 1.3.0 and UI build 1.4.5.
 
 Cooperation notifications contain mode, availability, reason and scheduling guidance only. They do not contain input contents, page data or target names. Connected MCP clients may display or retain these notifications under their own settings.
 

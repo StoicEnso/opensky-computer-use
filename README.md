@@ -14,7 +14,7 @@ Paste this into Terminal on **macOS 14+** (Apple silicon or Intel):
 curl -fsSL https://raw.githubusercontent.com/StoicEnso/opensky-computer-use/main/bootstrap.sh | bash
 ```
 
-One command installs OpenSky, sets up Claude Code and Claude Desktop if needed, and guides the one-time Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Already have Claude? Your apps and settings are reused. Currently installs the tested **1.7.0-rc.16 prerelease**.
+One command installs OpenSky, sets up Claude Code and Claude Desktop if needed, and guides the one-time Mac permissions. **No Homebrew, Git, Xcode or sudo needed.** Already have Claude? Your apps and settings are reused. Currently installs the tested **1.7.0 stable release**.
 
 Stay at your Mac for the one-time permissions, Claude sign-in and connection review.
 

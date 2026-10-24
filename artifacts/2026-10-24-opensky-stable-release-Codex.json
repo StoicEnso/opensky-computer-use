@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-24",
+  "release": "1.7.0",
+  "native_build": "1.4.5",
+  "native_api": "1.3.0",
+  "native_binaries_unchanged_from_rc16": true,
+  "native_arm64_sha256": "7d95b6fe860266ca6337965a47a14df454ec169581e6ac1750fbd0b60427997f",
+  "native_x64_sha256": "25941d8c6fd74efa1d3f1cc8f7d86e5b32c65d4b7aebbd960ed2cfa9730a5684",
+  "validation": {
+    "automated_tests": 80,
+    "packaging_assertions": 45,
+    "native_interruption_and_queue_tests": "passed in isolated real native script/HTTP fixtures",
+    "mode_notifications": "two generic MCP clients received both transitions during pending work",
+    "source_ci_before_stable_promotion": "passed at 0ace070 and 4b300ed",
+    "installed_chrome": {
+      "runtime": "1.7.0",
+      "native_build": "1.4.5",
+      "background_field": true,
+      "trusted_click": true,
+      "upload_bytes_received_once": true,
+      "owner_tab_ids_preserved": true,
+      "selected_tabs_preserved": true,
+      "frontmost_unchanged": true,
+      "broker_pid_preserved": true,
+      "browser_connected": true,
+      "disposable_tabs_closed": true
+    },
+    "intel": "cross-built only; no hardware run"
+  },
+  "installed": {
+    "runtime": "1.7.0",
+    "native_build": "1.4.5",
+    "running_binary_path_verified": true,
+    "installed_native_hash_matches_frozen": true,
+    "cooperation_interlock_available": true,
+    "native_accessibility_screen_recording_and_event_posting": "awaiting owner macOS consent refresh",
+    "native_owner_activity_interruption_live_verified": false,
+    "chrome_connected": true,
+    "previous_browser_broker_pid_preserved": true,
+    "saved_auto_policy_preserved": true
+  },
+  "limitations": [
+    "Already-delivered input, AX calls and app-side effects cannot be undone. Yield occurs at the next input check.",
+    "MCP logging does not guarantee host agents wake; wait_for_mode and action-result state cover hosts that do not surface logs.",
+    "Old MCP clients require reconnecting; native 1.4.5 is required for in-flight yielding.",
+    "Explicit bounded desktop overrides remain effective until expiry."
+  ]
+}
