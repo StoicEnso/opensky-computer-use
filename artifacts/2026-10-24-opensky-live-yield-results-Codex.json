@@ -40,7 +40,8 @@
   "native_installation": {
     "state": "tested frozen candidate staged; current permitted 1.4.4 helper preserved",
     "inflight_yield_live_verified_on_owner_mac": false,
-    "reason": "new native app signature requires a coordinated macOS consent refresh; do not claim staged behavior is installed"
+    "reason": "new native app signature requires a coordinated macOS consent refresh; do not claim staged behavior is installed",
+    "approved_rollback_hash_verified": true
   },
   "limitations": [
     "Already-delivered input, AX calls and app-side effects cannot be undone. Yield occurs at the next input check.",
@@ -49,5 +50,23 @@
     "Explicit bounded desktop overrides remain effective until expiry."
   ],
   "native_arm64_sha256": "7d95b6fe860266ca6337965a47a14df454ec169581e6ac1750fbd0b60427997f",
-  "native_x64_sha256": "25941d8c6fd74efa1d3f1cc8f7d86e5b32c65d4b7aebbd960ed2cfa9730a5684"
+  "native_x64_sha256": "25941d8c6fd74efa1d3f1cc8f7d86e5b32c65d4b7aebbd960ed2cfa9730a5684",
+  "publication": {
+    "source_commit": "cb182ac8300167c30a65f3ad3b9292e6b22006d1",
+    "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0-rc.16",
+    "exact_release_ci_passed": [
+      "https://github.com/StoicEnso/opensky-computer-use/actions/runs/40096142845",
+      "https://github.com/StoicEnso/opensky-computer-use/actions/runs/40096071105"
+    ],
+    "test_followup_commit": "4b300ed79b4b2fb46a67fcb7ee7f69d2aa2754f7",
+    "test_followup": "An older stop test assumed all concurrent HTTP requests arrived before pause. It now accepts stopped for arrivals during pause and cancelled for already-admitted work; both reject input. No native/runtime feature code changed."
+  },
+  "released_installer": {
+    "downloaded_archive_checksums": true,
+    "released_bootstrap_isolated_install": true,
+    "native_hash_matches_frozen": true,
+    "compiler_unavailable": true,
+    "app_not_launched": true,
+    "claude_setup_not_repeated": true
+  }
 }
