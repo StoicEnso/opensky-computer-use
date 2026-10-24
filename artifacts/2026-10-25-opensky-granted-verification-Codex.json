@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-25",
+  "runtime": "1.7.0",
+  "native_build": "1.4.5",
+  "running_correct_installed_app": true,
+  "permissions_verified": {
+    "accessibility": true,
+    "screen_recording": true,
+    "event_posting": true
+  },
+  "native_interlock_available": true,
+  "background_mac_checks": {
+    "at": "2026-10-24T23:41:43.004Z",
+    "native_build": "1.4.5",
+    "runtime": "1.7.0",
+    "permissions": {
+      "accessibility": true,
+      "screen_recording": true,
+      "event_posting": true
+    },
+    "cooperation_interlock": true,
+    "background_unicode_write_read": true,
+    "fixture_value_restored": true,
+    "exact_fixture_window_capture": true,
+    "fixture_ocr_elements": 6,
+    "raw_native_owner_active_request_deferred_before_input": true,
+    "foreground_unchanged": true,
+    "native_pid_preserved": true,
+    "native_stop_preserved": true,
+    "browser_broker_preserved": true,
+    "chrome_connected": true,
+    "browser_pause_preserved": true,
+    "saved_mode_preserved": true,
+    "frozen_native_hash_matches": true,
+    "owner_input_sent": false,
+    "shared_clipboard_written": false,
+    "app_rebuilt_or_restarted": false
+  },
+  "inspector_checks": {
+    "native_build": "1.4.5",
+    "live_background_inspector_unicode_search": true,
+    "search_restored": true,
+    "frontmost_unchanged": true,
+    "inspector_closed": true
+  },
+  "chrome_checks": {
+    "runtime": "1.7.0",
+    "native_build": "1.4.5",
+    "background_field": true,
+    "trusted_click": true,
+    "upload_bytes_received_once": true,
+    "owner_tab_ids_preserved": true,
+    "selected_tabs_preserved": true,
+    "frontmost_unchanged": true,
+    "broker_pid_preserved": true,
+    "browser_connected": true,
+    "disposable_tabs_closed": true
+  },
+  "natural_cooperation_check": {
+    "at": "2026-10-24T23:42:54.481Z",
+    "no_desktop_or_clipboard_input": true,
+    "no_mode_changes": true,
+    "no_synthetic_owner_activity": true,
+    "initial_effective_mode": "alongside",
+    "events": [
+      {
+        "type": "opensky.cooperation",
+        "event": "mode_state",
+        "sequence": 1,
+        "at": "2026-10-24T23:42:54.525Z",
+        "interaction_mode": "auto",
+        "effective_mode": "alongside",
+        "desktop_available": false,
+        "reason": "owner_active",
+        "next_step": "Yield shared keyboard, pointer, clipboard and foreground work. Continue supported exact-window background AX or browser work, or wait for desktop availability. Preserve the checkpoint; no repeated permission question is needed."
+      },
+      {
+        "type": "opensky.cooperation",
+        "event": "alongside",
+        "sequence": 2,
+        "at": "2026-10-24T23:43:16.374Z",
+        "interaction_mode": "auto",
+        "effective_mode": "alongside",
+        "desktop_available": false,
+        "reason": "activity_unavailable",
+        "next_step": "Yield shared keyboard, pointer, clipboard and foreground work. Continue supported exact-window background AX or browser work, or wait for desktop availability. Preserve the checkpoint; no repeated permission question is needed."
+      },
+      {
+        "type": "opensky.cooperation",
+        "event": "alongside",
+        "sequence": 3,
+        "at": "2026-10-24T23:43:16.626Z",
+        "interaction_mode": "auto",
+        "effective_mode": "alongside",
+        "desktop_available": false,
+        "reason": "owner_active",
+        "next_step": "Yield shared keyboard, pointer, clipboard and foreground work. Continue supported exact-window background AX or browser work, or wait for desktop availability. Preserve the checkpoint; no repeated permission question is needed."
+      },
+      {
+        "type": "opensky.cooperation",
+        "event": "alongside",
+        "sequence": 4,
+        "at": "2026-10-24T23:45:22.374Z",
+        "interaction_mode": "auto",
+        "effective_mode": "alongside",
+        "desktop_available": false,
+        "reason": "activity_unavailable",
+        "next_step": "Yield shared keyboard, pointer, clipboard and foreground work. Continue supported exact-window background AX or browser work, or wait for desktop availability. Preserve the checkpoint; no repeated permission question is needed."
+      },
+      {
+        "type": "opensky.cooperation",
+        "event": "alongside",
+        "sequence": 5,
+        "at": "2026-10-24T23:45:22.625Z",
+        "interaction_mode": "auto",
+        "effective_mode": "alongside",
+        "desktop_available": false,
+        "reason": "owner_active",
+        "next_step": "Yield shared keyboard, pointer, clipboard and foreground work. Continue supported exact-window background AX or browser work, or wait for desktop availability. Preserve the checkpoint; no repeated permission question is needed."
+      }
+    ],
+    "attempts": [],
+    "native_mid_action_owner_return_verified": false,
+    "desktop_availability_observed": false,
+    "alongside_observed": true,
+    "explanation": "The owner remained active; auto correctly stayed alongside and no desktop request was started.",
+    "native_pid_preserved": true,
+    "native_stop_preserved": true,
+    "broker_pid_preserved": true,
+    "chrome_connected": true,
+    "browser_pause_preserved": true,
+    "observation_note": "Two brief activity-unavailable samples stayed Alongside and recovered on the next observed sample. No desktop permission was inferred. Root cause was not established and no installed code was changed."
+  },
+  "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0",
+  "app_rebuilt_re_signed_or_restarted_after_owner_consent": false,
+  "new_permissions_requested": false,
+  "old_reliability_watch": "paused",
+  "scope": "Disposable fixtures and passive real activity observations. No provider submissions, owner document edits, shared clipboard writes, synthetic owner input or foreground test input."
+}
