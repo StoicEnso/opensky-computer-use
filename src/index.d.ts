@@ -433,6 +433,7 @@ export interface OpenSkyComputerUse {
   browser_select_option(params: BrowserTargetParams & {value:string}): Promise<BrowserResult>;
   browser_screenshot(params: BrowserParams): Promise<BrowserResult>;
   /** Persistent cooperation preference shared by current-runtime clients. No engine launch. */
+  wait_for_mode(params?:{effective_mode?:'desktop'|'alongside';timeout_ms?:number}):Promise<CooperationState & {ok:true;matched:boolean}>;
   interaction_mode(params?: {mode?: InteractionMode; duration_seconds?: number}): Promise<InteractionModeResult>;
   /** Passive filtered external-input idle metadata. No key contents, mouse coordinates or native startup. */
   user_activity(): Promise<UserActivityResult>;
@@ -519,3 +520,9 @@ export interface OpenSkyComputerUse {
 
 export declare const computer_use: OpenSkyComputerUse;
 export default computer_use;
+
+/** Content-free mode transitions; does not retry input or resume a stopped service. */
+export interface CooperationState {interaction_mode: InteractionMode|'unavailable'; effective_mode:'desktop'|'alongside'; desktop_available:boolean; reason:string; next_step:string;}
+export interface CooperationEvent extends CooperationState {type:'opensky.cooperation';event:'mode_state'|'desktop_available'|'alongside';sequence:number;at:string;}
+export declare function watchInteractionMode(listener:(event:CooperationEvent)=>void,options?:{intervalMs?:number;initial?:boolean;keepAlive?:boolean}):()=>void;
+export declare function waitForInteractionMode(options?:{effective_mode?:'desktop'|'alongside';timeout_ms?:number;signal?:AbortSignal}):Promise<CooperationState & {ok:true;matched:boolean}>;

@@ -10,6 +10,7 @@ import { NATIVE_API_VERSION,ownAXUpgradeRequired } from "./native-version.mjs";
 import { performChromeTabs } from "./chrome.mjs";
 import { readInteractionMode, writeInteractionMode, prepareInteraction } from "./interaction-mode.mjs";
 import { browserRequest, setBrowserPaused } from "./browser/client.mjs";
+import {watchInteractionMode as watchMode,waitForInteractionMode as waitMode} from './mode-events.mjs';
 import {readUserActivity} from './user-activity.mjs';
 import {trackAgentOperation,readAgentActivity} from './agent-activity.mjs';
 export { OpenSkyError, matchElements } from "./session.mjs";
@@ -157,7 +158,11 @@ async function callDaemonOperation(method, params = {}, { autoStart = true } = {
  * OpenSky computer-use SDK using public macOS APIs.
  * Can be imported directly in Node.js, Codex REPL, Claude scripts, or Antigravity tools.
  */
+export function watchInteractionMode(listener,options={}) { return watchMode(listener,{home:OPENSKY_HOME,...options}); }
+export function waitForInteractionMode(options={}) { return waitMode({home:OPENSKY_HOME,...options}); }
+
 export const computer_use = {
+  async wait_for_mode(params={}) {return waitForInteractionMode(params);},
   async agent_activity() {return readAgentActivity({home:OPENSKY_HOME});},
   async user_activity() {return readUserActivity();},
   async browser_status() { return browserRequest('status'); },

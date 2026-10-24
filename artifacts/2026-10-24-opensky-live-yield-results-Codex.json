@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-24",
+  "runtime": "1.7.0-rc.16",
+  "native_build": "1.4.5",
+  "implemented": [
+    "native request-scoped shared-input yielding on owner activity in auto",
+    "queued shared-input invalidation without replay",
+    "background AX and browser paths retained",
+    "MCP standard logging notifications for both cooperation transitions",
+    "MCP bounded wait, SDK subscription and CLI NDJSON watch",
+    "pause and explicit bounded override preservation",
+    "120-second pointer feedback threshold"
+  ],
+  "validation": {
+    "automated_tests": 80,
+    "packaging_assertions": 45,
+    "native_real_script_interruption": "passed with simulated owner activity; no desktop input",
+    "native_authenticated_http_queue": "passed in isolated runtime with real script process and mode changes",
+    "own_AX_thread_context": "passed in offscreen fixture",
+    "two_generic_MCP_clients_both_edges_during_pending_action": "passed with aggregate fixture activity",
+    "installed_two_MCP_clients_handshake_and_initial_state": "passed against actual installed runtime and live activity record",
+    "native_UI_offscreen_and_isolated_service": "passed; no owner-window interaction",
+    "intel": "cross-built, no Intel hardware test"
+  },
+  "installed_runtime": {
+    "at": "2026-10-24T12:55:16.200Z",
+    "runtime": "1.7.0-rc.16",
+    "two_live_mcp_initial_notifications": true,
+    "new_tool_discovered": true,
+    "bounded_wait_verified": true,
+    "native_pid_preserved": true,
+    "native_hash_preserved": true,
+    "permissions_preserved": true,
+    "browser_pid_preserved": true,
+    "browser_connected": true,
+    "browser_unpaused": true,
+    "saved_mode_preserved": true,
+    "native_inflight_interlock_installed": false
+  },
+  "native_installation": {
+    "state": "tested frozen candidate staged; current permitted 1.4.4 helper preserved",
+    "inflight_yield_live_verified_on_owner_mac": false,
+    "reason": "new native app signature requires a coordinated macOS consent refresh; do not claim staged behavior is installed"
+  },
+  "limitations": [
+    "Already-delivered input, AX calls and app-side effects cannot be undone. Yield occurs at the next input check.",
+    "MCP logging does not guarantee host agents wake; wait_for_mode and action-result state cover hosts that do not surface logs.",
+    "Old MCP clients require reconnecting; native 1.4.5 is required for in-flight yielding.",
+    "Explicit bounded desktop overrides remain effective until expiry."
+  ],
+  "native_arm64_sha256": "7d95b6fe860266ca6337965a47a14df454ec169581e6ac1750fbd0b60427997f",
+  "native_x64_sha256": "25941d8c6fd74efa1d3f1cc8f7d86e5b32c65d4b7aebbd960ed2cfa9730a5684"
+}

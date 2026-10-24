@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0-rc.16 — 24 October 2026
+
+- Native 1.4.5 interrupts running and queued shared-input work when auto detects owner activity, even within the same app. Background AX and browser work remain available. Explicit bounded overrides remain effective until expiry. Partial input is never replayed and availability never resumes emergency pause.
+- Emit content-free MCP cooperation log notifications on both mode transitions, include current cooperation on action results, and add `wait_for_mode`, SDK subscriptions and `opensky mode --watch`. Hosts may display logs without waking an agent.
+- Align the pointer renderer with the 120-second default, propagate yield state across own-app AX calls, and cover real script interruption, queue races, multiple generic clients, watch cleanup and pause preservation.
+
 ## 1.7.0-rc.15 — 19 October 2026
 
 - Simplify native UI 1.4.4 to the original compact cloud: relaxed eyes for alongside/background control, open eyes for desktop control, pause bars when stopped and a neutral waiting face for unreadable mode data. Auto, manual and temporary policies share the same behavior face.

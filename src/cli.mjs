@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {watchInteractionMode} from './index.mjs';
 import {configureActivityClient} from './agent-activity.mjs';
 configureActivityClient({interface:'CLI'});
 import { readFileSync, existsSync, statSync } from "node:fs";
@@ -23,7 +24,7 @@ Usage: opensky <command> [arguments] [--json]
 
   setup                                  Print permission and connection instructions
   guidance                               Read default auto workflow guidance (no launch)
-  mode [alongside|desktop|auto]           Read/set shared desktop cooperation (no launch)
+  mode [alongside|desktop|auto]           Read/set cooperation; --watch streams changes (no launch)
   activity                              Read external-input idle time (aggregate only)
   agents                                Read local OpenSky client activity and counters
   web install                            Register OpenSky's Chrome native host; print extension setup
@@ -162,6 +163,7 @@ async function doctor() {
   if (!daemon.running) report.nextSteps.push("Run opensky daemon, then opensky setup.");
   if (nativeProcess.binaryMatches === false) report.nextSteps.push(`A different OpenSky copy is running at ${nativeProcess.runningBinary}. At a quiet checkpoint, quit that copy and reopen ${DAEMON_BINARY.replace(/\/Contents\/MacOS\/[^/]+$/, '')}. Verify the running path before changing macOS permission entries.`);
   if(cooperation.interaction_mode==='auto'&&!cooperation.user_activity?.ok)report.nextSteps.push('Auto activity data is unavailable; background control remains available. Native UI build 1.3.3 or later with Accessibility access supplies the filtered monitor data. Verify opensky activity before relying on automatic desktop availability.');
+  if(daemon.running&&cooperation.interaction_mode==='auto'&&daemon.cooperation_interlock!==true)report.nextSteps.push('This native helper checks cooperation between requests only. In-flight yielding requires native 1.4.5+ at a quiet upgrade checkpoint; mode notifications and bounded waits work after reconnecting updated MCP clients.');
   if (daemon.running && !daemon.axTrusted) report.nextSteps.push("Allow OpenSky in System Settings > Privacy & Security > Accessibility.");
   if (daemon.running && !daemon.screenRecordingTrusted) report.nextSteps.push("Allow OpenSky in System Settings > Privacy & Security > Screen & System Audio Recording, then restart OpenSky.");
   if(daemon.running&&daemon.eventPostingTrusted===false)report.nextSteps.push('macOS event-synthesizing access is missing for the current app signature. Complete its native permission setup; ordinary status checks never request it. Background AX controls remain available.');
@@ -176,7 +178,7 @@ async function main() {
     case "help": case "--help": case "-h": help(); break;
     case "version": case "--version": case "-v": output(version); break;
     case "guidance": {const guidance=getOperatingGuidance();output(wantsJSON?guidance:guidance.instructions);break;}
-    case "mode": {const at=args.indexOf('--for');actionOutput(await computer_use.interaction_mode({mode:args[1],...(at>=0?{duration_seconds:Number(args[at+1])}:{})}));break;}
+    case "mode": {if(args.includes('--watch')) {watchInteractionMode(event=>console.log(JSON.stringify(event)),{keepAlive:true});await new Promise(()=>{});break;}const at=args.indexOf('--for');actionOutput(await computer_use.interaction_mode({mode:args[1],...(at>=0?{duration_seconds:Number(args[at+1])}:{})}));break;}
     case 'activity': {actionOutput(await computer_use.user_activity());break;}
     case 'agents': {actionOutput(await computer_use.agent_activity());break;}
     case "inspector": {

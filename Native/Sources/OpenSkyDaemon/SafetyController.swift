@@ -20,7 +20,7 @@ public final class SafetyController {
     public var isStopped: Bool {
         let active = (Thread.current.threadDictionary[threadKey] as? NSNumber)?.uint64Value
         lock.lock(); defer { lock.unlock() }
-        return stopped || (active != nil && active != generation)
+        return stopped || (active != nil && active != generation) || CooperationController.shared.interrupted
     }
 
     public func setStopped(_ value: Bool) {

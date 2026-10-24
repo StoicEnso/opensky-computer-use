@@ -45,7 +45,7 @@ final class UserActivityTracker {
     var pointerOwnerActive: Bool {
         guard monitorReady else { return true }
         let idle = clock.idle(at: ProcessInfo.processInfo.systemUptime, generalIdle: Self.generalIdle())
-        if cooperationPolicy == "auto" { return idle < 300 }
+        if cooperationPolicy == "auto" { return idle < InteractionModeDisplay.idleSeconds }
         if cooperationPolicy == "desktop" { return idle < 1.5 }
         return true
     }
@@ -78,7 +78,10 @@ final class UserActivityTracker {
         precondition(Thread.isMainThread)
         let marker = event.getIntegerValueField(.eventSourceUserData)
         clock.observe(marker: marker, now: ProcessInfo.processInfo.systemUptime)
-        if marker != ExternalActivityClock.ownEventMarker { CursorOverlayManager.shared.externalInputObserved() }
+        if marker != ExternalActivityClock.ownEventMarker {
+            CooperationController.shared.externalInputObserved()
+            CursorOverlayManager.shared.externalInputObserved()
+        }
     }
     private func installMonitor(now: TimeInterval) {
         // AppKit may omit mouse-move delivery to a window or transform events
@@ -91,6 +94,7 @@ final class UserActivityTracker {
                 guard let context else { return Unmanaged.passUnretained(event) }
                 let tracker = Unmanaged<UserActivityTracker>.fromOpaque(context).takeUnretainedValue()
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+                    CooperationController.shared.update(.unavailable)
                     tracker.monitorReady = false
                     tracker.clock = ExternalActivityClock(now: ProcessInfo.processInfo.systemUptime)
                 } else { tracker.observe(event) }
@@ -136,6 +140,7 @@ final class UserActivityTracker {
             "observed_for_seconds": ready ? max(0, now - clock.startedAt) : 0,
             "monitor_ready": ready, "monitor_status": ready ? "ready" : (!permitted ? "not_enabled" : (eventTap == nil ? "reconnecting" : (generalIdle == nil ? "idle_signal_unavailable" : "tap_disabled"))),
             "monitor_backend": "quartz_listen_only", "own_input_filtered": true, "input_contents_recorded": false]
+        CooperationController.shared.update(InteractionModeDisplay.resolve(config: config, missing: !FileManager.default.fileExists(atPath: modeURL.path), activity: record, now: Date().timeIntervalSince1970 * 1000))
         let file = URL(fileURLWithPath: home).appendingPathComponent("user-activity.json")
         if let data = try? JSONSerialization.data(withJSONObject: record) {
             try? data.write(to: file, options: .atomic)

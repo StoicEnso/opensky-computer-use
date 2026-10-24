@@ -64,9 +64,10 @@ public final class OpenSkyRPCDispatcher {
                 "ok": true,
                 "service": "OpenSky Computer Use Daemon",
                 "version": "1.3.0",
-                "build_version": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1.4.4",
+                "build_version": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1.4.5",
                 "pid": ProcessInfo.processInfo.processIdentifier,
                 "stopped": SafetyController.shared.isStopped,
+                "cooperation_interlock": true,
                 "screenRecordingTrusted": CGPreflightScreenCaptureAccess(),
                 "eventPostingTrusted": CGPreflightPostEventAccess(),
                 "coordinates": "global desktop points, origin at primary display top-left",
@@ -681,11 +682,16 @@ public final class LocalHTTPServer {
         let passiveInspector = ["inspector", "agent_activity"].contains(method) && ["status", "close"].contains(params["action"] as? String ?? "status")
         let priority = passiveInspector || ["stop", "resume", "shutdown", "status", "ping", "cursor_status", "cursor_dismiss"].contains(method)
         let generation = SafetyController.shared.operationGeneration
+        CooperationController.shared.refresh()
+        let cooperation: UInt64? = CooperationController.requiresDesktop(method, params) ? CooperationController.shared.ticket : nil
         let enqueuedAt = ProcessInfo.processInfo.systemUptime
         // Reject control submitted during a pause even if resume arrives before dispatch.
         if !priority && !inspectionMethods.contains(method) && SafetyController.shared.isStopped {
             respond(connection, body: ["ok": false, "error_code": "stopped", "error": "OpenSky is stopped. Resume before submitting new actions."])
             return
+        }
+        if let cooperation, !CooperationController.shared.isCurrent(cooperation) {
+            respond(connection, body: CooperationController.shared.yieldResult(started: false)); return
         }
         if !priority {
             pendingLock.lock()
@@ -707,8 +713,18 @@ public final class LocalHTTPServer {
             } else if !priority && ProcessInfo.processInfo.systemUptime - enqueuedAt > 5 {
                 result = ["ok": false, "error_code": "queue_expired", "error": "This request waited more than five seconds. Observe again before submitting new input."]
             } else {
-                result = SafetyController.shared.withGeneration(generation) {
-                    OpenSkyRPCDispatcher.shared.dispatch(method: method, params: params)
+                CooperationController.shared.refresh()
+                if let cooperation, !CooperationController.shared.isCurrent(cooperation) {
+                    result = CooperationController.shared.yieldResult(started: false)
+                } else {
+                    result = CooperationController.shared.withTicket(cooperation) {
+                        SafetyController.shared.withGeneration(generation) {
+                            OpenSkyRPCDispatcher.shared.dispatch(method: method, params: params)
+                        }
+                    }
+                    if let cooperation, !CooperationController.shared.isCurrent(cooperation) {
+                        result = CooperationController.shared.yieldResult(started: true)
+                    }
                 }
                 // Stop/resume cannot erase cancellation of an operation already in progress.
                 if !priority && !SafetyController.shared.isCurrent(generation) {
@@ -761,6 +777,19 @@ if args.contains("--rpc") {
 var residentServer: LocalHTTPServer?
 private var residentMenu: OpenSkyMenu?
 var stopMonitor: Any?
+if args.contains("--test-cooperation") { checkCooperationInterlock(); exit(0) }
+// Isolated transport fixture: no AppKit startup, tray, monitor or permission prompt.
+if args.contains("--test-cooperation-http") {
+    do {
+        residentServer = LocalHTTPServer(port: portEnv, token: try loadControlToken())
+        try residentServer!.start()
+        let timer = DispatchSource.makeTimerSource(queue: .global())
+        timer.schedule(deadline: .now(), repeating: .milliseconds(250))
+        timer.setEventHandler { CooperationController.shared.refresh() }
+        timer.resume()
+        dispatchMain()
+    } catch { fputs("Cooperation fixture failed: \(error)\n", stderr); exit(1) }
+}
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 

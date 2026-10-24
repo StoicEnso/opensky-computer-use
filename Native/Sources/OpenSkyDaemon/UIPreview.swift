@@ -117,15 +117,16 @@ private func checkInspectorTargetPicker() throws {
 
 private func checkOwnAXExecution() throws {
     let own = AXUIElementCreateApplication(ProcessInfo.processInfo.processIdentifier)
-    func background(generation: UInt64, expectAction: Bool) throws {
+    func background(generation: UInt64, expectAction: Bool, cooperation: UInt64? = nil) throws {
         let lock = NSLock(); var finished = false; var success = false
         DispatchQueue.global().async {
             var called = false
-            let result = SafetyController.shared.withGeneration(generation) {
+            let result = CooperationController.shared.withTicket(cooperation) { SafetyController.shared.withGeneration(generation) {
                 OpenSkyAXActions.run(own) {
                     called = true
                     return Thread.isMainThread && SafetyController.shared.operationGeneration == generation ? .success : .failure
                 }
+            }
             }
             lock.lock(); success = expectAction ? called && result == .success : !called && result == .cannotComplete; finished = true; lock.unlock()
         }
@@ -166,6 +167,12 @@ private func checkOwnAXExecution() throws {
     try background(generation: original, expectAction: true)
     SafetyController.shared.setStopped(true); SafetyController.shared.setStopped(false)
     try background(generation: original, expectAction: false)
+    let cooperation = CooperationController.shared
+    cooperation.update(InteractionModeDisplay(policy: .desktop, effective: .desktop, reason: .selected))
+    let ticket = cooperation.ticket
+    cooperation.update(InteractionModeDisplay(policy: .alongside, effective: .alongside, reason: .selected))
+    try background(generation: SafetyController.shared.operationGeneration, expectAction: false, cooperation: ticket)
+    try background(generation: SafetyController.shared.operationGeneration, expectAction: true)
 }
 
 private func checkInspectorRecovery() throws {

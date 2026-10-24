@@ -2,6 +2,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { callDaemon, computer_use } from "./index.mjs";
 import { getOperatingGuidance } from "./operator-guidance.mjs";
+import {cooperationState,watchInteractionMode} from './mode-events.mjs';
+import {OPENSKY_HOME} from './index.mjs';
 import {configureActivityClient} from './agent-activity.mjs';
 
 const SERVER_INFO = {
@@ -10,6 +12,7 @@ const SERVER_INFO = {
 };
 
 const TOOLS = [
+  {name:'wait_for_mode',description:'Wait up to 60 seconds for effective desktop/alongside cooperation, without launching control, changing mode, retrying input or resuming a pause. Use when shared-input work is deferred and independent background work is exhausted. Preserve the checkpoint, then re-observe before continuing. MCP also emits content-free opensky.cooperation logging notifications on transitions; some hosts do not wake agents for logs. Desktop availability never means emergency pause is cleared.',inputSchema:{type:'object',properties:{effective_mode:{type:'string',enum:['desktop','alongside'],default:'desktop'},timeout_ms:{type:'integer',minimum:0,maximum:60000,default:60000}},additionalProperties:false},annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}},
   {name:'agent_activity',description:'Read local aggregate OpenSky client activity without starting control or taking screenshots. Working counts in-flight requests from instrumented MCP/CLI/SDK clients, not all thinking agents; a shared connection counts once. Shows calls today, response timing, errors and deferred calls. No request parameters or page content are stored. Older clients must reconnect for instrumentation.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,destructiveHint:false,openWorldHint:false}},
   {
     name:'browser_status',description:'Read OpenSky\'s own Chrome extension/native-messaging connection without starting Chrome or asking for permissions. Use browser_* for background tabs and uploads after the one-time extension setup; native AX remains available.',
@@ -32,7 +35,7 @@ const TOOLS = [
   },
   {
     name: 'interaction_mode',
-    description: 'Read or set persistent desktop cooperation mode. Alongside permits exact-window background AX controls and defers shared input while the owner works. Owner-selected auto uses filtered external-input idle time: desktop becomes available after 120 idle seconds, and activity or an unreadable signal returns to alongside restrictions on the next native request. Inspect effective_mode; keep short serialized UI turns because already-delivered input can finish. The two-minute threshold is a default. If the owner explicitly says to use the desktop now, use mode desktop with duration_seconds for a bounded turn; it expires back to the saved policy. Restore the saved mode early when finished. This does not resume emergency pause or expand task authority. Preserve the saved owner choice. Defer checkpoints without repeated permission questions. Current-runtime MCP/CLI/SDK recheck before requests; old clients must reconnect. This neither grants task authority nor resumes an emergency pause.',
+    description: 'Read or set persistent desktop cooperation mode. Alongside permits exact-window background AX controls and defers shared input while the owner works. Owner-selected auto uses filtered external-input idle time: desktop becomes available after 120 idle seconds, and activity or an unreadable signal returns to alongside; native 1.4.5+ also yields running and queued shared-input work at the next input check. Inspect effective_mode; keep short serialized UI turns because already-delivered input can finish. The two-minute threshold is a default. If the owner explicitly says to use the desktop now, use mode desktop with duration_seconds for a bounded turn; it expires back to the saved policy. Restore the saved mode early when finished. This does not resume emergency pause or expand task authority. Preserve the saved owner choice. Defer checkpoints without repeated permission questions. Current-runtime MCP/CLI/SDK recheck before requests; old clients must reconnect. This neither grants task authority nor resumes an emergency pause.',
     inputSchema: {type:'object',additionalProperties:false,properties:{mode:{type:'string',enum:['alongside','desktop','auto']},duration_seconds:{type:'integer',minimum:1,maximum:3600,description:'Bounded desktop turn only after explicit owner direction; expires back to the saved cooperation mode.'}}},
     annotations: {readOnlyHint:false,destructiveHint:false,openWorldHint:false}
   },
@@ -436,6 +439,7 @@ for (const tool of TOOLS) {
 }
 
 async function handleToolCall(name, args = {}) {
+  if(name==='wait_for_mode')return computer_use.wait_for_mode({...args,signal:transportClosed.signal});
   if(name==='agent_activity')return computer_use.agent_activity();
   const tool = TOOLS.find(tool => tool.name === name);
   if (!tool) return { ok: false, error: `Unknown tool: ${name}` };
@@ -516,6 +520,12 @@ function formatToolResult(result, includeImageB64 = true) {
 // --- Dual Framing (Newline JSON-RPC + Content-Length) MCP Stdio Transport ---
 
 let useContentLengthFraming = false;
+let closeModeWatcher;
+const transportClosed=new AbortController();
+const logLevels=['debug','info','notice','warning','error','critical','alert','emergency'];
+let minimumLogLevel='info';
+process.stdin.on('end',()=>{closeModeWatcher?.();transportClosed.abort();});
+process.stdin.on('close',()=>{closeModeWatcher?.();transportClosed.abort();});
 
 function sendMessage(msg) {
   const json = JSON.stringify(msg);
@@ -543,7 +553,7 @@ async function processRPCMessage(msg) {
         result: {
           protocolVersion: ["2024-11-05", "2025-03-26", "2025-06-18"].includes(params?.protocolVersion) ? params.protocolVersion : "2025-06-18",
           capabilities: {
-            tools: {}
+            tools: {}, logging: {}
           },
           serverInfo: SERVER_INFO,
           instructions: getOperatingGuidance().instructions
@@ -553,9 +563,20 @@ async function processRPCMessage(msg) {
     }
 
     if (method === "notifications/initialized" || method === "initialized") {
+      closeModeWatcher?.();
+      closeModeWatcher=watchInteractionMode(event=>{
+        const level=event.event==='mode_state'?'info':'notice';
+        if(logLevels.indexOf(level)>=logLevels.indexOf(minimumLogLevel))
+          sendMessage({jsonrpc:'2.0',method:'notifications/message',params:{level,logger:'opensky.cooperation',data:event}});
+      },{home:OPENSKY_HOME});
       return;
     }
 
+    if(method==='logging/setLevel') {
+      if(!logLevels.includes(params?.level))sendMessage({jsonrpc:'2.0',id,error:{code:-32602,message:'Invalid log level'}});
+      else {minimumLogLevel=params.level;sendMessage({jsonrpc:'2.0',id,result:{}});}
+      return;
+    }
     if (method === "ping") {
       sendMessage({ jsonrpc: "2.0", id, result: {} });
       return;
@@ -579,7 +600,7 @@ async function processRPCMessage(msg) {
       sendMessage({
         jsonrpc: "2.0",
         id,
-        result: formatToolResult(res, toolArgs.return_image_base64 !== false)
+        result: formatToolResult(['click','drag','scroll','set_value','type_text','press_key','paste','perform_secondary_action','select_text','manage_window','run_applescript','browser_click','browser_fill','browser_upload','browser_press_key','browser_select_option'].includes(toolName)?{...res,cooperation:cooperationState(OPENSKY_HOME)}:res, toolArgs.return_image_base64 !== false)
       });
       return;
     }
@@ -613,7 +634,7 @@ let priorityQueue = Promise.resolve();
 let queueGeneration = 0;
 let pendingRequests = 0;
 let locallyStopped = false;
-const readTools = new Set(["browser_status","browser_snapshot","browser_frames","browser_screenshot","user_activity","interaction_mode", "get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
+const readTools = new Set(["browser_status","browser_snapshot","browser_frames","browser_screenshot","user_activity","wait_for_mode","interaction_mode", "get_operating_guidance", "get_app_state", "list_apps", "screenshot_screen", "find_elements"]);
 function rejectQueued(message, code, error) {
   if (message.id !== undefined) sendMessage({ jsonrpc: "2.0", id: message.id, result: formatToolResult({ ok: false, error_code: code, error }) });
 }

@@ -53,7 +53,7 @@ export function writeInteractionMode(home, mode, {durationSeconds}={}) {
     renameSync(temporary, path.join(home, filename));
   } finally { rmSync(temporary, { force: true }); }
   return { ...readInteractionMode(home), message: mode==='auto'
-    ? 'Auto cooperation: shared desktop input is available after 120 seconds of filtered external-input idle time. Activity or an unavailable idle signal restores alongside restrictions on the next request. This never resumes an emergency pause; an input already delivered may finish.'
+    ? 'Auto cooperation: shared desktop input is available after 120 seconds of filtered external-input idle time. Activity or an unavailable idle signal restores alongside restrictions. Native 1.4.5+ also interrupts running shared-input work at its next input check. Earlier delivered input cannot be undone. This never resumes an emergency pause.'
     : mode === 'alongside'
     ? 'Alongside mode: background AX actions only. Defer shared-input steps and continue independent work; no permission question is needed for each deferred step.'
     : 'Desktop mode: execution modes may use shared keyboard, pointer and clipboard. Use only when the owner has made the desktop available.' };

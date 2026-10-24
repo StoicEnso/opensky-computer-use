@@ -1,6 +1,8 @@
 # OpenSky data handling
 
-Updated 19 October 2026 for runtime 1.7.0-rc.15 / native API 1.3.0 and UI build 1.4.4.
+Updated 24 October 2026 for runtime 1.7.0-rc.16 / native API 1.3.0 and UI build 1.4.5.
+
+Cooperation notifications contain mode, availability, reason and scheduling guidance only. They do not contain input contents, page data or target names. Connected MCP clients may display or retain these notifications under their own settings.
 
 OpenSky is a local macOS control engine. There is no developer upload endpoint, outbound telemetry or OpenSky cloud relay. Native control uses authenticated loopback RPC; MCP communicates with the connected agent over standard input/output. Apple Vision OCR runs on the Mac. Optional local activity counters support the menu-bar activity view; they are not sent to OpenSky's developers.
 
