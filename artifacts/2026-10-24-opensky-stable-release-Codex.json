@@ -44,5 +44,35 @@
     "MCP logging does not guarantee host agents wake; wait_for_mode and action-result state cover hosts that do not surface logs.",
     "Old MCP clients require reconnecting; native 1.4.5 is required for in-flight yielding.",
     "Explicit bounded desktop overrides remain effective until expiry."
-  ]
+  ],
+  "publication": {
+    "source_commit": "3695a706b97f58eddf552cb90d4c0b24b8f14009",
+    "release": "https://github.com/StoicEnso/opensky-computer-use/releases/tag/v1.7.0",
+    "latest_stable_verified": true,
+    "prerelease": false,
+    "published_assets": 7,
+    "exact_commit_ci_passed": [
+      "https://github.com/StoicEnso/opensky-computer-use/actions/runs/40133377958",
+      "https://github.com/StoicEnso/opensky-computer-use/actions/runs/40133378367"
+    ]
+  },
+  "public_bootstrap_validation": {
+    "live_github_bootstrap": "passed",
+    "public_download_checksums": "passed",
+    "runtime": "1.7.0",
+    "native_payload_hash_matches_frozen": true,
+    "compiler_unavailable": true,
+    "fixture_app_not_launched": true,
+    "owner_apps_not_reinstalled_by_fixture": true,
+    "claude_dependency_setup_not_repeated": true
+  },
+  "claude_mcpb_version_verified": "1.7.0",
+  "installed_mcp": {
+    "server_version": "1.7.0",
+    "tools": 35,
+    "wait_for_mode": true,
+    "cooperation_logging": true,
+    "initial_mode_notification_received": true,
+    "saved_auto_mode_preserved": true
+  }
 }
